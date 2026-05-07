@@ -1,6 +1,13 @@
+import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
 import Script from 'next/script';
 import "./globals.css";
+
+export const metadata: Metadata = {
+  other: {
+    'google-adsense-account': 'ca-pub-2308669348522445',
+  },
+};
 
 const RTL_LOCALES = ['ar', 'ur'];
 
