@@ -47,7 +47,15 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: trimmed }),
       });
-      if (!res.ok) throw new Error('failed');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const detail: string = errData.detail || '';
+        // Strip yt-dlp noise like "ERROR: [youtube] abc123: "
+        const cleaned = detail.replace(/^ERROR:\s*\[[^\]]+\]\s*[\w-]+:\s*/i, '').trim();
+        setStatus('error');
+        setErrorMsg(cleaned || t('result.error'));
+        return;
+      }
       const data = await res.json();
       setResult(data);
       setStatus('success');
