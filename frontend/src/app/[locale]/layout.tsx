@@ -15,8 +15,10 @@ import te from '../../../messages/te.json';
 import ar from '../../../messages/ar.json';
 import vi from '../../../messages/vi.json';
 import or from '../../../messages/or.json';
+import fr from '../../../messages/fr.json';
+import sw from '../../../messages/sw.json';
 
-const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or };
+const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or, fr, sw };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;

@@ -69,6 +69,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               { code: 'id', label: 'Indonesia' },
               { code: 'pt', label: 'Português' },
               { code: 'ar', label: 'العربية' },
+              { code: 'fr', label: 'Français' },
+              { code: 'sw', label: 'Kiswahili' },
             ].filter(l => l.code !== locale);
             return (
               <div className="mt-5 flex flex-wrap justify-center items-center gap-x-1 gap-y-2">

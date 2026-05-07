@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Kipakuzi cha Video - Pakua Video za Instagram, YouTube & Facebook",
+    "description": "Pakua video kutoka Instagram, YouTube na Facebook bure kabisa. Hakuna app inayohitajika. Haraka na rahisi.",
+    "lang": "sw",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "Bure • Bila Kuingia • Bila App",
+    "title": "Kipakuzi cha Video",
+    "subtitle": "Pakua video kutoka Instagram, YouTube na Facebook papo hapo. Bure, haraka, na bila app yoyote.",
+    "placeholder": "Bandika kiungo cha video hapa...",
+    "button": "Pakua",
+    "paste": "Bandika"
+  },
+  "platforms": {
+    "title": "Majukwaa Yanayoungwa Mkono",
+    "instagram": "Instagram Reels, Machapisho na Stories",
+    "youtube": "Video za YouTube na Shorts",
+    "facebook": "Video za Facebook na Reels"
+  },
+  "howto": {
+    "title": "Jinsi ya Kupakua Video",
+    "step1_title": "Nakili Kiungo",
+    "step1_desc": "Fungua Instagram, YouTube au Facebook na nakili kiungo cha video.",
+    "step2_title": "Bandika na Pakua",
+    "step2_desc": "Bandika kiungo kwenye sanduku hapo juu na bonyeza kitufe cha Pakua.",
+    "step3_title": "Hifadhi Video",
+    "step3_desc": "Chagua ubora unaotaka na uhifadhi video kwenye kifaa chako."
+  },
+  "result": {
+    "title": "Video Yako Iko Tayari!",
+    "download_hd": "Pakua HD",
+    "download_sd": "Pakua SD",
+    "download_audio": "Pakua Sauti Tu",
+    "processing": "Inatafuta video yako...",
+    "error": "Haiwezekani kupata video. Angalia kiungo na jaribu tena.",
+    "invalid_url": "Tafadhali ingiza kiungo halali cha Instagram, YouTube au Facebook."
+  },
+  "faq": {
+    "title": "Maswali Yanayoulizwa Mara Kwa Mara",
+    "q1": "Je, zana hii ni bure?",
+    "a1": "Ndiyo, bure kabisa. Hakuna usajili au app inayohitajika.",
+    "q2": "Ni majukwaa gani yanayoungwa mkono?",
+    "a2": "Instagram (Reels, Machapisho, Stories), YouTube (Video, Shorts), na Facebook (Video, Reels).",
+    "q3": "Je, ni salama kutumia?",
+    "a3": "Ndiyo. Hatuhifadhi viungo au video zako. Kila kitu kinashughulikiwa wakati halisi.",
+    "q4": "Je, ninaweza kupakua video za kibinafsi?",
+    "a4": "Hapana. Video za umma pekee zinaweza kupakuliwa."
+  },
+  "trending": {
+    "badge": "Inayoendelea Sasa",
+    "title": "Video Bora za Wiki Hii",
+    "subtitle": "Bonyeza video yoyote kupakua mara moja"
+  },
+  "footer": {
+    "tagline": "Upakuzi wa video haraka na bila malipo kutoka majukwaa yako unayopenda.",
+    "disclaimer": "Zana hii ni kwa matumizi ya kibinafsi tu. Tafadhali heshimu sheria za hakimiliki."
+  }
+}

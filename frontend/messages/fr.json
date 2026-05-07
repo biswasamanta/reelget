@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Téléchargeur de Vidéos - Télécharger des Vidéos Instagram, YouTube & Facebook",
+    "description": "Téléchargez gratuitement des vidéos depuis Instagram, YouTube et Facebook. Aucune application requise. Rapide et facile.",
+    "lang": "fr",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "Gratuit • Sans Connexion • Sans App",
+    "title": "Téléchargeur de Vidéos",
+    "subtitle": "Téléchargez des vidéos depuis Instagram, YouTube et Facebook instantanément. Gratuit, rapide et sans application.",
+    "placeholder": "Collez le lien de la vidéo ici...",
+    "button": "Télécharger",
+    "paste": "Coller"
+  },
+  "platforms": {
+    "title": "Plateformes Supportées",
+    "instagram": "Instagram Reels, Posts et Stories",
+    "youtube": "Vidéos YouTube et Shorts",
+    "facebook": "Vidéos Facebook et Reels"
+  },
+  "howto": {
+    "title": "Comment Télécharger des Vidéos",
+    "step1_title": "Copiez le Lien",
+    "step1_desc": "Ouvrez Instagram, YouTube ou Facebook et copiez le lien de la vidéo.",
+    "step2_title": "Collez et Téléchargez",
+    "step2_desc": "Collez le lien dans la boîte ci-dessus et cliquez sur le bouton Télécharger.",
+    "step3_title": "Enregistrez la Vidéo",
+    "step3_desc": "Choisissez la qualité souhaitée et enregistrez la vidéo sur votre appareil."
+  },
+  "result": {
+    "title": "Votre Vidéo est Prête !",
+    "download_hd": "Télécharger en HD",
+    "download_sd": "Télécharger en SD",
+    "download_audio": "Télécharger l'Audio Seulement",
+    "processing": "Recherche de votre vidéo...",
+    "error": "Vidéo introuvable. Vérifiez le lien et réessayez.",
+    "invalid_url": "Veuillez entrer un lien valide Instagram, YouTube ou Facebook."
+  },
+  "faq": {
+    "title": "Questions Fréquemment Posées",
+    "q1": "Cet outil est-il gratuit ?",
+    "a1": "Oui, complètement gratuit. Aucune inscription ou application requise.",
+    "q2": "Quelles plateformes sont supportées ?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Vidéos, Shorts) et Facebook (Vidéos, Reels).",
+    "q3": "Est-ce sécurisé ?",
+    "a3": "Oui. Nous ne stockons pas vos liens ou vidéos. Tout est traité en temps réel.",
+    "q4": "Puis-je télécharger des vidéos privées ?",
+    "a4": "Non. Seules les vidéos publiques peuvent être téléchargées."
+  },
+  "trending": {
+    "badge": "Tendance Maintenant",
+    "title": "Top Vidéos de la Semaine",
+    "subtitle": "Cliquez sur n'importe quelle vidéo pour télécharger immédiatement"
+  },
+  "footer": {
+    "tagline": "Téléchargements de vidéos rapides et gratuits depuis vos plateformes préférées.",
+    "disclaimer": "Cet outil est uniquement à usage personnel. Veuillez respecter les lois sur le droit d'auteur."
+  }
+}

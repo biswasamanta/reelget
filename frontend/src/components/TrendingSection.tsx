@@ -17,6 +17,8 @@ const LOCALE_TO_REGION: Record<string, string> = {
   ar: 'SA',
   vi: 'VN',
   en: 'US',
+  fr: 'NG',
+  sw: 'KE',
 };
 
 export default function TrendingSection({ locale }: { locale: string }) {

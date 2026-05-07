@@ -38,7 +38,7 @@ YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
-ALLOWED_REGIONS = {"IN", "PK", "ID", "BR", "SA", "VN", "US"}
+ALLOWED_REGIONS = {"IN", "PK", "ID", "BR", "SA", "VN", "US", "NG", "KE"}
 
 
 class DownloadRequest(BaseModel):
@@ -70,8 +70,22 @@ async def download(req: DownloadRequest):
         "no_warnings": True,
         "skip_download": True,
         "extract_flat": False,
-        "format": "bestvideo+bestaudio/best",
         "logger": _SilentLogger(),
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        # Use iOS/Android clients — they bypass YouTube's PO-token
+        # requirement that blocks data-centre IPs (Railway, etc.)
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["ios", "android", "web"],
+            }
+        },
     }
 
     try:
