@@ -22,7 +22,10 @@
       "Bash(findstr \":3001\")",
       "mcp__Claude_in_Chrome__computer",
       "Bash(python -c ' *)",
-      "mcp__Claude_in_Chrome__tabs_create_mcp"
+      "mcp__Claude_in_Chrome__tabs_create_mcp",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
