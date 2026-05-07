@@ -108,14 +108,14 @@ async def download(req: DownloadRequest):
     except yt_dlp.utils.DownloadError as e:
         print(f"[yt-dlp DownloadError] {str(e)}", flush=True)
         raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
     finally:
         if cookies_file:
             try:
                 os.unlink(cookies_file)
             except Exception:
                 pass
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
 
     if not info:
         raise HTTPException(status_code=404, detail="Video not found")
