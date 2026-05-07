@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "वीडियो डाउनलोडर - Instagram, YouTube और Facebook वीडियो डाउनलोड करें",
+    "description": "Instagram, YouTube और Facebook से वीडियो मुफ्त में डाउनलोड करें। कोई ऐप नहीं चाहिए। तेज़ और आसान।",
+    "lang": "hi",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "मुफ्त • बिना Login • बिना App",
+    "title": "वीडियो डाउनलोडर",
+    "subtitle": "Instagram, YouTube और Facebook से वीडियो तुरंत डाउनलोड करें। मुफ्त, तेज़, और बिना किसी ऐप के।",
+    "placeholder": "यहाँ वीडियो लिंक पेस्ट करें...",
+    "button": "डाउनलोड करें",
+    "paste": "पेस्ट करें"
+  },
+  "platforms": {
+    "title": "समर्थित प्लेटफ़ॉर्म",
+    "instagram": "Instagram Reels, Posts और Stories",
+    "youtube": "YouTube Videos और Shorts",
+    "facebook": "Facebook Videos और Reels"
+  },
+  "howto": {
+    "title": "वीडियो कैसे डाउनलोड करें",
+    "step1_title": "लिंक कॉपी करें",
+    "step1_desc": "Instagram, YouTube या Facebook खोलें और वीडियो का लिंक कॉपी करें।",
+    "step2_title": "पेस्ट करें और डाउनलोड करें",
+    "step2_desc": "ऊपर दिए बॉक्स में लिंक पेस्ट करें और Download बटन दबाएं।",
+    "step3_title": "वीडियो सेव करें",
+    "step3_desc": "अपनी पसंद की क्वालिटी चुनें और वीडियो अपने डिवाइस में सेव करें।"
+  },
+  "result": {
+    "title": "आपका वीडियो तैयार है!",
+    "download_hd": "HD डाउनलोड करें",
+    "download_sd": "SD डाउनलोड करें",
+    "download_audio": "केवल Audio डाउनलोड करें",
+    "processing": "आपका वीडियो खोजा जा रहा है...",
+    "error": "वीडियो नहीं मिला। लिंक जांचें और फिर कोशिश करें।",
+    "invalid_url": "कृपया Instagram, YouTube या Facebook का सही लिंक दर्ज करें।"
+  },
+  "faq": {
+    "title": "अक्सर पूछे जाने वाले सवाल",
+    "q1": "क्या यह टूल मुफ्त है?",
+    "a1": "हाँ, पूरी तरह मुफ्त। कोई रजिस्ट्रेशन या ऐप नहीं चाहिए।",
+    "q2": "कौन से प्लेटफ़ॉर्म समर्थित हैं?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Videos, Shorts), और Facebook (Videos, Reels)।",
+    "q3": "क्या यह सुरक्षित है?",
+    "a3": "हाँ। हम आपके लिंक या वीडियो स्टोर नहीं करते। सब कुछ रियल टाइम में होता है।",
+    "q4": "क्या मैं प्राइवेट वीडियो डाउनलोड कर सकता हूँ?",
+    "a4": "नहीं। केवल सार्वजनिक वीडियो ही डाउनलोड किए जा सकते हैं।"
+  },
+  "trending": {
+    "badge": "अभी ट्रेंडिंग",
+    "title": "इस सप्ताह के टॉप वीडियो",
+    "subtitle": "किसी भी वीडियो पर क्लिक करें और तुरंत डाउनलोड करें"
+  },
+  "footer": {
+    "tagline": "अपने पसंदीदा प्लेटफ़ॉर्म से तेज़ और मुफ्त वीडियो डाउनलोड।",
+    "disclaimer": "यह टूल केवल व्यक्तिगत उपयोग के लिए है। कृपया कॉपीराइट नियमों का पालन करें।"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Baixador de Vídeos - Baixe Vídeos do Instagram, YouTube e Facebook",
+    "description": "Baixe vídeos do Instagram, YouTube e Facebook gratuitamente. Sem aplicativo necessário. Rápido e fácil.",
+    "lang": "pt",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "Grátis • Sem Login • Sem App",
+    "title": "Baixador de Vídeos",
+    "subtitle": "Baixe vídeos do Instagram, YouTube e Facebook instantaneamente. Grátis, rápido e sem precisar de app.",
+    "placeholder": "Cole o link do vídeo aqui...",
+    "button": "Baixar",
+    "paste": "Colar"
+  },
+  "platforms": {
+    "title": "Plataformas Suportadas",
+    "instagram": "Instagram Reels, Posts e Stories",
+    "youtube": "YouTube Vídeos e Shorts",
+    "facebook": "Facebook Vídeos e Reels"
+  },
+  "howto": {
+    "title": "Como Baixar Vídeos",
+    "step1_title": "Copie o Link",
+    "step1_desc": "Abra o Instagram, YouTube ou Facebook e copie o link do vídeo.",
+    "step2_title": "Cole e Clique em Baixar",
+    "step2_desc": "Cole o link na caixa acima e clique no botão Baixar.",
+    "step3_title": "Salve o Vídeo",
+    "step3_desc": "Escolha a qualidade desejada e salve o vídeo no seu dispositivo."
+  },
+  "result": {
+    "title": "Seu Vídeo Está Pronto!",
+    "download_hd": "Baixar em HD",
+    "download_sd": "Baixar em SD",
+    "download_audio": "Baixar Só o Áudio",
+    "processing": "Encontrando seu vídeo...",
+    "error": "Não foi possível encontrar o vídeo. Verifique o link e tente novamente.",
+    "invalid_url": "Por favor, insira um link válido do Instagram, YouTube ou Facebook."
+  },
+  "faq": {
+    "title": "Perguntas Frequentes",
+    "q1": "Esta ferramenta é gratuita?",
+    "a1": "Sim, completamente gratuita. Sem necessidade de cadastro ou aplicativo.",
+    "q2": "Quais plataformas são suportadas?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Vídeos, Shorts) e Facebook (Vídeos, Reels).",
+    "q3": "É seguro usar?",
+    "a3": "Sim. Não armazenamos seus links ou vídeos. Tudo é processado em tempo real.",
+    "q4": "Posso baixar vídeos privados?",
+    "a4": "Não. Apenas vídeos públicos podem ser baixados."
+  },
+  "trending": {
+    "badge": "Em Alta Agora",
+    "title": "Top Vídeos da Semana",
+    "subtitle": "Clique em qualquer vídeo para baixar na hora"
+  },
+  "footer": {
+    "tagline": "Downloads de vídeo rápidos e gratuitos das suas plataformas favoritas.",
+    "disclaimer": "Esta ferramenta é apenas para uso pessoal. Respeite as leis de direitos autorais."
+  }
+}

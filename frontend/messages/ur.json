@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "ویڈیو ڈاؤنلوڈر - Instagram، YouTube اور Facebook ویڈیو ڈاؤنلوڈ کریں",
+    "description": "Instagram، YouTube اور Facebook سے مفت میں ویڈیو ڈاؤنلوڈ کریں۔ کوئی ایپ نہیں چاہیے۔ تیز اور آسان۔",
+    "lang": "ur",
+    "dir": "rtl"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "مفت • بغیر لاگ ان • بغیر ایپ",
+    "title": "ویڈیو ڈاؤنلوڈر",
+    "subtitle": "Instagram، YouTube اور Facebook سے فوری ویڈیو ڈاؤنلوڈ کریں۔ مفت، تیز، اور بغیر کسی ایپ کے۔",
+    "placeholder": "یہاں ویڈیو لنک پیسٹ کریں...",
+    "button": "ڈاؤنلوڈ کریں",
+    "paste": "پیسٹ کریں"
+  },
+  "platforms": {
+    "title": "سپورٹ شدہ پلیٹ فارم",
+    "instagram": "Instagram Reels، Posts اور Stories",
+    "youtube": "YouTube Videos اور Shorts",
+    "facebook": "Facebook Videos اور Reels"
+  },
+  "howto": {
+    "title": "ویڈیو کیسے ڈاؤنلوڈ کریں",
+    "step1_title": "لنک کاپی کریں",
+    "step1_desc": "Instagram، YouTube یا Facebook کھولیں اور ویڈیو کا لنک کاپی کریں۔",
+    "step2_title": "پیسٹ کریں اور ڈاؤنلوڈ کریں",
+    "step2_desc": "اوپر دیے گئے باکس میں لنک پیسٹ کریں اور Download بٹن دبائیں۔",
+    "step3_title": "ویڈیو محفوظ کریں",
+    "step3_desc": "اپنی پسند کا معیار چنیں اور ویڈیو اپنے ڈیوائس میں محفوظ کریں۔"
+  },
+  "result": {
+    "title": "آپ کی ویڈیو تیار ہے!",
+    "download_hd": "HD ڈاؤنلوڈ کریں",
+    "download_sd": "SD ڈاؤنلوڈ کریں",
+    "download_audio": "صرف Audio ڈاؤنلوڈ کریں",
+    "processing": "آپ کی ویڈیو تلاش کی جا رہی ہے...",
+    "error": "ویڈیو نہیں ملی۔ لنک چیک کریں اور دوبارہ کوشش کریں۔",
+    "invalid_url": "براہ کرم درست Instagram، YouTube یا Facebook لنک درج کریں۔"
+  },
+  "faq": {
+    "title": "اکثر پوچھے جانے والے سوالات",
+    "q1": "کیا یہ ٹول مفت ہے؟",
+    "a1": "ہاں، بالکل مفت۔ کوئی رجسٹریشن یا ایپ نہیں چاہیے۔",
+    "q2": "کون سے پلیٹ فارم سپورٹ ہیں؟",
+    "a2": "Instagram (Reels, Posts, Stories)، YouTube (Videos, Shorts)، اور Facebook (Videos, Reels)۔",
+    "q3": "کیا یہ محفوظ ہے؟",
+    "a3": "ہاں۔ ہم آپ کے لنک یا ویڈیو محفوظ نہیں کرتے۔ سب کچھ ریئل ٹائم میں ہوتا ہے۔",
+    "q4": "کیا میں پرائیویٹ ویڈیو ڈاؤنلوڈ کر سکتا ہوں؟",
+    "a4": "نہیں۔ صرف عوامی ویڈیوز ہی ڈاؤنلوڈ کی جا سکتی ہیں۔"
+  },
+  "trending": {
+    "badge": "ابھی ٹرینڈنگ",
+    "title": "اس ہفتے کے ٹاپ ویڈیوز",
+    "subtitle": "کسی بھی ویڈیو پر کلک کریں اور فوری ڈاؤن لوڈ شروع کریں"
+  },
+  "footer": {
+    "tagline": "اپنے پسندیدہ پلیٹ فارم سے تیز اور مفت ویڈیو ڈاؤنلوڈ۔",
+    "disclaimer": "یہ ٹول صرف ذاتی استعمال کے لیے ہے۔ براہ کرم کاپی رائٹ قوانین کا احترام کریں۔"
+  }
+}

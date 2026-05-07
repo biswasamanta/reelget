@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Tải Video - Tải Video Instagram, YouTube & Facebook",
+    "description": "Tải video từ Instagram, YouTube và Facebook miễn phí. Không cần ứng dụng. Nhanh và dễ dàng.",
+    "lang": "vi",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "Miễn phí • Không cần đăng nhập • Không cần ứng dụng",
+    "title": "Tải Video",
+    "subtitle": "Tải video từ Instagram, YouTube & Facebook ngay lập tức. Miễn phí, nhanh chóng và không cần ứng dụng.",
+    "placeholder": "Dán link video vào đây...",
+    "button": "Tải xuống",
+    "paste": "Dán"
+  },
+  "platforms": {
+    "title": "Nền tảng hỗ trợ",
+    "instagram": "Instagram Reels, Bài đăng & Stories",
+    "youtube": "YouTube Videos & Shorts",
+    "facebook": "Facebook Videos & Reels"
+  },
+  "howto": {
+    "title": "Cách tải video",
+    "step1_title": "Sao chép link",
+    "step1_desc": "Mở Instagram, YouTube hoặc Facebook và sao chép link video.",
+    "step2_title": "Dán & Nhấn Tải",
+    "step2_desc": "Dán link vào ô trên và nhấn nút Tải xuống.",
+    "step3_title": "Lưu video",
+    "step3_desc": "Chọn chất lượng bạn muốn và lưu video vào thiết bị."
+  },
+  "result": {
+    "title": "Video của bạn đã sẵn sàng!",
+    "download_hd": "Tải HD",
+    "download_sd": "Tải SD",
+    "download_audio": "Chỉ tải âm thanh",
+    "processing": "Đang tìm video của bạn...",
+    "error": "Không tìm thấy video. Vui lòng kiểm tra link và thử lại.",
+    "invalid_url": "Vui lòng nhập link Instagram, YouTube hoặc Facebook hợp lệ."
+  },
+  "faq": {
+    "title": "Câu hỏi thường gặp",
+    "q1": "Công cụ này có miễn phí không?",
+    "a1": "Có, hoàn toàn miễn phí. Không cần đăng ký hay ứng dụng.",
+    "q2": "Hỗ trợ những nền tảng nào?",
+    "a2": "Instagram (Reels, Bài đăng, Stories), YouTube (Videos, Shorts), và Facebook (Videos, Reels).",
+    "q3": "Có an toàn không?",
+    "a3": "Có. Chúng tôi không lưu link hoặc video của bạn. Mọi thứ được xử lý theo thời gian thực.",
+    "q4": "Tôi có thể tải video riêng tư không?",
+    "a4": "Không. Chỉ có thể tải video công khai."
+  },
+  "trending": {
+    "badge": "Đang Thịnh Hành",
+    "title": "Video Hàng Đầu Tuần Này",
+    "subtitle": "Nhấp vào bất kỳ video nào để tải xuống ngay lập tức"
+  },
+  "footer": {
+    "tagline": "Tải video nhanh và miễn phí từ các nền tảng yêu thích của bạn.",
+    "disclaimer": "Công cụ này chỉ dành cho mục đích cá nhân. Vui lòng tôn trọng luật bản quyền."
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Video Downloader - Download Instagram, YouTube & Facebook Videos",
+    "description": "Free online tool to download videos from Instagram, YouTube, Facebook, and more. No app needed. Fast and easy.",
+    "lang": "en",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "Free • No Login • No App",
+    "title": "Video Downloader",
+    "subtitle": "Download videos from Instagram, YouTube & Facebook instantly. Free, fast, and no app required.",
+    "placeholder": "Paste your video link here...",
+    "button": "Download",
+    "paste": "Paste"
+  },
+  "platforms": {
+    "title": "Supported Platforms",
+    "instagram": "Instagram Reels, Posts & Stories",
+    "youtube": "YouTube Videos & Shorts",
+    "facebook": "Facebook Videos & Reels"
+  },
+  "howto": {
+    "title": "How to Download Videos",
+    "step1_title": "Copy the Link",
+    "step1_desc": "Open Instagram, YouTube or Facebook and copy the video link.",
+    "step2_title": "Paste & Click Download",
+    "step2_desc": "Paste the link in the box above and click the Download button.",
+    "step3_title": "Save the Video",
+    "step3_desc": "Choose your quality and save the video to your device."
+  },
+  "result": {
+    "title": "Your Video is Ready!",
+    "download_hd": "Download HD",
+    "download_sd": "Download SD",
+    "download_audio": "Download Audio Only",
+    "processing": "Finding your video...",
+    "error": "Could not find the video. Please check the link and try again.",
+    "invalid_url": "Please enter a valid Instagram, YouTube or Facebook link."
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "q1": "Is this tool free?",
+    "a1": "Yes, completely free. No registration or app required.",
+    "q2": "Which platforms are supported?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Videos, Shorts), and Facebook (Videos, Reels).",
+    "q3": "Is it safe to use?",
+    "a3": "Yes. We do not store your links or videos. Everything is processed in real time.",
+    "q4": "Can I download private videos?",
+    "a4": "No. Only public videos can be downloaded."
+  },
+  "trending": {
+    "badge": "Trending Now",
+    "title": "Top Videos This Week",
+    "subtitle": "Click any video to fill the downloader instantly"
+  },
+  "footer": {
+    "tagline": "Fast, free video downloads from your favourite platforms.",
+    "disclaimer": "This tool is for personal use only. Please respect copyright laws."
+  }
+}

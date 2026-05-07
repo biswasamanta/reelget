@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "title": "Pengunduh Video - Download Video Instagram, YouTube & Facebook",
+    "description": "Unduh video dari Instagram, YouTube, dan Facebook secara gratis. Tanpa aplikasi. Cepat dan mudah.",
+    "lang": "id",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook"
+  },
+  "hero": {
+    "badge": "Gratis • Tanpa Login • Tanpa Aplikasi",
+    "title": "Pengunduh Video",
+    "subtitle": "Unduh video dari Instagram, YouTube & Facebook secara instan. Gratis, cepat, dan tanpa aplikasi.",
+    "placeholder": "Tempel link video di sini...",
+    "button": "Unduh",
+    "paste": "Tempel"
+  },
+  "platforms": {
+    "title": "Platform yang Didukung",
+    "instagram": "Instagram Reels, Posts & Stories",
+    "youtube": "YouTube Videos & Shorts",
+    "facebook": "Facebook Videos & Reels"
+  },
+  "howto": {
+    "title": "Cara Mengunduh Video",
+    "step1_title": "Salin Link",
+    "step1_desc": "Buka Instagram, YouTube, atau Facebook dan salin link video.",
+    "step2_title": "Tempel & Klik Unduh",
+    "step2_desc": "Tempel link di kotak di atas dan klik tombol Unduh.",
+    "step3_title": "Simpan Video",
+    "step3_desc": "Pilih kualitas yang Anda inginkan dan simpan video ke perangkat Anda."
+  },
+  "result": {
+    "title": "Video Anda Siap!",
+    "download_hd": "Unduh HD",
+    "download_sd": "Unduh SD",
+    "download_audio": "Unduh Audio Saja",
+    "processing": "Mencari video Anda...",
+    "error": "Video tidak ditemukan. Periksa link dan coba lagi.",
+    "invalid_url": "Masukkan link Instagram, YouTube, atau Facebook yang valid."
+  },
+  "faq": {
+    "title": "Pertanyaan yang Sering Diajukan",
+    "q1": "Apakah alat ini gratis?",
+    "a1": "Ya, sepenuhnya gratis. Tidak perlu registrasi atau aplikasi.",
+    "q2": "Platform apa saja yang didukung?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Videos, Shorts), dan Facebook (Videos, Reels).",
+    "q3": "Apakah aman digunakan?",
+    "a3": "Ya. Kami tidak menyimpan link atau video Anda. Semua diproses secara real time.",
+    "q4": "Bisakah saya mengunduh video privat?",
+    "a4": "Tidak. Hanya video publik yang dapat diunduh."
+  },
+  "trending": {
+    "badge": "Sedang Trending",
+    "title": "Video Teratas Minggu Ini",
+    "subtitle": "Klik video mana saja untuk langsung mulai download"
+  },
+  "footer": {
+    "tagline": "Unduh video cepat dan gratis dari platform favorit Anda.",
+    "disclaimer": "Alat ini hanya untuk penggunaan pribadi. Harap hormati hukum hak cipta."
+  }
+}
