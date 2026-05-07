@@ -79,11 +79,12 @@ async def download(req: DownloadRequest):
             ),
             "Accept-Language": "en-US,en;q=0.9",
         },
-        # Use iOS/Android clients — they bypass YouTube's PO-token
-        # requirement that blocks data-centre IPs (Railway, etc.)
+        # Use tv_embedded first — works on data-centre IPs without cookies.
+        # Fall back through ios → android → web.
         "extractor_args": {
             "youtube": {
-                "player_client": ["ios", "android", "web"],
+                "player_client": ["tv_embedded", "ios", "android", "web"],
+                "player_skip": ["webpage", "configs"],
             }
         },
     }
