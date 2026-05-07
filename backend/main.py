@@ -84,7 +84,6 @@ async def download(req: DownloadRequest):
         "extractor_args": {
             "youtube": {
                 "player_client": ["tv_embedded", "ios", "android", "web"],
-                "player_skip": ["webpage", "configs"],
             }
         },
     }
@@ -93,6 +92,7 @@ async def download(req: DownloadRequest):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(req.url, download=False)
     except yt_dlp.utils.DownloadError as e:
+        print(f"[yt-dlp DownloadError] {str(e)}", flush=True)
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
