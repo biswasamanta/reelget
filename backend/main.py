@@ -8,6 +8,7 @@ import re
 import os
 import json
 import time
+import tempfile
 from pathlib import Path
 
 try:
@@ -35,6 +36,7 @@ SUPPORTED_PATTERN = re.compile(
 )
 
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
+YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
@@ -88,12 +90,30 @@ async def download(req: DownloadRequest):
         },
     }
 
+    # Write YouTube cookies to a temp file if provided
+    cookies_file = None
+    if YOUTUBE_COOKIES:
+        try:
+            tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+            tmp.write(YOUTUBE_COOKIES)
+            tmp.close()
+            cookies_file = tmp.name
+            ydl_opts["cookiefile"] = cookies_file
+        except Exception:
+            pass
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(req.url, download=False)
     except yt_dlp.utils.DownloadError as e:
         print(f"[yt-dlp DownloadError] {str(e)}", flush=True)
         raise HTTPException(status_code=422, detail=str(e))
+    finally:
+        if cookies_file:
+            try:
+                os.unlink(cookies_file)
+            except Exception:
+                pass
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
 
