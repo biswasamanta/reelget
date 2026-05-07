@@ -52,8 +52,21 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         const detail: string = errData.detail || '';
         // Strip yt-dlp noise like "ERROR: [youtube] abc123: "
         const cleaned = detail.replace(/^ERROR:\s*\[[^\]]+\]\s*[\w-]+:\s*/i, '').trim();
+        // Strip everything from "Use --cookies" onwards (technical yt-dlp instructions)
+        const trimmed = cleaned.replace(/\s*Use --cookies.*$/is, '').trim();
+        // Map known patterns to friendly messages
+        let friendly = trimmed;
+        if (/sign in|bot|confirm/i.test(trimmed)) {
+          friendly = 'This video requires sign-in to access. Please try a different video.';
+        } else if (/unavailable|not available/i.test(trimmed)) {
+          friendly = 'This video is unavailable or restricted in this region.';
+        } else if (/private/i.test(trimmed)) {
+          friendly = 'This video is private and cannot be downloaded.';
+        } else if (/age/i.test(trimmed)) {
+          friendly = 'This video is age-restricted and cannot be downloaded without sign-in.';
+        }
         setStatus('error');
-        setErrorMsg(cleaned || t('result.error'));
+        setErrorMsg(friendly || t('result.error'));
         return;
       }
       const data = await res.json();
