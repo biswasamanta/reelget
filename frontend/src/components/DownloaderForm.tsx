@@ -126,6 +126,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         </button>
       </div>
 
+      {/* Note */}
+      <p className="text-slate-500 text-xs text-center mt-2">
+        ⚠️ Only public videos can be downloaded. Private, age-restricted or region-locked videos are not supported.
+      </p>
+
       {/* Status messages */}
       {status === 'loading' && (
         <div className="mt-6 bg-white/20 backdrop-blur rounded-xl p-4 text-center text-white">
