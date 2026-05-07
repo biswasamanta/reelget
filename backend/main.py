@@ -99,8 +99,11 @@ async def download(req: DownloadRequest):
             tmp.close()
             cookies_file = tmp.name
             ydl_opts["cookiefile"] = cookies_file
-        except Exception:
-            pass
+            print(f"[cookies] Loaded {len(YOUTUBE_COOKIES)} chars → {cookies_file}", flush=True)
+        except Exception as ex:
+            print(f"[cookies] Failed to write cookies file: {ex}", flush=True)
+    else:
+        print("[cookies] No YOUTUBE_COOKIES env var found", flush=True)
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
