@@ -19,7 +19,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-teal-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
-            <span className="font-bold text-slate-800 text-lg">VidSave</span>
+            <span className="font-bold text-slate-800 text-lg">ReelGet</span>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex gap-4 text-sm">
@@ -112,7 +112,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* Footer */}
       <footer className="bg-slate-950 text-slate-500 text-center py-10 px-4 text-sm border-t border-slate-800">
         <div className="flex justify-center mb-3">
-          <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent font-black text-xl">VidSave</span>
+          <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent font-black text-xl">ReelGet</span>
         </div>
         <p className="mb-1 text-slate-400">{t('footer.tagline')}</p>
         <p className="text-xs text-slate-600 mt-3">{t('footer.disclaimer')}</p>
