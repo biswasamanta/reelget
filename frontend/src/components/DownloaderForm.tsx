@@ -53,7 +53,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         // Strip yt-dlp noise like "ERROR: [youtube] abc123: "
         const cleaned = detail.replace(/^ERROR:\s*\[[^\]]+\]\s*[\w-]+:\s*/i, '').trim();
         // Strip everything from "Use --cookies" onwards (technical yt-dlp instructions)
-        const trimmed = cleaned.replace(/\s*Use --cookies.*$/is, '').trim();
+        const trimmed = cleaned.replace(/\s*Use --cookies[\s\S]*$/i, '').trim();
         // Map known patterns to friendly messages
         let friendly = trimmed;
         if (/sign in|bot|confirm/i.test(trimmed)) {
