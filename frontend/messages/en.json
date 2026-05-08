@@ -12,9 +12,9 @@
   },
   "hero": {
     "badge": "Free • No Login • No App",
-    "title": "Video Downloader",
-    "subtitle": "Download videos from Instagram, YouTube & Facebook instantly. Free, fast, and no app required.",
-    "placeholder": "Paste your video link here...",
+    "title": "Instagram & Facebook Downloader",
+    "subtitle": "Download Instagram Reels, Facebook Videos & YouTube clips instantly. Free, fast, no app required.",
+    "placeholder": "Paste your Instagram, Facebook or YouTube link...",
     "button": "Download",
     "paste": "Paste"
   },

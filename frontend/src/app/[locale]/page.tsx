@@ -24,8 +24,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex gap-4 text-sm">
               <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 font-medium transition">{t('nav.instagram')}</a>
-              <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.youtube')}</a>
               <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-500 font-medium transition">{t('nav.facebook')}</a>
+              <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.youtube')}</a>
             </div>
             <LanguageSwitcher currentLocale={locale} />
           </div>

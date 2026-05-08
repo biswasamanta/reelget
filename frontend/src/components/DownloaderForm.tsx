@@ -127,9 +127,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       </div>
 
       {/* Note */}
-      <p className="text-slate-500 text-xs text-center mt-2">
-        ⚠️ Only public videos can be downloaded. Private, age-restricted or region-locked videos are not supported.
-      </p>
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+        <span className="text-xs text-pink-400/80">📸 Instagram ✓</span>
+        <span className="text-xs text-blue-400/80">👍 Facebook ✓</span>
+        <span className="text-xs text-slate-500">▶️ YouTube — public videos only</span>
+      </div>
 
       {/* Status messages */}
       {status === 'loading' && (

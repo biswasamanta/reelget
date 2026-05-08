@@ -1,35 +1,63 @@
 'use client';
 import { useTranslations } from 'next-intl';
 
-const platforms = [
-  { name: 'instagram', icon: '📸', gradient: 'from-pink-500 via-rose-500 to-orange-400', glow: 'shadow-pink-500/40' },
-  { name: 'youtube',   icon: '▶️', gradient: 'from-red-600 via-red-500 to-orange-500',   glow: 'shadow-red-500/40'  },
-  { name: 'facebook',  icon: '👍', gradient: 'from-blue-600 via-blue-500 to-cyan-400',   glow: 'shadow-blue-500/40' },
-];
-
 export default function PlatformBadges() {
   const t = useTranslations('platforms');
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-slate-800 to-slate-900">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-center text-xl font-bold text-white mb-2">{t('title')}</h2>
-        <p className="text-center text-slate-400 text-sm mb-8">Instagram • YouTube • Facebook</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {platforms.map((p) => (
-            <div
-              key={p.name}
-              className={`relative bg-gradient-to-br ${p.gradient} p-px rounded-2xl shadow-xl ${p.glow}`}
-            >
-              <div className="bg-slate-900 rounded-2xl px-5 py-5 flex items-center gap-4 hover:bg-slate-800 transition">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${p.gradient} flex items-center justify-center text-xl shadow-lg`}>
-                  {p.icon}
+        <p className="text-center text-slate-400 text-sm mb-8">Instagram • Facebook • YouTube</p>
+
+        {/* Instagram + Facebook — featured */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+          {/* Instagram */}
+          <div className="relative bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 p-px rounded-2xl shadow-xl shadow-pink-500/40">
+            <div className="bg-slate-900 rounded-2xl px-5 py-6 flex items-center gap-4 hover:bg-slate-800 transition">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center text-2xl shadow-lg flex-shrink-0">
+                📸
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-bold text-base">{t('instagram')}</span>
+                  <span className="bg-pink-500/20 text-pink-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-pink-400/30">✓ BEST</span>
                 </div>
-                <span className="text-white font-semibold text-sm">
-                  {t(p.name as 'instagram' | 'youtube' | 'facebook')}
-                </span>
+                <p className="text-slate-400 text-xs">Reels, Posts & Stories — all public content</p>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Facebook */}
+          <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-px rounded-2xl shadow-xl shadow-blue-500/40">
+            <div className="bg-slate-900 rounded-2xl px-5 py-6 flex items-center gap-4 hover:bg-slate-800 transition">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 flex items-center justify-center text-2xl shadow-lg flex-shrink-0">
+                👍
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-bold text-base">{t('facebook')}</span>
+                  <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30">✓ BEST</span>
+                </div>
+                <p className="text-slate-400 text-xs">Videos & Reels — all public content</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* YouTube — smaller, with note */}
+        <div className="relative bg-gradient-to-br from-red-600 via-red-500 to-orange-500 p-px rounded-2xl shadow-xl shadow-red-500/30 max-w-sm mx-auto">
+          <div className="bg-slate-900 rounded-2xl px-5 py-4 flex items-center gap-4 hover:bg-slate-800 transition">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 via-red-500 to-orange-500 flex items-center justify-center text-xl shadow-lg flex-shrink-0">
+              ▶️
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-white font-semibold text-sm">{t('youtube')}</span>
+                <span className="bg-slate-700 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full">PUBLIC ONLY</span>
+              </div>
+              <p className="text-slate-500 text-xs">Videos & Shorts — public videos only</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
