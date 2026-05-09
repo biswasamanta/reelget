@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "Téléchargeur de Vidéos - Télécharger des Vidéos Instagram, YouTube & Facebook",
     "description": "Téléchargez gratuitement des vidéos depuis Instagram, YouTube et Facebook. Aucune application requise. Rapide et facile.",
@@ -23,7 +23,8 @@
     "title": "Plateformes Supportées",
     "instagram": "Instagram Reels, Posts et Stories",
     "youtube": "Vidéos YouTube et Shorts",
-    "facebook": "Vidéos Facebook et Reels"
+    "facebook": "Vidéos Facebook et Reels",
+    "tiktok": "Vidéos TikTok et Reels"
   },
   "howto": {
     "title": "Comment Télécharger des Vidéos",

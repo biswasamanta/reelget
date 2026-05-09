@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "محمل الفيديو - تحميل مقاطع الفيديو من Instagram وYouTube وFacebook",
     "description": "قم بتحميل مقاطع الفيديو من Instagram وYouTube وFacebook مجاناً. لا حاجة لأي تطبيق. سريع وسهل.",
@@ -23,7 +23,8 @@
     "title": "المنصات المدعومة",
     "instagram": "Instagram Reels والمنشورات والقصص",
     "youtube": "مقاطع فيديو YouTube وShortsوالمقاطع القصيرة",
-    "facebook": "مقاطع فيديو Facebook وReels"
+    "facebook": "مقاطع فيديو Facebook وReels",
+    "tiktok": "مقاطع فيديو TikTok وReels"
   },
   "howto": {
     "title": "كيفية تحميل مقاطع الفيديو",

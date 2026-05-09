@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "वीडियो डाउनलोडर - Instagram, YouTube और Facebook वीडियो डाउनलोड करें",
     "description": "Instagram, YouTube और Facebook से वीडियो मुफ्त में डाउनलोड करें। कोई ऐप नहीं चाहिए। तेज़ और आसान।",
@@ -23,7 +23,8 @@
     "title": "समर्थित प्लेटफ़ॉर्म",
     "instagram": "Instagram Reels, Posts और Stories",
     "youtube": "YouTube Videos और Shorts",
-    "facebook": "Facebook Videos और Reels"
+    "facebook": "Facebook Videos और Reels",
+    "tiktok": "TikTok Videos और Reels"
   },
   "howto": {
     "title": "वीडियो कैसे डाउनलोड करें",

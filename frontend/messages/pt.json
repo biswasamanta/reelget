@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "Baixador de Vídeos - Baixe Vídeos do Instagram, YouTube e Facebook",
     "description": "Baixe vídeos do Instagram, YouTube e Facebook gratuitamente. Sem aplicativo necessário. Rápido e fácil.",
@@ -23,7 +23,8 @@
     "title": "Plataformas Suportadas",
     "instagram": "Instagram Reels, Posts e Stories",
     "youtube": "YouTube Vídeos e Shorts",
-    "facebook": "Facebook Vídeos e Reels"
+    "facebook": "Facebook Vídeos e Reels",
+    "tiktok": "Vídeos e Reels do TikTok"
   },
   "howto": {
     "title": "Como Baixar Vídeos",

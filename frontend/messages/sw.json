@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "Kipakuzi cha Video - Pakua Video za Instagram, YouTube & Facebook",
     "description": "Pakua video kutoka Instagram, YouTube na Facebook bure kabisa. Hakuna app inayohitajika. Haraka na rahisi.",
@@ -23,7 +23,8 @@
     "title": "Majukwaa Yanayoungwa Mkono",
     "instagram": "Instagram Reels, Machapisho na Stories",
     "youtube": "Video za YouTube na Shorts",
-    "facebook": "Video za Facebook na Reels"
+    "facebook": "Video za Facebook na Reels",
+    "tiktok": "Video za TikTok na Reels"
   },
   "howto": {
     "title": "Jinsi ya Kupakua Video",
