@@ -1,4 +1,4 @@
-{
+﻿{
   "meta": {
     "title": "Pengunduh Video - Download Video Instagram, YouTube & Facebook",
     "description": "Unduh video dari Instagram, YouTube, dan Facebook secara gratis. Tanpa aplikasi. Cepat dan mudah.",
@@ -8,7 +8,8 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "Gratis • Tanpa Login • Tanpa Aplikasi",

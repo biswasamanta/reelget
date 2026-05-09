@@ -1,4 +1,4 @@
-{
+﻿{
   "meta": {
     "title": "Kipakuzi cha Video - Pakua Video za Instagram, YouTube & Facebook",
     "description": "Pakua video kutoka Instagram, YouTube na Facebook bure kabisa. Hakuna app inayohitajika. Haraka na rahisi.",
@@ -8,7 +8,8 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "Bure • Bila Kuingia • Bila App",

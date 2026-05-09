@@ -8,13 +8,14 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "Free • No Login • No App",
     "title": "Instagram & Facebook Downloader",
     "subtitle": "Download Instagram Reels, Facebook Videos & YouTube clips instantly. Free, fast, no app required.",
-    "placeholder": "Paste your Instagram, Facebook or YouTube link...",
+    "placeholder": "Paste your Instagram, TikTok, Facebook or YouTube link...",
     "button": "Download",
     "paste": "Paste"
   },
@@ -22,7 +23,8 @@
     "title": "Supported Platforms",
     "instagram": "Instagram Reels, Posts & Stories",
     "youtube": "YouTube Videos & Shorts",
-    "facebook": "Facebook Videos & Reels"
+    "facebook": "Facebook Videos & Reels",
+    "tiktok": "TikTok Videos & Reels"
   },
   "howto": {
     "title": "How to Download Videos",
@@ -40,7 +42,7 @@
     "download_audio": "Download Audio Only",
     "processing": "Finding your video...",
     "error": "Could not find the video. Please check the link and try again.",
-    "invalid_url": "Please enter a valid Instagram, YouTube or Facebook link."
+    "invalid_url": "Please enter a valid Instagram, TikTok, Facebook or YouTube link."
   },
   "faq": {
     "title": "Frequently Asked Questions",

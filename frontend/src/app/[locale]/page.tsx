@@ -24,6 +24,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex gap-4 text-sm">
               <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 font-medium transition">{t('nav.instagram')}</a>
+              <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white font-medium transition">{t('nav.tiktok')}</a>
               <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-500 font-medium transition">{t('nav.facebook')}</a>
               <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.youtube')}</a>
             </div>
@@ -94,7 +95,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <div className="flex justify-center gap-6 mt-8 text-slate-400 text-xs">
             <span className="flex items-center gap-1">⚡ {t('hero.badge').split('•')[0]?.trim()}</span>
             <span className="flex items-center gap-1">🔒 Private</span>
-            <span className="flex items-center gap-1">🌍 11 Languages</span>
+            <span className="flex items-center gap-1">🌍 13 Languages</span>
           </div>
         </div>
       </section>

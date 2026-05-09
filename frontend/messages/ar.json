@@ -1,4 +1,4 @@
-{
+﻿{
   "meta": {
     "title": "محمل الفيديو - تحميل مقاطع الفيديو من Instagram وYouTube وFacebook",
     "description": "قم بتحميل مقاطع الفيديو من Instagram وYouTube وFacebook مجاناً. لا حاجة لأي تطبيق. سريع وسهل.",
@@ -8,7 +8,8 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "مجاني • بدون تسجيل دخول • بدون تطبيق",

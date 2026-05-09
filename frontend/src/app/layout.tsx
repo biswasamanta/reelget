@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   other: {
     'google-adsense-account': 'ca-pub-2308669348522445',
   },
+  themeColor: '#22d3ee',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ReelGet',
+  },
+  formatDetection: { telephone: false },
 };
 
 const RTL_LOCALES = ['ar', 'ur'];

@@ -1,4 +1,4 @@
-{
+﻿{
   "meta": {
     "title": "ভিডিও ডাউনলোডার - Instagram, YouTube ও Facebook ভিডিও ডাউনলোড করুন",
     "description": "Instagram, YouTube ও Facebook থেকে বিনামূল্যে ভিডিও ডাউনলোড করুন। কোনো অ্যাপ লাগবে না। দ্রুত ও সহজ।",
@@ -8,7 +8,8 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "বিনামূল্যে • লগইন ছাড়া • অ্যাপ ছাড়া",

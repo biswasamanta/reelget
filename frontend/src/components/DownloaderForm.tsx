@@ -29,7 +29,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   }, []);
 
   const isValidUrl = (val: string) =>
-    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch/.test(val);
+    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com/.test(val);
 
   async function handleDownload() {
     const trimmed = url.trim();
@@ -130,7 +130,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
         <span className="text-xs text-pink-400/80">📸 Instagram ✓</span>
         <span className="text-xs text-blue-400/80">👍 Facebook ✓</span>
-        <span className="text-xs text-slate-500">▶️ YouTube — public videos only</span>
+        <span className="text-xs text-white/60">🎵 TikTok ✓</span>
+        <span className="text-xs text-slate-500">▶️ YouTube — public only</span>
       </div>
 
       {/* Status messages */}
@@ -162,8 +163,26 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             )}
             <p className="text-gray-800 font-semibold text-sm line-clamp-2">{result.title}</p>
           </div>
-          <div className="p-4 flex flex-wrap gap-3">
-            {result.formats.map((fmt, i) => {
+          <div className="p-4 space-y-3">
+            {/* Video formats row */}
+            <div className="flex flex-wrap gap-3">
+              {result.formats.filter(f => !f.label.toLowerCase().includes('audio')).map((fmt, i) => {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const proxyUrl = `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
+                return (
+                  <a
+                    key={i}
+                    href={proxyUrl}
+                    download
+                    className="flex-1 min-w-[120px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition"
+                  >
+                    ⬇ {fmt.label}
+                  </a>
+                );
+              })}
+            </div>
+            {/* Audio / MP3 row — distinct style */}
+            {result.formats.filter(f => f.label.toLowerCase().includes('audio')).map((fmt, i) => {
               const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
               const proxyUrl = `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
               return (
@@ -171,9 +190,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                   key={i}
                   href={proxyUrl}
                   download
-                  className="flex-1 min-w-[120px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition"
+                  className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30"
                 >
-                  {fmt.label}
+                  🎵 Extract MP3 / Audio
                 </a>
               );
             })}

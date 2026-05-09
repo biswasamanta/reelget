@@ -1,4 +1,4 @@
-{
+﻿{
   "meta": {
     "title": "வீடியோ டவுன்லோடர் - Instagram, YouTube மற்றும் Facebook வீடியோக்களை பதிவிறக்கவும்",
     "description": "Instagram, YouTube மற்றும் Facebook இலிருந்து இலவசமாக வீடியோக்களை பதிவிறக்கவும். எந்த ஆப்பும் தேவையில்லை.",
@@ -8,7 +8,8 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "இலவசம் • உள்நுழைவு இல்லை • ஆப் இல்லை",

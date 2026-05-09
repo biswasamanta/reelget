@@ -1,4 +1,4 @@
-{
+﻿{
   "meta": {
     "title": "Baixador de Vídeos - Baixe Vídeos do Instagram, YouTube e Facebook",
     "description": "Baixe vídeos do Instagram, YouTube e Facebook gratuitamente. Sem aplicativo necessário. Rápido e fácil.",
@@ -8,7 +8,8 @@
   "nav": {
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "facebook": "Facebook"
+    "facebook": "Facebook",
+    "tiktok": "TikTok"
   },
   "hero": {
     "badge": "Grátis • Sem Login • Sem App",
