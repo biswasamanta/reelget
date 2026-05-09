@@ -168,11 +168,15 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             <div className="flex flex-wrap gap-3">
               {result.formats.filter(f => !f.label.toLowerCase().includes('audio')).map((fmt, i) => {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const proxyUrl = `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
+                const isTikTok = /tiktok\.com|vm\.tiktok\.com/.test(url);
+                const quality = fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd';
+                const downloadUrl = isTikTok
+                  ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${quality}`
+                  : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
                 return (
                   <a
                     key={i}
-                    href={proxyUrl}
+                    href={downloadUrl}
                     download
                     className="flex-1 min-w-[120px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition"
                   >

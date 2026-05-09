@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "ویڈیو ڈاؤنلوڈر - Instagram، YouTube اور Facebook ویڈیو ڈاؤنلوڈ کریں",
     "description": "Instagram، YouTube اور Facebook سے مفت میں ویڈیو ڈاؤنلوڈ کریں۔ کوئی ایپ نہیں چاہیے۔ تیز اور آسان۔",
@@ -23,7 +23,8 @@
     "title": "سپورٹ شدہ پلیٹ فارم",
     "instagram": "Instagram Reels، Posts اور Stories",
     "youtube": "YouTube Videos اور Shorts",
-    "facebook": "Facebook Videos اور Reels"
+    "facebook": "Facebook Videos اور Reels",
+    "tiktok": "TikTok Videos اور Reels"
   },
   "howto": {
     "title": "ویڈیو کیسے ڈاؤنلوڈ کریں",

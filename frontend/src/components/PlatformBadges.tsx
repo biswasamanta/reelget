@@ -35,7 +35,7 @@ export default function PlatformBadges() {
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-white font-bold text-sm">TikTok</span>
+                  <span className="text-white font-bold text-sm">{t('tiktok')}</span>
                   <span className="bg-pink-500/20 text-pink-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-pink-400/30">✓ BEST</span>
                 </div>
                 <p className="text-slate-400 text-xs leading-tight">Videos & Reels</p>

@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "ভিডিও ডাউনলোডার - Instagram, YouTube ও Facebook ভিডিও ডাউনলোড করুন",
     "description": "Instagram, YouTube ও Facebook থেকে বিনামূল্যে ভিডিও ডাউনলোড করুন। কোনো অ্যাপ লাগবে না। দ্রুত ও সহজ।",
@@ -23,7 +23,8 @@
     "title": "সমর্থিত প্ল্যাটফর্ম",
     "instagram": "Instagram Reels, Posts ও Stories",
     "youtube": "YouTube Videos ও Shorts",
-    "facebook": "Facebook Videos ও Reels"
+    "facebook": "Facebook Videos ও Reels",
+    "tiktok": "TikTok Videos ও Reels"
   },
   "howto": {
     "title": "ভিডিও কীভাবে ডাউনলোড করবেন",

@@ -6,6 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   other: {
     'google-adsense-account': 'ca-pub-2308669348522445',
+    'google-site-verification': 'Lpygbm0p0QCOxQEXXDDehWNTCwJkvRh4FdsDCbc8dqI',
   },
   themeColor: '#22d3ee',
   appleWebApp: {

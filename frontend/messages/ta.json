@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "வீடியோ டவுன்லோடர் - Instagram, YouTube மற்றும் Facebook வீடியோக்களை பதிவிறக்கவும்",
     "description": "Instagram, YouTube மற்றும் Facebook இலிருந்து இலவசமாக வீடியோக்களை பதிவிறக்கவும். எந்த ஆப்பும் தேவையில்லை.",
@@ -23,7 +23,8 @@
     "title": "ஆதரிக்கப்படும் தளங்கள்",
     "instagram": "Instagram Reels, Posts மற்றும் Stories",
     "youtube": "YouTube வீடியோக்கள் மற்றும் Shorts",
-    "facebook": "Facebook வீடியோக்கள் மற்றும் Reels"
+    "facebook": "Facebook வீடியோக்கள் மற்றும் Reels",
+    "tiktok": "TikTok வீடியோக்கள் மற்றும் Reels"
   },
   "howto": {
     "title": "வீடியோவை எவ்வாறு பதிவிறக்குவது",

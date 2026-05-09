@@ -1,4 +1,4 @@
-﻿{
+{
   "meta": {
     "title": "Pengunduh Video - Download Video Instagram, YouTube & Facebook",
     "description": "Unduh video dari Instagram, YouTube, dan Facebook secara gratis. Tanpa aplikasi. Cepat dan mudah.",
@@ -23,7 +23,8 @@
     "title": "Platform yang Didukung",
     "instagram": "Instagram Reels, Posts & Stories",
     "youtube": "YouTube Videos & Shorts",
-    "facebook": "Facebook Videos & Reels"
+    "facebook": "Facebook Videos & Reels",
+    "tiktok": "Video & Reels TikTok"
   },
   "howto": {
     "title": "Cara Mengunduh Video",

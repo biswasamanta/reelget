@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 import yt_dlp
 import httpx
@@ -269,17 +269,89 @@ def _pick_format(
     return candidates[0]
 
 
+def _referer_for(url: str) -> str:
+    if "tiktok" in url or "tiktokcdn" in url or "muscdn" in url:
+        return "https://www.tiktok.com/"
+    if "instagram" in url or "cdninstagram" in url:
+        return "https://www.instagram.com/"
+    if "facebook" in url or "fbcdn" in url:
+        return "https://www.facebook.com/"
+    return "https://www.youtube.com/"
+
+@app.get("/api/download-tiktok")
+async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
+    """Download TikTok video server-side via yt-dlp and stream to browser."""
+    safe_filename = re.sub(r'[^\w\-.]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'tiktok'
+
+    tmp_dir = tempfile.mkdtemp()
+    out_path = os.path.join(tmp_dir, f"{safe_filename}.mp4")
+
+    fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" if quality == "hd" \
+        else "worstvideo[ext=mp4]+worstaudio/worst[ext=mp4]/worst"
+
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "format": fmt,
+        "outtmpl": out_path,
+        "merge_output_format": "mp4",
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Referer": "https://www.tiktok.com/",
+        },
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+        title = info.get("title", "tiktok_video")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Download failed: {str(e)}")
+
+    # Find the actual output file (yt-dlp may adjust extension)
+    actual = out_path
+    if not os.path.exists(actual):
+        candidates = list(Path(tmp_dir).glob("*.mp4"))
+        if not candidates:
+            raise HTTPException(status_code=500, detail="Output file not found")
+        actual = str(candidates[0])
+
+    clean_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or safe_filename
+
+    def iterfile():
+        try:
+            with open(actual, "rb") as f:
+                while chunk := f.read(65536):
+                    yield chunk
+        finally:
+            try:
+                os.unlink(actual)
+                os.rmdir(tmp_dir)
+            except Exception:
+                pass
+
+    file_size = os.path.getsize(actual)
+    return StreamingResponse(
+        iterfile(),
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": f'attachment; filename="{clean_title}.mp4"',
+            "Content-Length": str(file_size),
+        },
+    )
+
+
 @app.get("/api/proxy")
 async def proxy_download(url: str = Query(...), filename: str = Query("video"), ext: str = Query("mp4")):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://www.youtube.com/",
+        "Referer": _referer_for(url),
     }
     safe_filename = re.sub(r'[^\w\-.]', '_', filename, flags=re.ASCII).strip('_')[:80] or 'video'
     content_type = "audio/mp4" if ext == "m4a" else "video/mp4"
 
     async def stream():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=60) as client:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=120) as client:
             async with client.stream("GET", url, headers=headers) as r:
                 if r.status_code != 200:
                     raise HTTPException(status_code=r.status_code, detail="CDN fetch failed")
