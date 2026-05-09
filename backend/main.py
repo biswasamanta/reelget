@@ -73,8 +73,8 @@ async def download(req: DownloadRequest):
         "skip_download": True,
         "extract_flat": False,
         "logger": _SilentLogger(),
-        # Prefer pre-merged mp4; fall back to best available without requiring ffmpeg merge
-        "format": "best[ext=mp4]/best",
+        # Don't validate format URLs during extraction — just get the list
+        "check_formats": False,
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
