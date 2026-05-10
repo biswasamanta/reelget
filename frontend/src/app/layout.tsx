@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
 import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
+import PWAManager from '@/components/PWAManager';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default async function RootLayout({
       </head>
       <body>
         {children}
+        <PWAManager />
         <Analytics />
       </body>
     </html>
