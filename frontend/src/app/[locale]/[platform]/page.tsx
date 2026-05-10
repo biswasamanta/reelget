@@ -82,15 +82,31 @@ export async function generateMetadata({
   if (!PLATFORMS.includes(platform as Platform)) return {};
   const p = PLATFORM_META[platform as Platform];
   const name = platform.charAt(0).toUpperCase() + platform.slice(1);
+  const title = `${name} Video Downloader — Free ${p.types} | ReelGet`;
+  const description = `Download ${name} ${p.types} for free. No app or login required. Fast and easy with ReelGet.`;
+  const url = `${BASE_URL}/${locale}/${platform}`;
   return {
-    title: `${name} Video Downloader — Free ${p.types} | ReelGet`,
-    description: `Download ${name} ${p.types} for free. No app or login required. Fast and easy with ReelGet.`,
+    title,
+    description,
     alternates: {
-      canonical: `${BASE_URL}/${locale}/${platform}`,
+      canonical: url,
       languages: {
         'x-default': `${BASE_URL}/en/${platform}`,
         ...Object.fromEntries(LOCALES.map((l) => [l, `${BASE_URL}/${l}/${platform}`])),
       },
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'ReelGet',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      site: '@reelget',
     },
   };
 }
