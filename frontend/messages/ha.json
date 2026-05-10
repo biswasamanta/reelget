@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "title": "Sauke Bidiyo - Sauke Bidiyo na Instagram, YouTube da Facebook",
+    "description": "Sauke bidiyo daga Instagram, YouTube da Facebook kyauta. Babu app da ake bukata. Da sauri kuma cikin sauƙi.",
+    "lang": "ha",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
+  },
+  "hero": {
+    "badge": "Kyauta • Babu Shiga • Babu App",
+    "title": "Sauke Bidiyo",
+    "subtitle": "Sauke bidiyo daga Instagram, YouTube da Facebook nan take. Kyauta, da sauri, kuma babu app.",
+    "placeholder": "Manna hanyar bidiyo a nan...",
+    "button": "Sauke",
+    "paste": "Manna"
+  },
+  "platforms": {
+    "title": "Dandamali da Ake Tallafawa",
+    "instagram": "Instagram Reels, Posts da Stories",
+    "youtube": "Bidiyo na YouTube da Shorts",
+    "facebook": "Bidiyo na Facebook da Reels",
+    "tiktok": "Bidiyo na TikTok da Reels",
+    "twitter": "Bidiyo na Twitter da X",
+    "pinterest": "Bidiyo na Pinterest"
+  },
+  "howto": {
+    "title": "Yadda Ake Sauke Bidiyo",
+    "step1_title": "Kwafi Hanyar",
+    "step1_desc": "Buɗe Instagram, YouTube ko Facebook kuma kwafi hanyar bidiyo.",
+    "step2_title": "Manna kuma Sauke",
+    "step2_desc": "Manna hanyar a cikin akwatin da ke sama kuma danna maɓallin Sauke.",
+    "step3_title": "Ajiye Bidiyo",
+    "step3_desc": "Zaɓi ingancin da kake so kuma ajiye bidiyo a na'urarka."
+  },
+  "result": {
+    "title": "Bidiyon Ka Ya Shirya!",
+    "download_hd": "Sauke HD",
+    "download_sd": "Sauke SD",
+    "download_audio": "Sauke Sauti Kawai",
+    "processing": "Ana neman bidiyon ka...",
+    "error": "Ba a sami bidiyo ba. Duba hanyar kuma sake gwadawa.",
+    "invalid_url": "Da fatan za a shigar da ingantacciyar hanyar Instagram, YouTube ko Facebook."
+  },
+  "faq": {
+    "title": "Tambayoyin da Ake Yawan Yi",
+    "q1": "Shin wannan kayan aiki kyauta ne?",
+    "a1": "Ee, cikakken kyauta. Babu rajista ko app da ake bukata.",
+    "q2": "Waɗanne dandamali ake tallafawa?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Bidiyo, Shorts), da Facebook (Bidiyo, Reels).",
+    "q3": "Shin aminci ne a yi amfani da shi?",
+    "a3": "Ee. Ba mu adana hanyoyinka ko bidiyo ba. Duk ana yin aiki a lokaci na gaske.",
+    "q4": "Zan iya sauke bidiyo masu zaman kansu?",
+    "a4": "A'a. Ana iya sauke bidiyon jama'a kawai."
+  },
+  "trending": {
+    "badge": "Ana Yada Yanzu",
+    "title": "Manyan Bidiyo na Wannan Mako",
+    "subtitle": "Danna kowane bidiyo don sauke nan take"
+  },
+  "footer": {
+    "tagline": "Sauke bidiyo da sauri da kyauta daga dandamali da kake so.",
+    "disclaimer": "Wannan kayan aiki ne don amfanin mutum kawai. Da fatan za a mutunta dokokin haƙƙin mallaka."
+  }
+}

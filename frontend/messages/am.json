@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "title": "ቪዲዮ አውራጅ - Instagram፣ YouTube እና Facebook ቪዲዮዎችን ያውርዱ",
+    "description": "ከ Instagram፣ YouTube እና Facebook ቪዲዮዎችን በነፃ ያውርዱ። ምንም መተግበሪያ አያስፈልግም። ፈጣን እና ቀላል።",
+    "lang": "am",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
+  },
+  "hero": {
+    "badge": "ነፃ • ያለ ግቤት • ያለ መተግበሪያ",
+    "title": "ቪዲዮ አውራጅ",
+    "subtitle": "ከ Instagram፣ YouTube እና Facebook ቪዲዮዎችን ወዲያው ያውርዱ። ነፃ፣ ፈጣን፣ እና ምንም መተግበሪያ አያስፈልግም።",
+    "placeholder": "የቪዲዮ ሊንክ እዚህ ይለጥፉ...",
+    "button": "አውርድ",
+    "paste": "ለጥፍ"
+  },
+  "platforms": {
+    "title": "የሚደገፉ መድረኮች",
+    "instagram": "Instagram Reels፣ Posts እና Stories",
+    "youtube": "YouTube ቪዲዮዎች እና Shorts",
+    "facebook": "Facebook ቪዲዮዎች እና Reels",
+    "tiktok": "TikTok ቪዲዮዎች እና Reels",
+    "twitter": "Twitter እና X ቪዲዮዎች",
+    "pinterest": "Pinterest ቪዲዮዎች"
+  },
+  "howto": {
+    "title": "ቪዲዮ እንዴት ማውረድ እንደሚቻል",
+    "step1_title": "ሊንኩን ቅዱ",
+    "step1_desc": "Instagram፣ YouTube ወይም Facebook ይክፈቱ እና የቪዲዮ ሊንኩን ይቅዱ።",
+    "step2_title": "ይለጥፉ እና ያውርዱ",
+    "step2_desc": "ሊንኩን ከላይ ባለው ሳጥን ውስጥ ይለጥፉ እና Download ቁልፍን ይጫኑ።",
+    "step3_title": "ቪዲዮ ያስቀምጡ",
+    "step3_desc": "የሚፈልጉትን ጥራት ይምረጡ እና ቪዲዮውን በመሳሪያዎ ያስቀምጡ።"
+  },
+  "result": {
+    "title": "ቪዲዮዎ ዝግጁ ነው!",
+    "download_hd": "HD አውርድ",
+    "download_sd": "SD አውርድ",
+    "download_audio": "ድምፅ ብቻ አውርድ",
+    "processing": "ቪዲዮዎን እየፈለጉ ነው...",
+    "error": "ቪዲዮ አልተገኘም። ሊንኩን ያረጋግጡ እና እንደገና ይሞክሩ።",
+    "invalid_url": "እባክዎ ትክክለኛ Instagram፣ YouTube ወይም Facebook ሊንክ ያስገቡ።"
+  },
+  "faq": {
+    "title": "ተደጋጋሚ ጥያቄዎች",
+    "q1": "ይህ መሳሪያ ነፃ ነው?",
+    "a1": "አዎ፣ ሙሉ በሙሉ ነፃ ነው። ምዝገባ ወይም መተግበሪያ አያስፈልግም።",
+    "q2": "የትኞቹ መድረኮች ይደገፋሉ?",
+    "a2": "Instagram (Reels፣ Posts፣ Stories)፣ YouTube (ቪዲዮዎች፣ Shorts)፣ እና Facebook (ቪዲዮዎች፣ Reels)።",
+    "q3": "ለመጠቀም ደህንነቱ የተጠበቀ ነው?",
+    "a3": "አዎ። ሊንኮቸዎን ወይም ቪዲዮዎቸዎን አናስቀምጥም። ሁሉም በወቅቱ ይሠራል።",
+    "q4": "የግል ቪዲዮዎችን ማውረድ ይችላሉ?",
+    "a4": "አይ። የሕዝብ ቪዲዮዎች ብቻ ሊወርዱ ይችላሉ።"
+  },
+  "trending": {
+    "badge": "አሁን እየተዘዋወረ ነው",
+    "title": "የዚህ ሳምንት ምርጥ ቪዲዮዎች",
+    "subtitle": "ማንኛውንም ቪዲዮ ጠቅ ያድርጉ ወዲያው ለማውረድ"
+  },
+  "footer": {
+    "tagline": "ከምትወዷቸው መድረኮች ፈጣን እና ነፃ ቪዲዮ አውርዶ።",
+    "disclaimer": "ይህ መሳሪያ ለግል አጠቃቀም ብቻ ነው። እባክዎ የቅጂ መብት ሕጎችን ያክብሩ።"
+  }
+}
