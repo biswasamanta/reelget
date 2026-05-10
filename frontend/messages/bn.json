@@ -10,7 +10,8 @@
     "youtube": "YouTube",
     "facebook": "Facebook",
     "tiktok": "TikTok",
-    "twitter": "Twitter / X"
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
   },
   "hero": {
     "badge": "বিনামূল্যে • লগইন ছাড়া • অ্যাপ ছাড়া",
@@ -26,7 +27,8 @@
     "youtube": "YouTube Videos ও Shorts",
     "facebook": "Facebook Videos ও Reels",
     "tiktok": "TikTok Videos ও Reels",
-    "twitter": "Twitter ও X Videos & GIFs"
+    "twitter": "Twitter ও X Videos & GIFs",
+    "pinterest": "Pinterest Videos ও Pins"
   },
   "howto": {
     "title": "ভিডিও কীভাবে ডাউনলোড করবেন",

@@ -10,7 +10,8 @@
     "youtube": "YouTube",
     "facebook": "Facebook",
     "tiktok": "TikTok",
-    "twitter": "Twitter / X"
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
   },
   "hero": {
     "badge": "Gratuit • Sans Connexion • Sans App",
@@ -26,7 +27,8 @@
     "youtube": "Vidéos YouTube et Shorts",
     "facebook": "Vidéos Facebook et Reels",
     "tiktok": "Vidéos TikTok et Reels",
-    "twitter": "Vidéos Twitter et X"
+    "twitter": "Vidéos Twitter et X",
+    "pinterest": "Vidéos Pinterest"
   },
   "howto": {
     "title": "Comment Télécharger des Vidéos",

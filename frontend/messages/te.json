@@ -10,7 +10,8 @@
     "youtube": "YouTube",
     "facebook": "Facebook",
     "tiktok": "TikTok",
-    "twitter": "Twitter / X"
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
   },
   "hero": {
     "badge": "ఉచితం • లాగిన్ అవసరం లేదు • యాప్ అవసరం లేదు",
@@ -26,7 +27,8 @@
     "youtube": "YouTube వీడియోలు మరియు Shorts",
     "facebook": "Facebook వీడియోలు మరియు Reels",
     "tiktok": "TikTok వీడియోలు మరియు Reels",
-    "twitter": "Twitter మరియు X వీడియోలు"
+    "twitter": "Twitter మరియు X వీడియోలు",
+    "pinterest": "Pinterest వీడియోలు"
   },
   "howto": {
     "title": "వీడియో ఎలా డౌన్‌లోడ్ చేయాలి",
