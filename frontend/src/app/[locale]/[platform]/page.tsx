@@ -6,7 +6,7 @@ import { routing } from '@/../i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
 const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw'];
-const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter'] as const;
+const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
 const PLATFORM_META: Record<Platform, {
@@ -63,6 +63,16 @@ const PLATFORM_META: Record<Platform, {
       { q: 'Can I download Twitter / X videos?', a: 'Yes! Paste any public tweet with a video or GIF.' },
       { q: 'What about GIFs posted on X?', a: 'Twitter/X GIFs are downloaded as MP4 video files.' },
       { q: 'Do I need to log in?', a: 'No login required for public tweets.' },
+    ],
+  },
+  pinterest: {
+    emoji: '📌',
+    gradient: 'from-red-500 to-rose-700',
+    types: 'Videos & Pins',
+    faq: [
+      { q: 'Can I download Pinterest videos?', a: 'Yes! Paste any Pinterest pin URL that contains a video.' },
+      { q: 'What types of Pinterest content are supported?', a: 'Video pins are fully supported. Image-only pins cannot be downloaded.' },
+      { q: 'Do I need to log in?', a: 'No — no account or app required for public pins.' },
     ],
   },
 };

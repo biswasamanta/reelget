@@ -10,7 +10,8 @@
     "youtube": "YouTube",
     "facebook": "Facebook",
     "tiktok": "TikTok",
-    "twitter": "Twitter / X"
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
   },
   "hero": {
     "badge": "مجاني • بدون تسجيل دخول • بدون تطبيق",
@@ -26,7 +27,8 @@
     "youtube": "مقاطع فيديو YouTube وShortsوالمقاطع القصيرة",
     "facebook": "مقاطع فيديو Facebook وReels",
     "tiktok": "مقاطع فيديو TikTok وReels",
-    "twitter": "مقاطع فيديو Twitter و X"
+    "twitter": "مقاطع فيديو Twitter و X",
+    "pinterest": "مقاطع فيديو Pinterest"
   },
   "howto": {
     "title": "كيفية تحميل مقاطع الفيديو",
