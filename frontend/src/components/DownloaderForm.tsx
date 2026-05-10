@@ -29,7 +29,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   }, []);
 
   const isValidUrl = (val: string) =>
-    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it/.test(val);
+    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com/.test(val);
 
   async function handleDownload() {
     const trimmed = url.trim();
@@ -133,6 +133,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <span className="text-xs text-white/60">🎵 TikTok ✓</span>
         <span className="text-xs text-sky-400/80">🐦 Twitter / X ✓</span>
         <span className="text-xs text-red-400/80">📌 Pinterest ✓</span>
+        <span className="text-xs text-yellow-400/80">👻 Snapchat ✓</span>
         <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-medium">▶️ YouTube — public only</span>
       </div>
 

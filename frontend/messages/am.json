@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "ነፃ • ያለ ግቤት • ያለ መተግበሪያ",
@@ -28,7 +29,8 @@
     "facebook": "Facebook ቪዲዮዎች እና Reels",
     "tiktok": "TikTok ቪዲዮዎች እና Reels",
     "twitter": "Twitter እና X ቪዲዮዎች",
-    "pinterest": "Pinterest ቪዲዮዎች"
+    "pinterest": "Pinterest ቪዲዮዎች",
+    "snapchat": "Snapchat Spotlight እና Stories"
   },
   "howto": {
     "title": "ቪዲዮ እንዴት ማውረድ እንደሚቻል",

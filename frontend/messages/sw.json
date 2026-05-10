@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "Bure • Bila Kuingia • Bila App",
@@ -28,7 +29,8 @@
     "facebook": "Video za Facebook na Reels",
     "tiktok": "Video za TikTok na Reels",
     "twitter": "Video za Twitter na X",
-    "pinterest": "Video za Pinterest"
+    "pinterest": "Video za Pinterest",
+    "snapchat": "Snapchat Spotlight na Stories"
   },
   "howto": {
     "title": "Jinsi ya Kupakua Video",

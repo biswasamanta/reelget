@@ -6,7 +6,7 @@ import { routing } from '@/../i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
 const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am'];
-const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest'] as const;
+const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
 const PLATFORM_META: Record<Platform, {
@@ -73,6 +73,16 @@ const PLATFORM_META: Record<Platform, {
       { q: 'Can I download Pinterest videos?', a: 'Yes! Paste any Pinterest pin URL that contains a video.' },
       { q: 'What types of Pinterest content are supported?', a: 'Video pins are fully supported. Image-only pins cannot be downloaded.' },
       { q: 'Do I need to log in?', a: 'No — no account or app required for public pins.' },
+    ],
+  },
+  snapchat: {
+    emoji: '👻',
+    gradient: 'from-yellow-400 to-amber-500',
+    types: 'Spotlight & Stories',
+    faq: [
+      { q: 'Can I download Snapchat Spotlight videos?', a: 'Yes! Paste any public Snapchat Spotlight URL and click Download.' },
+      { q: 'Can I download Snapchat Stories?', a: 'Public Snapchat Stories shared via web link can be downloaded.' },
+      { q: 'Do I need a Snapchat account?', a: 'No account or app required for public Spotlight videos.' },
     ],
   },
 };

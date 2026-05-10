@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "ఉచితం • లాగిన్ అవసరం లేదు • యాప్ అవసరం లేదు",
@@ -28,7 +29,8 @@
     "facebook": "Facebook వీడియోలు మరియు Reels",
     "tiktok": "TikTok వీడియోలు మరియు Reels",
     "twitter": "Twitter మరియు X వీడియోలు",
-    "pinterest": "Pinterest వీడియోలు"
+    "pinterest": "Pinterest వీడియోలు",
+    "snapchat": "Snapchat Spotlight మరియు Stories"
   },
   "howto": {
     "title": "వీడియో ఎలా డౌన్‌లోడ్ చేయాలి",

@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "Miễn phí • Không cần đăng nhập • Không cần ứng dụng",
@@ -28,7 +29,8 @@
     "facebook": "Facebook Videos & Reels",
     "tiktok": "Video & Reels TikTok",
     "twitter": "Video Twitter & X",
-    "pinterest": "Video Pinterest"
+    "pinterest": "Video Pinterest",
+    "snapchat": "Snapchat Spotlight & Stories"
   },
   "howto": {
     "title": "Cách tải video",
