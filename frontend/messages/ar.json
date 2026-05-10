@@ -9,7 +9,8 @@
     "instagram": "Instagram",
     "youtube": "YouTube",
     "facebook": "Facebook",
-    "tiktok": "TikTok"
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X"
   },
   "hero": {
     "badge": "مجاني • بدون تسجيل دخول • بدون تطبيق",
@@ -24,7 +25,8 @@
     "instagram": "Instagram Reels والمنشورات والقصص",
     "youtube": "مقاطع فيديو YouTube وShortsوالمقاطع القصيرة",
     "facebook": "مقاطع فيديو Facebook وReels",
-    "tiktok": "مقاطع فيديو TikTok وReels"
+    "tiktok": "مقاطع فيديو TikTok وReels",
+    "twitter": "مقاطع فيديو Twitter و X"
   },
   "howto": {
     "title": "كيفية تحميل مقاطع الفيديو",

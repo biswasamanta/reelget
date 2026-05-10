@@ -9,7 +9,8 @@
     "instagram": "Instagram",
     "youtube": "YouTube",
     "facebook": "Facebook",
-    "tiktok": "TikTok"
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X"
   },
   "hero": {
     "badge": "ఉచితం • లాగిన్ అవసరం లేదు • యాప్ అవసరం లేదు",
@@ -24,7 +25,8 @@
     "instagram": "Instagram Reels, Posts మరియు Stories",
     "youtube": "YouTube వీడియోలు మరియు Shorts",
     "facebook": "Facebook వీడియోలు మరియు Reels",
-    "tiktok": "TikTok వీడియోలు మరియు Reels"
+    "tiktok": "TikTok వీడియోలు మరియు Reels",
+    "twitter": "Twitter మరియు X వీడియోలు"
   },
   "howto": {
     "title": "వీడియో ఎలా డౌన్‌లోడ్ చేయాలి",

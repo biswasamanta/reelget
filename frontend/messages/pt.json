@@ -9,7 +9,8 @@
     "instagram": "Instagram",
     "youtube": "YouTube",
     "facebook": "Facebook",
-    "tiktok": "TikTok"
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X"
   },
   "hero": {
     "badge": "Grátis • Sem Login • Sem App",
@@ -24,7 +25,8 @@
     "instagram": "Instagram Reels, Posts e Stories",
     "youtube": "YouTube Vídeos e Shorts",
     "facebook": "Facebook Vídeos e Reels",
-    "tiktok": "Vídeos e Reels do TikTok"
+    "tiktok": "Vídeos e Reels do TikTok",
+    "twitter": "Vídeos do Twitter / X"
   },
   "howto": {
     "title": "Como Baixar Vídeos",
