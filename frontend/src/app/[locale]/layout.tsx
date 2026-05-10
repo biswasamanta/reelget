@@ -26,15 +26,32 @@ const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'meta' });
+  const title = t('title');
+  const description = t('description');
+  const url = `${BASE_URL}/${locale}`;
   return {
-    title: t('title'),
-    description: t('description'),
+    title,
+    description,
     alternates: {
-      canonical: `${BASE_URL}/${locale}`,
+      canonical: url,
       languages: {
         'x-default': `${BASE_URL}/en`,
         ...Object.fromEntries(LOCALES.map((l) => [l, `${BASE_URL}/${l}`])),
       },
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'ReelGet',
+      type: 'website',
+      locale: t('lang'),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      site: '@reelget',
     },
   };
 }
