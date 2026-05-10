@@ -1,15 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
+const FALLBACK = 52_000;
+
 function useCountUp(target: number, duration = 1800) {
   const [count, setCount] = useState(0);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
+    if (target === 0) return;
     const start = performance.now();
     const tick = (now: number) => {
       const progress = Math.min((now - start) / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(eased * target));
       if (progress < 1) rafRef.current = requestAnimationFrame(tick);
@@ -28,7 +30,17 @@ function formatCount(n: number) {
 }
 
 export default function StatsBar() {
-  const downloads = useCountUp(52_000);
+  const [totalDownloads, setTotalDownloads] = useState(FALLBACK);
+
+  useEffect(() => {
+    const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    fetch(`${api}/api/counter`)
+      .then((r) => r.json())
+      .then((d) => { if (d.count > 0) setTotalDownloads(d.count); })
+      .catch(() => {});
+  }, []);
+
+  const downloads = useCountUp(totalDownloads);
   const countries = useCountUp(50);
 
   return (
