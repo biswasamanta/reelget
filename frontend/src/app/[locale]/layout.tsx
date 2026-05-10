@@ -20,12 +20,22 @@ import sw from '../../../messages/sw.json';
 
 const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or, fr, sw };
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
+const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw'];
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'meta' });
   return {
     title: t('title'),
     description: t('description'),
+    alternates: {
+      canonical: `${BASE_URL}/${locale}`,
+      languages: {
+        'x-default': `${BASE_URL}/en`,
+        ...Object.fromEntries(LOCALES.map((l) => [l, `${BASE_URL}/${l}`])),
+      },
+    },
   };
 }
 

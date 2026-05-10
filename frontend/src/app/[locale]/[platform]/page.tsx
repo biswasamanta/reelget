@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import DownloaderForm from '@/components/DownloaderForm';
 import { routing } from '@/../i18n/routing';
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
+const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw'];
 const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
@@ -83,6 +85,13 @@ export async function generateMetadata({
   return {
     title: `${name} Video Downloader — Free ${p.types} | ReelGet`,
     description: `Download ${name} ${p.types} for free. No app or login required. Fast and easy with ReelGet.`,
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/${platform}`,
+      languages: {
+        'x-default': `${BASE_URL}/en/${platform}`,
+        ...Object.fromEntries(LOCALES.map((l) => [l, `${BASE_URL}/${l}/${platform}`])),
+      },
+    },
   };
 }
 
