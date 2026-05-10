@@ -36,8 +36,11 @@ SUPPORTED_PATTERN = re.compile(
 )
 
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
-YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
-INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", "")
+# Universal cookie jar (Netscape format) exported from a browser logged into all platforms.
+# Platform-specific vars override it for their respective domains.
+COOKIES = os.environ.get("COOKIES", "")
+YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", COOKIES)
+INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", COOKIES)
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
@@ -97,17 +100,18 @@ async def download(req: DownloadRequest):
         },
     }
 
-    # Determine which cookie block to use for this URL
-    is_instagram = bool(re.search(r"instagram\.com", req.url))
-    cookie_content = None
-    if is_instagram and INSTAGRAM_COOKIES:
-        cookie_content = INSTAGRAM_COOKIES
-        print(f"[cookies] Using INSTAGRAM_COOKIES ({len(INSTAGRAM_COOKIES)} chars)", flush=True)
-    elif not is_instagram and YOUTUBE_COOKIES:
-        cookie_content = YOUTUBE_COOKIES
-        print(f"[cookies] Using YOUTUBE_COOKIES ({len(YOUTUBE_COOKIES)} chars)", flush=True)
+    # Pick cookie jar: platform-specific override → universal COOKIES → none
+    if re.search(r"instagram\.com", req.url):
+        cookie_content = INSTAGRAM_COOKIES or None
+        label = "INSTAGRAM_COOKIES"
+    elif re.search(r"youtube\.com|youtu\.be", req.url):
+        cookie_content = YOUTUBE_COOKIES or None
+        label = "YOUTUBE_COOKIES"
     else:
-        print(f"[cookies] No cookies configured for this URL", flush=True)
+        # Facebook, TikTok, Twitter, Pinterest, Snapchat all use universal jar
+        cookie_content = COOKIES or None
+        label = "COOKIES"
+    print(f"[cookies] {label}: {'set' if cookie_content else 'not configured'}", flush=True)
 
     cookies_file = None
     if cookie_content:
