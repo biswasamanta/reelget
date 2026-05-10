@@ -26,6 +26,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 font-medium transition">{t('nav.instagram')}</a>
               <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white font-medium transition">{t('nav.tiktok')}</a>
               <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-500 font-medium transition">{t('nav.facebook')}</a>
+              <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-sky-500 font-medium transition">{t('nav.twitter')}</a>
               <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.youtube')}</a>
             </div>
             <LanguageSwitcher currentLocale={locale} />

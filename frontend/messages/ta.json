@@ -9,7 +9,8 @@
     "instagram": "Instagram",
     "youtube": "YouTube",
     "facebook": "Facebook",
-    "tiktok": "TikTok"
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X"
   },
   "hero": {
     "badge": "இலவசம் • உள்நுழைவு இல்லை • ஆப் இல்லை",
@@ -24,7 +25,8 @@
     "instagram": "Instagram Reels, Posts மற்றும் Stories",
     "youtube": "YouTube வீடியோக்கள் மற்றும் Shorts",
     "facebook": "Facebook வீடியோக்கள் மற்றும் Reels",
-    "tiktok": "TikTok வீடியோக்கள் மற்றும் Reels"
+    "tiktok": "TikTok வீடியோக்கள் மற்றும் Reels",
+    "twitter": "Twitter மற்றும் X வீடியோக்கள்"
   },
   "howto": {
     "title": "வீடியோவை எவ்வாறு பதிவிறக்குவது",

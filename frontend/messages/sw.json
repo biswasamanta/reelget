@@ -9,7 +9,8 @@
     "instagram": "Instagram",
     "youtube": "YouTube",
     "facebook": "Facebook",
-    "tiktok": "TikTok"
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X"
   },
   "hero": {
     "badge": "Bure • Bila Kuingia • Bila App",
@@ -24,7 +25,8 @@
     "instagram": "Instagram Reels, Machapisho na Stories",
     "youtube": "Video za YouTube na Shorts",
     "facebook": "Video za Facebook na Reels",
-    "tiktok": "Video za TikTok na Reels"
+    "tiktok": "Video za TikTok na Reels",
+    "twitter": "Video za Twitter na X"
   },
   "howto": {
     "title": "Jinsi ya Kupakua Video",
