@@ -42,6 +42,10 @@ CACHE_TTL = 6 * 3600  # 6 hours
 
 ALLOWED_REGIONS = {"IN", "PK", "ID", "BR", "SA", "VN", "US", "NG", "KE"}
 
+# In-memory download counter — resets on restart but starts from a base
+_COUNTER_BASE = 52_000
+_counter_session = 0
+
 
 class DownloadRequest(BaseModel):
     url: str
@@ -158,6 +162,9 @@ async def download(req: DownloadRequest):
 
     if not formats:
         raise HTTPException(status_code=404, detail="No downloadable formats found")
+
+    global _counter_session
+    _counter_session += 1
 
     return DownloadResponse(
         title=info.get("title", "Video"),
@@ -369,6 +376,11 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
         media_type=content_type,
         headers={"Content-Disposition": f'attachment; filename="{safe_filename}.{ext}"'},
     )
+
+
+@app.get("/api/counter")
+def get_counter():
+    return {"count": _COUNTER_BASE + _counter_session}
 
 
 @app.get("/health")
