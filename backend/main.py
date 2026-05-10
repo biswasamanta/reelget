@@ -37,6 +37,7 @@ SUPPORTED_PATTERN = re.compile(
 
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
 YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", "")
+INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", "")
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
@@ -96,20 +97,28 @@ async def download(req: DownloadRequest):
         },
     }
 
-    # Write YouTube cookies to a temp file if provided
+    # Determine which cookie block to use for this URL
+    is_instagram = bool(re.search(r"instagram\.com", req.url))
+    cookie_content = None
+    if is_instagram and INSTAGRAM_COOKIES:
+        cookie_content = INSTAGRAM_COOKIES
+        print(f"[cookies] Using INSTAGRAM_COOKIES ({len(INSTAGRAM_COOKIES)} chars)", flush=True)
+    elif not is_instagram and YOUTUBE_COOKIES:
+        cookie_content = YOUTUBE_COOKIES
+        print(f"[cookies] Using YOUTUBE_COOKIES ({len(YOUTUBE_COOKIES)} chars)", flush=True)
+    else:
+        print(f"[cookies] No cookies configured for this URL", flush=True)
+
     cookies_file = None
-    if YOUTUBE_COOKIES:
+    if cookie_content:
         try:
             tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
-            tmp.write(YOUTUBE_COOKIES)
+            tmp.write(cookie_content)
             tmp.close()
             cookies_file = tmp.name
             ydl_opts["cookiefile"] = cookies_file
-            print(f"[cookies] Loaded {len(YOUTUBE_COOKIES)} chars → {cookies_file}", flush=True)
         except Exception as ex:
             print(f"[cookies] Failed to write cookies file: {ex}", flush=True)
-    else:
-        print("[cookies] No YOUTUBE_COOKIES env var found", flush=True)
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
