@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "title": "Video Downloader - Mag-download ng Instagram, YouTube at Facebook Videos",
+    "description": "Mag-download ng mga video mula sa Instagram, YouTube at Facebook nang libre. Walang app na kailangan. Mabilis at madali.",
+    "lang": "tl",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest"
+  },
+  "hero": {
+    "badge": "Libre • Walang Login • Walang App",
+    "title": "Video Downloader",
+    "subtitle": "Mag-download ng mga video mula sa Instagram, YouTube at Facebook agad-agad. Libre, mabilis, at walang app na kailangan.",
+    "placeholder": "I-paste ang video link dito...",
+    "button": "I-download",
+    "paste": "I-paste"
+  },
+  "platforms": {
+    "title": "Mga Sinusuportahang Platform",
+    "instagram": "Instagram Reels, Posts at Stories",
+    "youtube": "YouTube Videos at Shorts",
+    "facebook": "Facebook Videos at Reels",
+    "tiktok": "TikTok Videos at Reels",
+    "twitter": "Twitter at X Videos at GIFs",
+    "pinterest": "Pinterest Videos at Pins"
+  },
+  "howto": {
+    "title": "Paano Mag-download ng Video",
+    "step1_title": "Kopyahin ang Link",
+    "step1_desc": "Buksan ang Instagram, YouTube o Facebook at kopyahin ang video link.",
+    "step2_title": "I-paste at I-download",
+    "step2_desc": "I-paste ang link sa kahon sa itaas at pindutin ang Download button.",
+    "step3_title": "I-save ang Video",
+    "step3_desc": "Piliin ang kalidad na gusto mo at i-save ang video sa iyong device."
+  },
+  "result": {
+    "title": "Handa na ang Iyong Video!",
+    "download_hd": "I-download ang HD",
+    "download_sd": "I-download ang SD",
+    "download_audio": "Audio Lang ang I-download",
+    "processing": "Hinahanap ang iyong video...",
+    "error": "Hindi mahanap ang video. Suriin ang link at subukang muli.",
+    "invalid_url": "Mangyaring maglagay ng wastong Instagram, YouTube o Facebook link."
+  },
+  "faq": {
+    "title": "Mga Madalas Itanong",
+    "q1": "Libre ba ang tool na ito?",
+    "a1": "Oo, ganap na libre. Walang registration o app na kailangan.",
+    "q2": "Anong mga platform ang sinusuportahan?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Videos, Shorts), at Facebook (Videos, Reels).",
+    "q3": "Ligtas ba itong gamitin?",
+    "a3": "Oo. Hindi namin iniimbak ang iyong mga link o video. Lahat ay pinoproseso sa real time.",
+    "q4": "Maaari ba akong mag-download ng mga pribadong video?",
+    "a4": "Hindi. Ang mga pampublikong video lamang ang maaaring i-download."
+  },
+  "trending": {
+    "badge": "Trending Ngayon",
+    "title": "Mga Nangungunang Video Ngayong Linggo",
+    "subtitle": "Pindutin ang anumang video para mag-download agad"
+  },
+  "footer": {
+    "tagline": "Mabilis at libreng pag-download ng video mula sa iyong mga paboritong platform.",
+    "disclaimer": "Ang tool na ito ay para sa personal na paggamit lamang. Mangyaring igalang ang mga batas sa copyright."
+  }
+}

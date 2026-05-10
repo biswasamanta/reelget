@@ -17,11 +17,14 @@ import vi from '../../../messages/vi.json';
 import or from '../../../messages/or.json';
 import fr from '../../../messages/fr.json';
 import sw from '../../../messages/sw.json';
+import tl from '../../../messages/tl.json';
+import ha from '../../../messages/ha.json';
+import am from '../../../messages/am.json';
 
-const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or, fr, sw };
+const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or, fr, sw, tl, ha, am };
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
-const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw'];
+const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am'];
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
