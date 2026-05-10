@@ -5,6 +5,7 @@ import FaqSection from '@/components/FaqSection';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import PlatformBadges from '@/components/PlatformBadges';
 import TrendingSection from '@/components/TrendingSection';
+import StatsBar from '@/components/StatsBar';
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -93,12 +94,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             );
           })()}
 
-          {/* Trust bar */}
-          <div className="flex justify-center gap-6 mt-8 text-slate-400 text-xs">
-            <span className="flex items-center gap-1">⚡ {t('hero.badge').split('•')[0]?.trim()}</span>
-            <span className="flex items-center gap-1">🔒 Private</span>
-            <span className="flex items-center gap-1">🌍 13 Languages</span>
-          </div>
+          <StatsBar />
         </div>
       </section>
 
