@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "বিনামূল্যে • লগইন ছাড়া • অ্যাপ ছাড়া",
@@ -28,7 +29,8 @@
     "facebook": "Facebook Videos ও Reels",
     "tiktok": "TikTok Videos ও Reels",
     "twitter": "Twitter ও X Videos & GIFs",
-    "pinterest": "Pinterest Videos ও Pins"
+    "pinterest": "Pinterest Videos ও Pins",
+    "snapchat": "Snapchat Spotlight ও Stories"
   },
   "howto": {
     "title": "ভিডিও কীভাবে ডাউনলোড করবেন",

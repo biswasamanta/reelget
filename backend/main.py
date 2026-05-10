@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 SUPPORTED_PATTERN = re.compile(
-    r"(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it)"
+    r"(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|story\.snapchat\.com)"
 )
 
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
@@ -280,6 +280,8 @@ def _referer_for(url: str) -> str:
         return "https://www.facebook.com/"
     if "pinterest" in url or "pinimg" in url or "pin.it" in url:
         return "https://www.pinterest.com/"
+    if "snapchat" in url:
+        return "https://www.snapchat.com/"
     return "https://www.youtube.com/"
 
 @app.get("/api/download-tiktok")

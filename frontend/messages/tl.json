@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "Libre • Walang Login • Walang App",
@@ -28,7 +29,8 @@
     "facebook": "Facebook Videos at Reels",
     "tiktok": "TikTok Videos at Reels",
     "twitter": "Twitter at X Videos at GIFs",
-    "pinterest": "Pinterest Videos at Pins"
+    "pinterest": "Pinterest Videos at Pins",
+    "snapchat": "Snapchat Spotlight at Stories"
   },
   "howto": {
     "title": "Paano Mag-download ng Video",

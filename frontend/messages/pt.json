@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "Grátis • Sem Login • Sem App",
@@ -28,7 +29,8 @@
     "facebook": "Facebook Vídeos e Reels",
     "tiktok": "Vídeos e Reels do TikTok",
     "twitter": "Vídeos do Twitter / X",
-    "pinterest": "Vídeos do Pinterest"
+    "pinterest": "Vídeos do Pinterest",
+    "snapchat": "Snapchat Spotlight e Stories"
   },
   "howto": {
     "title": "Como Baixar Vídeos",

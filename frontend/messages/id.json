@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "Gratis • Tanpa Login • Tanpa Aplikasi",
@@ -28,7 +29,8 @@
     "facebook": "Facebook Videos & Reels",
     "tiktok": "Video & Reels TikTok",
     "twitter": "Video Twitter & X",
-    "pinterest": "Video Pinterest & Pins"
+    "pinterest": "Video Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
   },
   "howto": {
     "title": "Cara Mengunduh Video",

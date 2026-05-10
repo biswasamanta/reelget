@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "இலவசம் • உள்நுழைவு இல்லை • ஆப் இல்லை",
@@ -28,7 +29,8 @@
     "facebook": "Facebook வீடியோக்கள் மற்றும் Reels",
     "tiktok": "TikTok வீடியோக்கள் மற்றும் Reels",
     "twitter": "Twitter மற்றும் X வீடியோக்கள்",
-    "pinterest": "Pinterest வீடியோக்கள்"
+    "pinterest": "Pinterest வீடியோக்கள்",
+    "snapchat": "Snapchat Spotlight மற்றும் Stories"
   },
   "howto": {
     "title": "வீடியோவை எவ்வாறு பதிவிறக்குவது",

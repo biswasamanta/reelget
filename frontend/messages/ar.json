@@ -11,7 +11,8 @@
     "facebook": "Facebook",
     "tiktok": "TikTok",
     "twitter": "Twitter / X",
-    "pinterest": "Pinterest"
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
   },
   "hero": {
     "badge": "مجاني • بدون تسجيل دخول • بدون تطبيق",
@@ -28,7 +29,8 @@
     "facebook": "مقاطع فيديو Facebook وReels",
     "tiktok": "مقاطع فيديو TikTok وReels",
     "twitter": "مقاطع فيديو Twitter و X",
-    "pinterest": "مقاطع فيديو Pinterest"
+    "pinterest": "مقاطع فيديو Pinterest",
+    "snapchat": "Snapchat Spotlight والقصص"
   },
   "howto": {
     "title": "كيفية تحميل مقاطع الفيديو",
