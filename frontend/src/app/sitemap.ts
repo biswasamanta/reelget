@@ -26,5 +26,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   );
 
-  return [...localePages, ...platformPages];
+  const staticPages: MetadataRoute.Sitemap = ['about', 'privacy', 'terms'].map((slug) => ({
+    url: `${BASE_URL}/en/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'yearly' as const,
+    priority: 0.4,
+  }));
+
+  return [...localePages, ...platformPages, ...staticPages];
 }

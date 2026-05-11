@@ -497,6 +497,11 @@ export default async function PlatformPage({
         </div>
         <p className="mb-1 text-slate-400">{t('footer.tagline')}</p>
         <p className="text-xs text-slate-600 mt-3">{t('footer.disclaimer')}</p>
+        <div className="flex justify-center gap-4 text-xs text-slate-600 mt-4">
+          <a href={`/${locale}/privacy`} className="hover:text-teal-400 transition">Privacy Policy</a>
+          <a href={`/${locale}/terms`} className="hover:text-teal-400 transition">Terms of Service</a>
+          <a href={`/${locale}/about`} className="hover:text-teal-400 transition">About</a>
+        </div>
       </footer>
     </div>
   );
