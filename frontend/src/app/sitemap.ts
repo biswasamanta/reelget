@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
 const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am'];
-const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter'];
+const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat'];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const localePages: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
