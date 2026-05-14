@@ -40,12 +40,6 @@ export default function TrendingSection({ locale }: { locale: string }) {
       .catch(() => { setNoKey(true); setLoading(false); });
   }, [region, apiBase]);
 
-  function handleClick(videoId: string) {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    window.dispatchEvent(new CustomEvent('fill-url', { detail: url }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
   if (noKey && !loading) return null;
 
   return (
@@ -74,9 +68,11 @@ export default function TrendingSection({ locale }: { locale: string }) {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {videos.map((v) => (
-              <button
+              <a
                 key={v.videoId}
-                onClick={() => handleClick(v.videoId)}
+                href={`https://www.youtube.com/watch?v=${v.videoId}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group relative bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-orange-400/60 transition-all duration-200 hover:scale-105 text-left shadow-lg"
               >
                 <div className="relative aspect-video overflow-hidden bg-slate-700">
@@ -90,8 +86,8 @@ export default function TrendingSection({ locale }: { locale: string }) {
                       <span className="text-white text-sm ml-0.5">▶</span>
                     </div>
                   </div>
-                  <div className="absolute top-1.5 right-1.5 bg-gradient-to-r from-cyan-500 to-teal-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg">
-                    ↓ DOWNLOAD
+                  <div className="absolute top-1.5 right-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg">
+                    ▶ WATCH
                   </div>
                 </div>
                 <div className="p-2.5">
@@ -100,7 +96,7 @@ export default function TrendingSection({ locale }: { locale: string }) {
                   </p>
                   <p className="text-slate-500 text-[10px] truncate">{v.channelTitle}</p>
                 </div>
-              </button>
+              </a>
             ))}
           </div>
         )}
