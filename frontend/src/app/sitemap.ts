@@ -26,6 +26,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   );
 
+  const landingPages: MetadataRoute.Sitemap = [
+    'instagram-reels-downloader',
+    'instagram-story-downloader',
+    'tiktok-downloader-no-watermark',
+    'youtube-shorts-downloader',
+    'youtube-to-mp3',
+    'facebook-reels-downloader',
+    'twitter-video-downloader',
+  ].map((slug) => ({
+    url: `${BASE_URL}/en/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
+
   const staticPages: MetadataRoute.Sitemap = ['about', 'privacy', 'terms'].map((slug) => ({
     url: `${BASE_URL}/en/${slug}`,
     lastModified: new Date(),
@@ -33,5 +48,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.4,
   }));
 
-  return [...localePages, ...platformPages, ...staticPages];
+  return [...localePages, ...platformPages, ...landingPages, ...staticPages];
 }
