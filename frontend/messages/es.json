@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Descargador de Videos - Descarga Videos de Instagram, YouTube y Facebook",
+    "description": "Descarga videos de Instagram, YouTube y Facebook gratis. Sin aplicación necesaria. Rápido y fácil.",
+    "lang": "es",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Gratis • Sin Login • Sin App",
+    "title": "Descargador de Videos",
+    "subtitle": "Descarga videos de Instagram, YouTube y Facebook al instante. Gratis, rápido, sin aplicación.",
+    "placeholder": "Pega el enlace del video aquí...",
+    "button": "Descargar",
+    "paste": "Pegar"
+  },
+  "platforms": {
+    "title": "Plataformas Compatibles",
+    "instagram": "Instagram Reels, Posts y Stories",
+    "youtube": "Videos y Shorts de YouTube",
+    "facebook": "Videos y Reels de Facebook",
+    "tiktok": "Videos y Reels de TikTok",
+    "twitter": "Videos y GIFs de Twitter y X",
+    "pinterest": "Videos y Pins de Pinterest",
+    "snapchat": "Spotlight y Stories de Snapchat"
+  },
+  "howto": {
+    "title": "Cómo Descargar Videos",
+    "step1_title": "Copia el Enlace",
+    "step1_desc": "Abre Instagram, YouTube o Facebook y copia el enlace del video.",
+    "step2_title": "Pega y Descarga",
+    "step2_desc": "Pega el enlace en el cuadro de arriba y haz clic en Descargar.",
+    "step3_title": "Guarda el Video",
+    "step3_desc": "Elige la calidad que prefieras y guarda el video en tu dispositivo."
+  },
+  "result": {
+    "title": "¡Tu Video está Listo!",
+    "download_hd": "Descargar HD",
+    "download_sd": "Descargar SD",
+    "download_audio": "Descargar Solo Audio",
+    "processing": "Buscando tu video...",
+    "error": "No se pudo encontrar el video. Por favor verifica el enlace e inténtalo de nuevo.",
+    "invalid_url": "Por favor ingresa un enlace válido de Instagram, TikTok, Facebook o YouTube."
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "q1": "¿Es gratuita esta herramienta?",
+    "a1": "Sí, completamente gratis. No se requiere registro ni aplicación.",
+    "q2": "¿Qué plataformas son compatibles?",
+    "a2": "Instagram (Reels, Posts, Stories), YouTube (Videos, Shorts) y Facebook (Videos, Reels).",
+    "q3": "¿Es seguro usarla?",
+    "a3": "Sí. No almacenamos tus enlaces ni videos. Todo se procesa en tiempo real.",
+    "q4": "¿Puedo descargar videos privados?",
+    "a4": "No. Solo se pueden descargar videos públicos."
+  },
+  "trending": {
+    "badge": "Tendencias Ahora",
+    "title": "Videos Más Vistos Esta Semana",
+    "subtitle": "Toca para ver en YouTube • copia el enlace para descargar"
+  },
+  "footer": {
+    "tagline": "Descarga de videos rápida y gratuita desde tus plataformas favoritas.",
+    "disclaimer": "Esta herramienta es solo para uso personal. Por favor respeta las leyes de derechos de autor."
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Video İndirici - Instagram, YouTube ve Facebook Videoları İndir",
+    "description": "Instagram, YouTube ve Facebook'tan ücretsiz video indirin. Uygulama gerekmez. Hızlı ve kolay.",
+    "lang": "tr",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Ücretsiz • Giriş Yok • Uygulama Yok",
+    "title": "Video İndirici",
+    "subtitle": "Instagram, YouTube ve Facebook videolarını anında indirin. Ücretsiz, hızlı, uygulama gerekmez.",
+    "placeholder": "Video bağlantısını buraya yapıştırın...",
+    "button": "İndir",
+    "paste": "Yapıştır"
+  },
+  "platforms": {
+    "title": "Desteklenen Platformlar",
+    "instagram": "Instagram Reels, Gönderi ve Hikayeler",
+    "youtube": "YouTube Video ve Shorts",
+    "facebook": "Facebook Video ve Reels",
+    "tiktok": "TikTok Video ve Reels",
+    "twitter": "Twitter ve X Videoları ve GIF'ler",
+    "pinterest": "Pinterest Videoları ve Pinler",
+    "snapchat": "Snapchat Spotlight ve Hikayeler"
+  },
+  "howto": {
+    "title": "Video Nasıl İndirilir",
+    "step1_title": "Bağlantıyı Kopyala",
+    "step1_desc": "Instagram, YouTube veya Facebook'u açın ve video bağlantısını kopyalayın.",
+    "step2_title": "Yapıştır ve İndir",
+    "step2_desc": "Bağlantıyı yukarıdaki kutuya yapıştırın ve İndir düğmesine tıklayın.",
+    "step3_title": "Videoyu Kaydet",
+    "step3_desc": "İstediğiniz kaliteyi seçin ve videoyu cihazınıza kaydedin."
+  },
+  "result": {
+    "title": "Videonuz Hazır!",
+    "download_hd": "HD İndir",
+    "download_sd": "SD İndir",
+    "download_audio": "Yalnızca Ses İndir",
+    "processing": "Videonuz aranıyor...",
+    "error": "Video bulunamadı. Bağlantıyı kontrol edin ve tekrar deneyin.",
+    "invalid_url": "Lütfen geçerli bir Instagram, TikTok, Facebook veya YouTube bağlantısı girin."
+  },
+  "faq": {
+    "title": "Sık Sorulan Sorular",
+    "q1": "Bu araç ücretsiz mi?",
+    "a1": "Evet, tamamen ücretsiz. Kayıt veya uygulama gerekmez.",
+    "q2": "Hangi platformlar destekleniyor?",
+    "a2": "Instagram (Reels, Gönderi, Hikayeler), YouTube (Videolar, Shorts) ve Facebook (Videolar, Reels).",
+    "q3": "Kullanımı güvenli mi?",
+    "a3": "Evet. Bağlantılarınızı veya videolarınızı saklamıyoruz. Her şey gerçek zamanlı işlenir.",
+    "q4": "Özel videoları indirebilir miyim?",
+    "a4": "Hayır. Yalnızca herkese açık videolar indirilebilir."
+  },
+  "trending": {
+    "badge": "Şu An Trend",
+    "title": "Bu Haftanın En Çok İzlenen Videoları",
+    "subtitle": "YouTube'da izlemek için dokunun • indirmek için bağlantıyı kopyalayın"
+  },
+  "footer": {
+    "tagline": "Favori platformlarınızdan hızlı ve ücretsiz video indirme.",
+    "disclaimer": "Bu araç yalnızca kişisel kullanım içindir. Lütfen telif hakkı yasalarına saygı gösterin."
+  }
+}

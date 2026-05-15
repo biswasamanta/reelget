@@ -5,7 +5,7 @@ import DownloaderForm from '@/components/DownloaderForm';
 import { routing } from '@/../i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
-const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am'];
+const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am', 'es', 'ru', 'tr', 'th', 'ko'];
 const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
@@ -39,6 +39,11 @@ const LOCALE_TITLES: Record<string, (name: string) => string> = {
   tl:  (n) => `Mag-download ng ${n} Videos Libre Walang Watermark | ReelGet`,
   ha:  (n) => `Sauke Bidiyo na ${n} Kyauta Babu Watermark | ReelGet`,
   am:  (n) => `${n} ቪዲዮ ያውርዱ ነፃ ያለ ዋተርማርክ | ReelGet`,
+  es:  (n) => `Descargador de Videos ${n} Gratis — Sin Marca de Agua, Sin Login | ReelGet`,
+  ru:  (n) => `Скачать видео ${n} бесплатно — без водяного знака, без входа | ReelGet`,
+  tr:  (n) => `${n} Video İndirici Ücretsiz — Filigran Yok, Giriş Yok | ReelGet`,
+  th:  (n) => `ดาวน์โหลดวิดีโอ ${n} ฟรี — ไม่มีลายน้ำ ไม่ต้องเข้าสู่ระบบ | ReelGet`,
+  ko:  (n) => `${n} 동영상 무료 다운로드 — 워터마크 없음, 로그인 불필요 | ReelGet`,
 };
 
 const LOCALE_DESCS: Record<string, (name: string, types: string) => string> = {
@@ -58,6 +63,11 @@ const LOCALE_DESCS: Record<string, (name: string, types: string) => string> = {
   tl:  (n, t) => `Mag-download ng ${n} ${t} nang libre, walang watermark at walang login. Mabilis at madali gamit ang ReelGet.`,
   ha:  (n, t) => `Sauke ${n} ${t} kyauta babu watermark da babu shiga. Da sauri kuma cikin sauƙi tare da ReelGet.`,
   am:  (n, t) => `${n} ${t} ያለ ዋተርማርክ እና ያለ ሎጊን ነፃ ያውርዱ። ReelGet ጋር ፈጣን እና ቀላል።`,
+  es:  (n, t) => `Descarga ${n} ${t} gratis sin marca de agua y sin iniciar sesión. Rápido y fácil con ReelGet.`,
+  ru:  (n, t) => `Скачайте ${n} ${t} бесплатно — без водяного знака, без входа. Быстро и легко с ReelGet.`,
+  tr:  (n, t) => `${n} ${t} ücretsiz indirin — filigran yok, giriş yok. ReelGet ile hızlı ve kolay.`,
+  th:  (n, t) => `ดาวน์โหลด ${n} ${t} ฟรี — ไม่มีลายน้ำ ไม่ต้องเข้าสู่ระบบ ง่ายและรวดเร็วด้วย ReelGet`,
+  ko:  (n, t) => `${n} ${t}을(를) 무료로 다운로드하세요 — 워터마크 없음, 로그인 불필요. ReelGet으로 빠르고 쉽게.`,
 };
 
 // ─── Platform metadata ────────────────────────────────────────────────────────

@@ -17,6 +17,11 @@ const LANGUAGES = [
   { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'sw', label: 'Kiswahili', flag: '🌍' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+  { code: 'th', label: 'ภาษาไทย', flag: '🇹🇭' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
 ];
 
 export default function LanguageSwitcher({ currentLocale }: { currentLocale: string }) {

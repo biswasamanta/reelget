@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "동영상 다운로더 - Instagram, YouTube, Facebook 동영상 다운로드",
+    "description": "Instagram, YouTube, Facebook 동영상을 무료로 다운로드하세요. 앱 설치 불필요. 빠르고 간편합니다.",
+    "lang": "ko",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "무료 • 로그인 불필요 • 앱 불필요",
+    "title": "동영상 다운로더",
+    "subtitle": "Instagram, YouTube, Facebook 동영상을 즉시 다운로드하세요. 무료, 빠르고, 앱 불필요.",
+    "placeholder": "동영상 링크를 여기에 붙여넣으세요...",
+    "button": "다운로드",
+    "paste": "붙여넣기"
+  },
+  "platforms": {
+    "title": "지원 플랫폼",
+    "instagram": "Instagram Reels, 게시물 및 스토리",
+    "youtube": "YouTube 동영상 및 Shorts",
+    "facebook": "Facebook 동영상 및 Reels",
+    "tiktok": "TikTok 동영상 및 Reels",
+    "twitter": "Twitter 및 X 동영상과 GIF",
+    "pinterest": "Pinterest 동영상 및 핀",
+    "snapchat": "Snapchat Spotlight 및 스토리"
+  },
+  "howto": {
+    "title": "동영상 다운로드 방법",
+    "step1_title": "링크 복사",
+    "step1_desc": "Instagram, YouTube 또는 Facebook을 열고 동영상 링크를 복사하세요.",
+    "step2_title": "붙여넣기 후 다운로드",
+    "step2_desc": "위 입력창에 링크를 붙여넣고 다운로드 버튼을 클릭하세요.",
+    "step3_title": "동영상 저장",
+    "step3_desc": "원하는 화질을 선택하고 기기에 동영상을 저장하세요."
+  },
+  "result": {
+    "title": "동영상이 준비되었습니다!",
+    "download_hd": "HD 다운로드",
+    "download_sd": "SD 다운로드",
+    "download_audio": "오디오만 다운로드",
+    "processing": "동영상을 찾는 중...",
+    "error": "동영상을 찾을 수 없습니다. 링크를 확인하고 다시 시도하세요.",
+    "invalid_url": "올바른 Instagram, TikTok, Facebook 또는 YouTube 링크를 입력하세요."
+  },
+  "faq": {
+    "title": "자주 묻는 질문",
+    "q1": "이 도구는 무료인가요?",
+    "a1": "네, 완전 무료입니다. 회원가입이나 앱 설치가 필요 없습니다.",
+    "q2": "어떤 플랫폼을 지원하나요?",
+    "a2": "Instagram (Reels, 게시물, 스토리), YouTube (동영상, Shorts), Facebook (동영상, Reels).",
+    "q3": "안전하게 사용할 수 있나요?",
+    "a3": "네. 링크나 동영상을 저장하지 않습니다. 모든 처리는 실시간으로 이루어집니다.",
+    "q4": "비공개 동영상도 다운로드할 수 있나요?",
+    "a4": "아니요. 공개 동영상만 다운로드할 수 있습니다."
+  },
+  "trending": {
+    "badge": "지금 트렌딩",
+    "title": "이번 주 인기 동영상",
+    "subtitle": "YouTube에서 보려면 탭하세요 • 다운로드하려면 링크를 복사하세요"
+  },
+  "footer": {
+    "tagline": "좋아하는 플랫폼에서 빠르고 무료로 동영상을 다운로드하세요.",
+    "disclaimer": "이 도구는 개인 용도로만 사용해 주세요. 저작권법을 준수해 주시기 바랍니다."
+  }
+}

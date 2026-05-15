@@ -20,11 +20,16 @@ import sw from '../../../messages/sw.json';
 import tl from '../../../messages/tl.json';
 import ha from '../../../messages/ha.json';
 import am from '../../../messages/am.json';
+import es from '../../../messages/es.json';
+import ru from '../../../messages/ru.json';
+import tr from '../../../messages/tr.json';
+import th from '../../../messages/th.json';
+import ko from '../../../messages/ko.json';
 
-const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or, fr, sw, tl, ha, am };
+const MESSAGE_MAP: Record<string, object> = { en, hi, bn, id, ur, pt, ta, te, ar, vi, or, fr, sw, tl, ha, am, es, ru, tr, th, ko };
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
-const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am'];
+const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am', 'es', 'ru', 'tr', 'th', 'ko'];
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;

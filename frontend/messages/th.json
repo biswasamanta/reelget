@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "ดาวน์โหลดวิดีโอ - ดาวน์โหลดวิดีโอจาก Instagram, YouTube และ Facebook",
+    "description": "ดาวน์โหลดวิดีโอจาก Instagram, YouTube และ Facebook ฟรี ไม่ต้องติดตั้งแอป รวดเร็วและง่ายดาย",
+    "lang": "th",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "ฟรี • ไม่ต้องเข้าสู่ระบบ • ไม่ต้องติดตั้งแอป",
+    "title": "โปรแกรมดาวน์โหลดวิดีโอ",
+    "subtitle": "ดาวน์โหลดวิดีโอจาก Instagram, YouTube และ Facebook ทันที ฟรี รวดเร็ว ไม่ต้องติดตั้งแอป",
+    "placeholder": "วางลิงก์วิดีโอที่นี่...",
+    "button": "ดาวน์โหลด",
+    "paste": "วาง"
+  },
+  "platforms": {
+    "title": "แพลตฟอร์มที่รองรับ",
+    "instagram": "Instagram Reels, โพสต์ และ Stories",
+    "youtube": "วิดีโอ YouTube และ Shorts",
+    "facebook": "วิดีโอ Facebook และ Reels",
+    "tiktok": "วิดีโอ TikTok และ Reels",
+    "twitter": "วิดีโอและ GIF จาก Twitter และ X",
+    "pinterest": "วิดีโอและพิน Pinterest",
+    "snapchat": "Snapchat Spotlight และ Stories"
+  },
+  "howto": {
+    "title": "วิธีดาวน์โหลดวิดีโอ",
+    "step1_title": "คัดลอกลิงก์",
+    "step1_desc": "เปิด Instagram, YouTube หรือ Facebook และคัดลอกลิงก์วิดีโอ",
+    "step2_title": "วางและดาวน์โหลด",
+    "step2_desc": "วางลิงก์ในช่องด้านบนและคลิกปุ่มดาวน์โหลด",
+    "step3_title": "บันทึกวิดีโอ",
+    "step3_desc": "เลือกคุณภาพที่ต้องการและบันทึกวิดีโอลงอุปกรณ์ของคุณ"
+  },
+  "result": {
+    "title": "วิดีโอของคุณพร้อมแล้ว!",
+    "download_hd": "ดาวน์โหลด HD",
+    "download_sd": "ดาวน์โหลด SD",
+    "download_audio": "ดาวน์โหลดเฉพาะเสียง",
+    "processing": "กำลังค้นหาวิดีโอของคุณ...",
+    "error": "ไม่พบวิดีโอ กรุณาตรวจสอบลิงก์และลองอีกครั้ง",
+    "invalid_url": "กรุณาใส่ลิงก์ Instagram, TikTok, Facebook หรือ YouTube ที่ถูกต้อง"
+  },
+  "faq": {
+    "title": "คำถามที่พบบ่อย",
+    "q1": "เครื่องมือนี้ฟรีหรือไม่?",
+    "a1": "ใช่ ฟรีทั้งหมด ไม่ต้องลงทะเบียนหรือติดตั้งแอป",
+    "q2": "รองรับแพลตฟอร์มใดบ้าง?",
+    "a2": "Instagram (Reels, โพสต์, Stories), YouTube (วิดีโอ, Shorts) และ Facebook (วิดีโอ, Reels)",
+    "q3": "ปลอดภัยในการใช้งานหรือไม่?",
+    "a3": "ใช่ เราไม่จัดเก็บลิงก์หรือวิดีโอของคุณ ทุกอย่างประมวลผลแบบเรียลไทม์",
+    "q4": "ดาวน์โหลดวิดีโอส่วนตัวได้หรือไม่?",
+    "a4": "ไม่ได้ สามารถดาวน์โหลดได้เฉพาะวิดีโอสาธารณะเท่านั้น"
+  },
+  "trending": {
+    "badge": "กำลังเป็นที่นิยม",
+    "title": "วิดีโอยอดนิยมสัปดาห์นี้",
+    "subtitle": "แตะเพื่อดูบน YouTube • คัดลอกลิงก์เพื่อดาวน์โหลด"
+  },
+  "footer": {
+    "tagline": "ดาวน์โหลดวิดีโอฟรีและรวดเร็วจากแพลตฟอร์มที่คุณชื่นชอบ",
+    "disclaimer": "เครื่องมือนี้ใช้สำหรับการใช้งานส่วนตัวเท่านั้น กรุณาเคารพกฎหมายลิขสิทธิ์"
+  }
+}

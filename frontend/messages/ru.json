@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Загрузчик видео - Скачать видео из Instagram, YouTube и Facebook",
+    "description": "Бесплатно скачивайте видео из Instagram, YouTube и Facebook. Приложение не нужно. Быстро и легко.",
+    "lang": "ru",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Бесплатно • Без входа • Без приложения",
+    "title": "Загрузчик видео",
+    "subtitle": "Скачивайте видео из Instagram, YouTube и Facebook мгновенно. Бесплатно, быстро, без приложения.",
+    "placeholder": "Вставьте ссылку на видео сюда...",
+    "button": "Скачать",
+    "paste": "Вставить"
+  },
+  "platforms": {
+    "title": "Поддерживаемые платформы",
+    "instagram": "Instagram Reels, посты и Stories",
+    "youtube": "Видео и Shorts YouTube",
+    "facebook": "Видео и Reels Facebook",
+    "tiktok": "Видео и Reels TikTok",
+    "twitter": "Видео и GIF Twitter и X",
+    "pinterest": "Видео и пины Pinterest",
+    "snapchat": "Spotlight и Stories Snapchat"
+  },
+  "howto": {
+    "title": "Как скачать видео",
+    "step1_title": "Скопируйте ссылку",
+    "step1_desc": "Откройте Instagram, YouTube или Facebook и скопируйте ссылку на видео.",
+    "step2_title": "Вставьте и скачайте",
+    "step2_desc": "Вставьте ссылку в поле выше и нажмите кнопку Скачать.",
+    "step3_title": "Сохраните видео",
+    "step3_desc": "Выберите нужное качество и сохраните видео на устройство."
+  },
+  "result": {
+    "title": "Ваше видео готово!",
+    "download_hd": "Скачать HD",
+    "download_sd": "Скачать SD",
+    "download_audio": "Скачать только аудио",
+    "processing": "Поиск вашего видео...",
+    "error": "Не удалось найти видео. Проверьте ссылку и попробуйте снова.",
+    "invalid_url": "Пожалуйста, введите корректную ссылку Instagram, TikTok, Facebook или YouTube."
+  },
+  "faq": {
+    "title": "Часто задаваемые вопросы",
+    "q1": "Этот инструмент бесплатный?",
+    "a1": "Да, полностью бесплатно. Регистрация и приложение не требуются.",
+    "q2": "Какие платформы поддерживаются?",
+    "a2": "Instagram (Reels, посты, Stories), YouTube (видео, Shorts) и Facebook (видео, Reels).",
+    "q3": "Это безопасно?",
+    "a3": "Да. Мы не храним ваши ссылки или видео. Всё обрабатывается в реальном времени.",
+    "q4": "Можно ли скачать приватные видео?",
+    "a4": "Нет. Можно скачивать только публичные видео."
+  },
+  "trending": {
+    "badge": "В тренде сейчас",
+    "title": "Топ видео этой недели",
+    "subtitle": "Нажмите для просмотра на YouTube • скопируйте ссылку для скачивания"
+  },
+  "footer": {
+    "tagline": "Быстрое и бесплатное скачивание видео с любимых платформ.",
+    "disclaimer": "Этот инструмент предназначен только для личного использования. Пожалуйста, соблюдайте законы об авторских правах."
+  }
+}
