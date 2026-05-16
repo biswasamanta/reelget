@@ -29,8 +29,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     return () => window.removeEventListener('fill-url', handler);
   }, []);
 
+  const isImageExt = (ext: string) =>
+    ['jpg', 'jpeg', 'webp', 'png', 'gif', 'avif'].includes(ext.toLowerCase());
+
   const isValidUrl = (val: string) =>
-    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com/.test(val);
+    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app/.test(val);
 
   async function handleDownload() {
     const trimmed = url.trim();
@@ -189,12 +192,13 @@ export default function DownloaderForm({ locale }: { locale: string }) {
           )}
 
           <div className="p-4 space-y-3">
-            {/* Video formats row */}
+            {/* Video / Image formats row */}
             <div className="flex flex-wrap gap-3">
               {result.formats.filter(f => !f.label.toLowerCase().includes('audio')).map((fmt, i) => {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                 const isTikTok = /tiktok\.com|vm\.tiktok\.com/.test(url);
                 const quality = fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd';
+                const isImg = isImageExt(fmt.ext);
                 const downloadUrl = isTikTok
                   ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${quality}`
                   : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
@@ -203,9 +207,13 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                     key={i}
                     href={downloadUrl}
                     download
-                    className="flex-1 min-w-[120px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition"
+                    className={`flex-1 min-w-[120px] text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition ${
+                      isImg
+                        ? 'bg-gradient-to-r from-pink-500 to-rose-500'
+                        : 'bg-gradient-to-r from-teal-500 to-cyan-500'
+                    }`}
                   >
-                    ⬇ {fmt.label}
+                    {isImg ? '🖼' : '⬇'} {fmt.label}
                   </a>
                 );
               })}
