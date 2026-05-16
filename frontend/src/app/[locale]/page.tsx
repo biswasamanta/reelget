@@ -7,12 +7,48 @@ import PlatformBadges from '@/components/PlatformBadges';
 import TrendingSection from '@/components/TrendingSection';
 import StatsBar from '@/components/StatsBar';
 
+const FAQ_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is ReelGet free to use?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes, completely free. No registration, no app required. Just paste the video URL and download instantly.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Which platforms does ReelGet support?',
+      acceptedAnswer: { '@type': 'Answer', text: 'ReelGet supports Instagram (Reels, Posts, Stories), TikTok, Facebook (Videos, Reels), YouTube (Videos, Shorts), Twitter/X, Pinterest, and Snapchat.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is it safe to use ReelGet?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes. We do not store your URLs or downloaded videos. Everything is processed in real time and nothing is saved on our servers.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I download videos without watermark?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes. TikTok videos are downloaded without the watermark. Other platforms deliver the original quality video as-is.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I download private videos?',
+      acceptedAnswer: { '@type': 'Answer', text: 'No. ReelGet can only download publicly available videos. Private or restricted content cannot be accessed.' },
+    },
+  ],
+};
+
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale });
 
   return (
     <div className="min-h-screen bg-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       {/* Nav */}
       <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
