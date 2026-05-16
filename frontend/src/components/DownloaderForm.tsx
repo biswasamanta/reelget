@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import ImageCompressor from './ImageCompressor';
 
 type DownloadResult = {
   title: string;
@@ -233,6 +234,14 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 </a>
               );
             })}
+            {/* Image compressor — shown only when result contains image formats */}
+            {(() => {
+              const imgFmts = result.formats.filter(f => isImageExt(f.ext));
+              return imgFmts.length > 0 ? (
+                <ImageCompressor formats={imgFmts} title={result.title} />
+              ) : null;
+            })()}
+
             {/* Share row: Copy link + WhatsApp */}
             <div className="flex gap-2 pt-1">
               {/* Copy link */}
