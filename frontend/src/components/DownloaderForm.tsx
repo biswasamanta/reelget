@@ -171,34 +171,38 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     <div className="w-full">
       {/* Input row */}
       <div className="flex flex-col sm:flex-row gap-2 bg-white rounded-2xl p-2 shadow-xl">
-        <input
-          ref={inputRef}
-          type="url"
-          value={url}
-          onChange={(e) => { setUrl(e.target.value); setStatus('idle'); }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleDownload();
-            if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
-          }}
-          placeholder={t('hero.placeholder')}
-          className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-sm"
-          dir="ltr"
-        />
-        {url ? (
-          <button
-            onClick={() => { setUrl(''); setStatus('idle'); setResult(null); }}
-            className="px-4 py-3 text-gray-400 hover:text-gray-600 text-sm font-medium"
-          >
-            ✕
-          </button>
-        ) : (
-          <button
-            onClick={handlePaste}
-            className="px-4 py-3 text-teal-600 hover:text-teal-800 text-sm font-medium"
-          >
-            {t('hero.paste')}
-          </button>
-        )}
+        {/* Input + clear/paste — always on one row */}
+        <div className="flex flex-1 items-center">
+          <input
+            ref={inputRef}
+            type="url"
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); setStatus('idle'); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleDownload();
+              if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
+            }}
+            placeholder={t('hero.placeholder')}
+            className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-sm min-w-0"
+            dir="ltr"
+          />
+          {url ? (
+            <button
+              onClick={() => { setUrl(''); setStatus('idle'); setResult(null); }}
+              className="px-3 py-3 text-gray-400 hover:text-gray-600 text-sm font-medium flex-shrink-0"
+            >
+              ✕
+            </button>
+          ) : (
+            <button
+              onClick={handlePaste}
+              className="px-3 py-3 text-teal-600 hover:text-teal-800 text-sm font-medium flex-shrink-0"
+            >
+              {t('hero.paste')}
+            </button>
+          )}
+        </div>
+        {/* Download button — full width on mobile, inline on desktop */}
         <button
           onClick={handleDownload}
           disabled={status === 'loading'}
