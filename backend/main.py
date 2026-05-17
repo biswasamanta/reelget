@@ -41,6 +41,9 @@ YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
 COOKIES = os.environ.get("COOKIES", "")
 YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", COOKIES)
 INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", COOKIES)
+# Outbound proxy for yt-dlp requests (helps bypass datacenter IP blocks).
+# Format: http://user:pass@host:port  — leave unset to use direct connection.
+PROXY_URL = os.environ.get("PROXY_URL", "")
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
@@ -99,6 +102,9 @@ async def download(req: DownloadRequest):
             }
         },
     }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
+        print(f"[proxy] Using proxy: {PROXY_URL.split('@')[-1]}", flush=True)  # log host only, hide creds
 
     # Pick cookie jar: platform-specific override → universal COOKIES → none
     if re.search(r"instagram\.com", req.url):
@@ -363,6 +369,8 @@ async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
             "Referer": "https://www.tiktok.com/",
         },
     }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
