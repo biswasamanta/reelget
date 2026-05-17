@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Soo Dejinta Fiidiyaha - Soo Daji Fiidiyaha Instagram, YouTube & Facebook",
+    "description": "Soo daji fiidiyaha Instagram, YouTube iyo Facebook bilaash. App looma baahna. Degdeg iyo fudud.",
+    "lang": "so",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Bilaash • Gal La'aan • App La'aan",
+    "title": "Soo Dejinta Fiidiyaha Instagram & Facebook",
+    "subtitle": "Soo daji Instagram Reels, Facebook iyo YouTube fiidiyaha isla markiiba. Bilaash, degdeg, app looma baahna.",
+    "placeholder": "Halkan ku dheji xiriirkaaga...",
+    "button": "Soo Daji",
+    "paste": "Dheji"
+  },
+  "platforms": {
+    "title": "Barnaamijyada La Taageerayo",
+    "instagram": "Instagram Reels, Qoraallada & Stories",
+    "youtube": "Fiidiyaha YouTube & Shorts",
+    "facebook": "Fiidiyaha Facebook & Reels",
+    "tiktok": "Fiidiyaha TikTok & Reels",
+    "twitter": "Fiidiyaha Twitter / X & GIFs",
+    "pinterest": "Fiidiyaha Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Sida Loo Soo Dajin Karo Fiidiyaha",
+    "step1_title": "Koobi Xiriirka",
+    "step1_desc": "Fur Instagram, YouTube ama Facebook oo koobi xiriirka fiidiyaha.",
+    "step2_title": "Dheji oo Guji Soo Daji",
+    "step2_desc": "Ku dheji xiriirka sanduuqa kor ku yaal oo guji badhanka Soo Daji.",
+    "step3_title": "Keydi Fiidiyaha",
+    "step3_desc": "Dooro tayada aad rabto oo ku keydi fiidiyaha qalabkaaga."
+  },
+  "result": {
+    "title": "Fiidiyahaagu Waa Diyaar!",
+    "download_hd": "Soo Daji HD",
+    "download_sd": "Soo Daji SD",
+    "download_audio": "Soo Daji Codka Kaliya",
+    "processing": "Waxaan raadinayaa fiidiyahaaga...",
+    "error": "Ma helin fiidiyaha. Fadlan hubi xiriirka oo isku day mar kale.",
+    "invalid_url": "Fadlan geli xiriir sax ah oo Instagram, TikTok, Facebook ama YouTube ah."
+  },
+  "faq": {
+    "title": "Su'aalaha Inta Badan La Weydiiyo",
+    "q1": "Ma bilaash baa qaladkan?",
+    "a1": "Haa, bilaash buuxa. Diiwaan gelin ama app looma baahna.",
+    "q2": "Barnaamijyada kee la taageeraa?",
+    "a2": "Instagram (Reels, Qoraallada, Stories), YouTube (Fiidiyaha, Shorts), iyo Facebook (Fiidiyaha, Reels).",
+    "q3": "Ma ammaan baa isticmaalka?",
+    "a3": "Haa. Kuma kaydinno xiriirkaaga ama fiidiyahaaga. Wax walba si toos ah ayaa loo hawlgaliyaa.",
+    "q4": "Ma soo daji karaa fiidiyaha gaarka ah?",
+    "a4": "Maya. Fiidiyaha dadweynaha oo keliya ayaa la soo daji karaa."
+  },
+  "trending": {
+    "badge": "Hadda Caanka Ah",
+    "title": "Fiidiyaha Ugu Caansan Isbuucan",
+    "subtitle": "Taabo si aad u daawato YouTube • koobi xiriirka si aad u soo dajiso"
+  },
+  "footer": {
+    "tagline": "Soo dejinta fiidiyaha degdeg ah oo bilaash ah barnaamijyadaada aad jeceshahay.",
+    "disclaimer": "Qaladkan waxaa loo isticmaalaa isticmaalka shaqsiyeed oo keliya. Fadlan ixtarama xeerarka xuquuqda."
+  }
+}

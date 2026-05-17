@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Ukulanda Ivideo - Landa Amavideo e-Instagram, YouTube & Facebook",
+    "description": "Landa amavideo e-Instagram, YouTube ne-Facebook mahhala. Akudingeki uhlelo lokusebenza. Kusheshayo futhi kulula.",
+    "lang": "zu",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Mahhala • Akudingeki Ukungena • Akudingeki Uhlelo",
+    "title": "Ukulanda Ivideo ye-Instagram & Facebook",
+    "subtitle": "Landa amavideo e-Instagram Reels, Facebook ne-YouTube ngokushesha. Mahhala, kusheshayo, akudingeki uhlelo.",
+    "placeholder": "Namathisela isixhumanisi sakho lapha...",
+    "button": "Landa",
+    "paste": "Namathisela"
+  },
+  "platforms": {
+    "title": "Izinkundla Ezisekelwayo",
+    "instagram": "Instagram Reels, Izithombe & Stories",
+    "youtube": "Amavideo e-YouTube & Shorts",
+    "facebook": "Amavideo e-Facebook & Reels",
+    "tiktok": "Amavideo e-TikTok & Reels",
+    "twitter": "Amavideo e-Twitter / X & GIFs",
+    "pinterest": "Amavideo e-Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Indlela Yokulanda Amavideo",
+    "step1_title": "Kopisha Isixhumanisi",
+    "step1_desc": "Vula i-Instagram, YouTube noma Facebook bese ukopisha isixhumanisi sevideo.",
+    "step2_title": "Namathisela bese Ucindezela Landa",
+    "step2_desc": "Namathisela isixhumanisi ebhokisini elingenhla bese ucindezela inkinobho Yokulanda.",
+    "step3_title": "Gcina Ivideo",
+    "step3_desc": "Khetha ikhwalithi ofuna yona bese ugcina ivideo kudivayisi yakho."
+  },
+  "result": {
+    "title": "Ivideo Yakho Ilungile!",
+    "download_hd": "Landa HD",
+    "download_sd": "Landa SD",
+    "download_audio": "Landa Umsindo Kuphela",
+    "processing": "Sifuna ivideo yakho...",
+    "error": "Ayikwazanga ukuthola ivideo. Sicela uhlole isixhumanisi bese uzama futhi.",
+    "invalid_url": "Sicela ufake isixhumanisi esifanele se-Instagram, TikTok, Facebook noma YouTube."
+  },
+  "faq": {
+    "title": "Imibuzo Ebuzwa Njalo",
+    "q1": "Ingabe le nsiza imahhala?",
+    "a1": "Yebo, imahhala ngokuphelele. Akudingeki ukubhalisa noma uhlelo lokusebenza.",
+    "q2": "Yiziphi izinkundla ezisekelwayo?",
+    "a2": "Instagram (Reels, Izithombe, Stories), YouTube (Amavideo, Shorts), ne-Facebook (Amavideo, Reels).",
+    "q3": "Ingabe kuphephile ukusebenzisa?",
+    "a3": "Yebo. Asigcini izixhumanisi zakho noma amavideo. Konke kwenziwa ngesikhathi sangempela.",
+    "q4": "Ngingalanda amavideo ayimfihlo?",
+    "a4": "Cha. Amavideo omphakathi kuphela angalandwa."
+  },
+  "trending": {
+    "badge": "Iyathatha Manje",
+    "title": "Amavideo Aphezulu Kule Sonto",
+    "subtitle": "Cindezela ukubukela ku-YouTube • kopisha isixhumanisi ukuze ulanda"
+  },
+  "footer": {
+    "tagline": "Ukulanda ivideo ngokushesha nangamahhala kusuka ezinkundleni zakho ozithandayo.",
+    "disclaimer": "Le nsiza ingasetshenziswa ngomuntu ngamunye kuphela. Sicela uhloniphe imithetho yamalungelo."
+  }
+}

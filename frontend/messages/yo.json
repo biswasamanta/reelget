@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Igbasilẹ Fidio - Gba Fidio Instagram, YouTube & Facebook",
+    "description": "Gba fidio lati Instagram, YouTube ati Facebook lofe. Ko si app ti o nilo. Yarayara ati rọrun.",
+    "lang": "yo",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Lofe • Ko si Wiwọle • Ko si App",
+    "title": "Igbasilẹ Fidio Instagram & Facebook",
+    "subtitle": "Gba fidio Instagram Reels, Facebook ati YouTube lesekese. Lofe, yarayara, ko si app ti o nilo.",
+    "placeholder": "Fi ọna asopọ rẹ sii nibi...",
+    "button": "Gba",
+    "paste": "Lẹ"
+  },
+  "platforms": {
+    "title": "Àwọn Ìpele tí a Ṣe Àtìlẹyìn",
+    "instagram": "Instagram Reels, Àwọn Ìfiránṣẹ & Stories",
+    "youtube": "Àwọn Fidio YouTube & Shorts",
+    "facebook": "Àwọn Fidio Facebook & Reels",
+    "tiktok": "Àwọn Fidio TikTok & Reels",
+    "twitter": "Àwọn Fidio Twitter / X & GIFs",
+    "pinterest": "Àwọn Fidio Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Bí a Ṣe Ń Gba Fidio",
+    "step1_title": "Daakọ Ọna Asopọ",
+    "step1_desc": "Ṣii Instagram, YouTube tabi Facebook ki o daakọ ọna asopọ fidio.",
+    "step2_title": "Fi sii ki o Tẹ Igba silẹ",
+    "step2_desc": "Fi ọna asopọ sii ninu apoti loke ki o tẹ bọtini Gba.",
+    "step3_title": "Fipamọ Fidio",
+    "step3_desc": "Yan didara ti o fẹ ki o fipamọ fidio si ẹrọ rẹ."
+  },
+  "result": {
+    "title": "Fidio Rẹ Ti Ṣetan!",
+    "download_hd": "Gba HD",
+    "download_sd": "Gba SD",
+    "download_audio": "Gba Ohun Nikan",
+    "processing": "Ń wa fidio rẹ...",
+    "error": "Ko le ri fidio. Jọwọ ṣayẹwo ọna asopọ ki o tun gbiyanju.",
+    "invalid_url": "Jọwọ tẹ ọna asopọ to tọ ti Instagram, TikTok, Facebook tabi YouTube."
+  },
+  "faq": {
+    "title": "Àwọn Ìbéèrè tí a Máa Ń Béèrè",
+    "q1": "Ṣe irinṣẹ yii lofe?",
+    "a1": "Bẹẹni, lofe patapata. Ko si iforukọsilẹ tabi app ti o nilo.",
+    "q2": "Àwọn ìpele wo ni a ṣe àtìlẹyìn?",
+    "a2": "Instagram (Reels, Àwọn Ìfiránṣẹ, Stories), YouTube (Fidio, Shorts), ati Facebook (Fidio, Reels).",
+    "q3": "Ṣe ailewu lati lo?",
+    "a3": "Bẹẹni. A ko tọju awọn ọna asopọ tabi fidio rẹ. Ohun gbogbo ni a ṣe ni akoko gidi.",
+    "q4": "Ṣe mo le gba awọn fidio ikọkọ?",
+    "a4": "Rara. Awọn fidio ti gbogbo eniyan nikan ni a le gba."
+  },
+  "trending": {
+    "badge": "Tí Ń Gbòòrò Bayi",
+    "title": "Àwọn Fidio Tó Gbajúmọ̀ Ọ̀sẹ̀ Yìí",
+    "subtitle": "Tẹ lati wo lori YouTube • daakọ ọna asopọ lati gba"
+  },
+  "footer": {
+    "tagline": "Igbasilẹ fidio yarayara ati lofe lati awọn ìpele ayanfẹ rẹ.",
+    "disclaimer": "Irinṣẹ yii jẹ fun lilo ti ara ẹni nikan. Jọwọ bọwọ fun awọn ofin aṣẹ-lori-ara."
+  }
+}

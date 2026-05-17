@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Gukurura Videwo - Kurura Videwo za Instagram, YouTube & Facebook",
+    "description": "Kurura videwo ziva Instagram, YouTube na Facebook ku buntu. Ntakazi ya app. Byihuse kandi byoroshye.",
+    "lang": "rw",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Kubuntu • Nta Kwinjira • Nta App",
+    "title": "Gukurura Videwo za Instagram & Facebook",
+    "subtitle": "Kurura Instagram Reels, Facebook na YouTube videwo ako kanya. Kubuntu, byihuse, nta app ikenewe.",
+    "placeholder": "Shyira hano aderesi yawe...",
+    "button": "Kurura",
+    "paste": "Shyira"
+  },
+  "platforms": {
+    "title": "Imbuga Zitabiriwe",
+    "instagram": "Instagram Reels, Ivyogwa & Stories",
+    "youtube": "Videwo za YouTube & Shorts",
+    "facebook": "Videwo za Facebook & Reels",
+    "tiktok": "Videwo za TikTok & Reels",
+    "twitter": "Videwo za Twitter / X & GIFs",
+    "pinterest": "Videwo za Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Uburyo bwo Gukurura Videwo",
+    "step1_title": "Kopi Aderesi",
+    "step1_desc": "Fungura Instagram, YouTube cyangwa Facebook ukopye aderesi ya videwo.",
+    "step2_title": "Shyira Uzugunye Urabonereze",
+    "step2_desc": "Shyira aderesi mu kabati ko hejuru ufashe buto yo Gukurura.",
+    "step3_title": "Bika Videwo",
+    "step3_desc": "Hitamo ubwiza ushaka ubike videwo ku gikoresho cyawe."
+  },
+  "result": {
+    "title": "Videwo Yawe Irateguwe!",
+    "download_hd": "Kurura HD",
+    "download_sd": "Kurura SD",
+    "download_audio": "Kurura Ijwi Gusa",
+    "processing": "Ndashaka videwo yawe...",
+    "error": "Ntibashoboye kubona videwo. Nyamuneka reba aderesi ugerageze nanone.",
+    "invalid_url": "Nyamuneka injiza aderesi nyayo ya Instagram, TikTok, Facebook cyangwa YouTube."
+  },
+  "faq": {
+    "title": "Ibibazo Bikunze Kubazwa",
+    "q1": "Ese iki gikoresho ni kubuntu?",
+    "a1": "Yego, kubuntu rwose. Nta kwiyandikisha cyangwa app bikenewe.",
+    "q2": "Ni imbuga zihe zitabirwa?",
+    "a2": "Instagram (Reels, Ivyogwa, Stories), YouTube (Videwo, Shorts), na Facebook (Videwo, Reels).",
+    "q3": "Ese ni ukwifatanya gukoresha?",
+    "a3": "Yego. Ntitubika aderesi zawe cyangwa videwo. Byose bikorwa mu gihe nyacyo.",
+    "q4": "Nshobora gukurura videwo zihishe?",
+    "a4": "Oya. Videwo za rubanda gusa ni zo zishobora gukururwa."
+  },
+  "trending": {
+    "badge": "Birakwirakwira Ubu",
+    "title": "Videwo Zikunzwe Cyane Muri Iki Cyumweru",
+    "subtitle": "Kanda urebere kuri YouTube • kopya aderesi ugukurue"
+  },
+  "footer": {
+    "tagline": "Gukurura videwo byihuse no kubuntu kuva ku mbuga uzungu.",
+    "disclaimer": "Iki gikoresho ni ukugira akazi ka buri wese gusa. Nyamuneka baho amategeko y'uburenganzira."
+  }
+}

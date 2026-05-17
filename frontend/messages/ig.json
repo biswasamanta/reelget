@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Nbudata Vidiyo - Budata Vidiyo Instagram, YouTube & Facebook",
+    "description": "Budata vidiyo site na Instagram, YouTube na Facebook n'efu. Ọ dịghị mkpa ngwa. Ngwa ngwa ma dị mfe.",
+    "lang": "ig",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "N'efu • Ọ Dịghị Ịbanye • Ọ Dịghị Ngwa",
+    "title": "Nbudata Vidiyo Instagram & Facebook",
+    "subtitle": "Budata vidiyo Instagram Reels, Facebook na YouTube ozugbo. N'efu, ngwa ngwa, ọ dịghị mkpa ngwa.",
+    "placeholder": "Tinye njikọ vidiyo gị ebe a...",
+    "button": "Budata",
+    "paste": "Tinye"
+  },
+  "platforms": {
+    "title": "Ụlọ Ọrụ A Na-Akwado",
+    "instagram": "Instagram Reels, Ifiputara & Stories",
+    "youtube": "Vidiyo YouTube & Shorts",
+    "facebook": "Vidiyo Facebook & Reels",
+    "tiktok": "Vidiyo TikTok & Reels",
+    "twitter": "Vidiyo Twitter / X & GIFs",
+    "pinterest": "Vidiyo Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Otu Esi Abudata Vidiyo",
+    "step1_title": "Detuo Njikọ",
+    "step1_desc": "Mepee Instagram, YouTube ma ọ bụ Facebook wee detuo njikọ vidiyo.",
+    "step2_title": "Tinye wee Pịa Budata",
+    "step2_desc": "Tinye njikọ n'ime igbe dị n'elu wee pịa bọtọn Budata.",
+    "step3_title": "Chekwaa Vidiyo",
+    "step3_desc": "Họrọ àgwà gị chọọ wee chekwaa vidiyo n'ngwaọrụ gị."
+  },
+  "result": {
+    "title": "Vidiyo Gị Dị Njikere!",
+    "download_hd": "Budata HD",
+    "download_sd": "Budata SD",
+    "download_audio": "Budata Ụda Naanị",
+    "processing": "Na-achọ vidiyo gị...",
+    "error": "Enweghị ike ịchọta vidiyo. Biko lelee njikọ wee nwaa ọzọ.",
+    "invalid_url": "Biko tinye njikọ ziri ezi nke Instagram, TikTok, Facebook ma ọ bụ YouTube."
+  },
+  "faq": {
+    "title": "Ajụjụ A Na-Ajụkarị",
+    "q1": "Ngwa a dị n'efu?",
+    "a1": "Ee, n'efu kpamkpam. Ọ dịghị mkpa ndebanye aha ma ọ bụ ngwa.",
+    "q2": "Kedu ụlọ ọrụ a na-akwado?",
+    "a2": "Instagram (Reels, Ifiputara, Stories), YouTube (Vidiyo, Shorts), na Facebook (Vidiyo, Reels).",
+    "q3": "Ọ dị mma iji ya?",
+    "a3": "Ee. Anyị anaghị echekwa njikọ ma ọ bụ vidiyo gị. A na-emewa ihe niile n'oge gaa.",
+    "q4": "Enwere m ike ịbudata vidiyo nzuzo?",
+    "a4": "Mba. Naanị vidiyo ọha ka enwere ike ịbudata."
+  },
+  "trending": {
+    "badge": "Na-Atọ Ọkụ Ugbu a",
+    "title": "Vidiyo Kachasị Mma N'izu A",
+    "subtitle": "Pịa iche YouTube • detuo njikọ iji budata"
+  },
+  "footer": {
+    "tagline": "Nbudata vidiyo ngwa ngwa na n'efu site n'ụlọ ọrụ gị hụrụ n'anya.",
+    "disclaimer": "Ngwa a bụ naanị maka ojiji onwe onye. Biko sọpụrụ iwu ikike."
+  }
+}

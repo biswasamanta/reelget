@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Buufachuu Viidiyoo - Instagram, YouTube & Facebook Viidiyoo Buufadhu",
+    "description": "Instagram, YouTube fi Facebook irraa viidiyoo kaffaltii malee buufadhu. Appii hin barbaachisu. Ariifataa fi salphaa.",
+    "lang": "om",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Kaffaltii Malee • Seensa Malee • Appii Malee",
+    "title": "Instagram & Facebook Viidiyoo Buufachuu",
+    "subtitle": "Instagram Reels, Facebook fi YouTube viidiyoo dafanii buufadhu. Kaffaltii malee, ariifataa, appii hin barbaachisu.",
+    "placeholder": "Linkii kee asitti maxxansi...",
+    "button": "Buufadhu",
+    "paste": "Maxxansi"
+  },
+  "platforms": {
+    "title": "Marsaalee Deeggaraman",
+    "instagram": "Instagram Reels, Maxxansawwan & Stories",
+    "youtube": "YouTube Viidiyoowwan & Shorts",
+    "facebook": "Facebook Viidiyoowwan & Reels",
+    "tiktok": "TikTok Viidiyoowwan & Reels",
+    "twitter": "Twitter / X Viidiyoowwan & GIFs",
+    "pinterest": "Pinterest Viidiyoowwan & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Akkamitti Viidiyoo Buufatan",
+    "step1_title": "Liinkii Koppi Godhi",
+    "step1_desc": "Instagram, YouTube ykn Facebook bani viidiyoo liinkii koppi godhi.",
+    "step2_title": "Maxxansi Buufadhu Cuqaasi",
+    "step2_desc": "Liinkii sanduuqa olii keessa galchi Buufadhu jedhu cuqaasi.",
+    "step3_title": "Viidiyoo Kuusuu",
+    "step3_desc": "Qulqullina feetan filadhu meeshaa kee irratti kuusuu."
+  },
+  "result": {
+    "title": "Viidiyoon Kee Qophaa'eera!",
+    "download_hd": "HD Buufadhu",
+    "download_sd": "SD Buufadhu",
+    "download_audio": "Sagalee Qofa Buufadhu",
+    "processing": "Viidiyoo kee barbaadaa jira...",
+    "error": "Viidiyoo argachuu hin dandeenye. Liinkii mirkaneeffadhu ammas yaali.",
+    "invalid_url": "Liinkii Instagram, TikTok, Facebook ykn YouTube sirrii galchi."
+  },
+  "faq": {
+    "title": "Gaaffilee Irra Deddeebiin Gaafataman",
+    "q1": "Meeshaan kun kaffaltii malee dha?",
+    "a1": "Eeyyee, guutummaatti kaffaltii malee. Galmeessuu ykn appii hin barbaachisu.",
+    "q2": "Marsaalee kamtu deeggarama?",
+    "a2": "Instagram (Reels, Maxxansawwan, Stories), YouTube (Viidiyoowwan, Shorts), fi Facebook (Viidiyoowwan, Reels).",
+    "q3": "Fayyadamuun nagaa dha?",
+    "a3": "Eeyyee. Liinkii ykn viidiyoo kee kuusnu. Hundi yeroo dhugaa keessatti hojjetama.",
+    "q4": "Viidiyoo dhuunfaa buufachuu nan danda'aa?",
+    "a4": "Lakki. Viidiyoo ummataa qofa buufachuu danda'ama."
+  },
+  "trending": {
+    "badge": "Amma Beekamaa",
+    "title": "Torbee Kana Viidiyoo Beekamoo",
+    "subtitle": "YouTube irratti ilaaluuf tuqi • buufachuuf liinkii koppi godhi"
+  },
+  "footer": {
+    "tagline": "Marsaalee jaalatan irraa viidiyoo hatattamaan fi kaffaltii malee buufachuu.",
+    "disclaimer": "Meeshaan kun fayyadama dhuunfaatiif qofa. Seerota mirga qaban kabajaa."
+  }
+}
