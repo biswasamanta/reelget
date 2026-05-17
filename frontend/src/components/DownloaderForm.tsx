@@ -10,6 +10,32 @@ type DownloadResult = {
   formats: { label: string; url: string; ext: string }[];
 };
 
+type HistoryItem = {
+  url: string;
+  title: string;
+  thumbnail?: string;
+  platform: string;
+  ts: number;
+};
+
+function detectPlatform(url: string): string {
+  if (/instagram\.com/.test(url)) return 'Instagram';
+  if (/tiktok\.com|vm\.tiktok\.com/.test(url)) return 'TikTok';
+  if (/facebook\.com|fb\.watch/.test(url)) return 'Facebook';
+  if (/youtube\.com|youtu\.be/.test(url)) return 'YouTube';
+  if (/twitter\.com|x\.com|t\.co/.test(url)) return 'Twitter/X';
+  if (/pinterest\.com|pin\.it/.test(url)) return 'Pinterest';
+  if (/snapchat\.com/.test(url)) return 'Snapchat';
+  if (/linkedin\.com/.test(url)) return 'LinkedIn';
+  if (/reddit\.com|redd\.it/.test(url)) return 'Reddit';
+  if (/vimeo\.com/.test(url)) return 'Vimeo';
+  if (/dailymotion\.com|dai\.ly/.test(url)) return 'Dailymotion';
+  if (/twitch\.tv/.test(url)) return 'Twitch';
+  return 'Video';
+}
+
+const HISTORY_KEY = 'rg_history';
+
 export default function DownloaderForm({ locale }: { locale: string }) {
   const t = useTranslations();
   const [url, setUrl] = useState('');
@@ -17,7 +43,33 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [result, setResult] = useState<DownloadResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load history from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) setHistory(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+
+  function saveToHistory(downloadUrl: string, data: DownloadResult) {
+    const item: HistoryItem = {
+      url: downloadUrl,
+      title: data.title,
+      thumbnail: data.thumbnail,
+      platform: detectPlatform(downloadUrl),
+      ts: Date.now(),
+    };
+    setHistory(prev => {
+      const filtered = prev.filter(h => h.url !== downloadUrl);
+      const updated = [item, ...filtered].slice(0, 10);
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+      return updated;
+    });
+  }
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -77,6 +129,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       const data = await res.json();
       setResult(data);
       setStatus('success');
+      saveToHistory(trimmed, data);
     } catch {
       setStatus('error');
       setErrorMsg(t('result.error'));
@@ -170,7 +223,13 @@ export default function DownloaderForm({ locale }: { locale: string }) {
 
       {status === 'error' && (
         <div className="mt-4 bg-red-100 text-red-700 rounded-xl p-4 text-sm text-center">
-          {errorMsg}
+          <p>{errorMsg}</p>
+          <button
+            onClick={handleDownload}
+            className="mt-2 text-xs font-semibold underline hover:no-underline"
+          >
+            Try again
+          </button>
         </div>
       )}
 
@@ -247,33 +306,81 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               ) : null;
             })()}
 
-            {/* Share row: Copy link + WhatsApp */}
-            <div className="flex gap-2 pt-1">
+            {/* Share row: Copy link + WhatsApp + Telegram */}
+            <div className="flex gap-2 pt-1 flex-wrap">
               {/* Copy link */}
               <button
                 onClick={handleCopy}
-                className="flex flex-1 items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl text-sm hover:bg-gray-50 transition"
+                className="flex flex-1 min-w-[100px] items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-3 rounded-xl text-sm hover:bg-gray-50 transition"
               >
-                {copied ? (
-                  <>✅ Copied!</>
-                ) : (
-                  <>📋 Copy Link</>
-                )}
+                {copied ? <>✅ Copied!</> : <>📋 Copy</>}
               </button>
               {/* WhatsApp share */}
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(`📥 "${result.title.slice(0, 80)}" — download it free at https://reelget.com`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 bg-[#25D366] text-white font-semibold py-2.5 px-4 rounded-xl text-sm hover:opacity-90 transition"
+                className="flex flex-1 min-w-[100px] items-center justify-center gap-2 bg-[#25D366] text-white font-semibold py-2.5 px-3 rounded-xl text-sm hover:opacity-90 transition"
               >
                 <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
                 WhatsApp
               </a>
+              {/* Telegram share */}
+              <a
+                href={`https://t.me/share/url?url=${encodeURIComponent('https://reelget.com')}&text=${encodeURIComponent(`📥 "${result.title.slice(0, 80)}" — download it free at ReelGet`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 min-w-[100px] items-center justify-center gap-2 bg-[#229ED9] text-white font-semibold py-2.5 px-3 rounded-xl text-sm hover:opacity-90 transition"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                Telegram
+              </a>
             </div>
           </div>
+        </div>
+      )}
+      {/* Download history */}
+      {history.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition mx-auto"
+          >
+            🕓 Recent downloads ({history.length})
+            <span>{showHistory ? '▲' : '▼'}</span>
+          </button>
+          {showHistory && (
+            <div className="mt-2 space-y-2">
+              {history.map((item) => (
+                <div
+                  key={item.ts}
+                  className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-2 cursor-pointer hover:bg-white/20 transition"
+                  onClick={() => { setUrl(item.url); setStatus('idle'); setResult(null); setShowHistory(false); }}
+                >
+                  {item.thumbnail ? (
+                    <img src={item.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0">▶</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-xs font-medium truncate">{item.title}</p>
+                    <p className="text-white/40 text-[10px]">{item.platform} · {new Date(item.ts).toLocaleDateString()}</p>
+                  </div>
+                  <span className="text-white/40 text-xs shrink-0">↩</span>
+                </div>
+              ))}
+              <button
+                onClick={() => { setHistory([]); localStorage.removeItem(HISTORY_KEY); setShowHistory(false); }}
+                className="text-[10px] text-white/30 hover:text-white/60 transition w-full text-center pt-1"
+              >
+                Clear history
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

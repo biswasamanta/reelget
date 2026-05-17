@@ -1,7 +1,10 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import yt_dlp
 import httpx
 import re
@@ -17,7 +20,10 @@ try:
 except ImportError:
     pass
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="VidSave API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",
@@ -53,6 +59,27 @@ ALLOWED_REGIONS = {"IN", "PK", "ID", "BR", "SA", "VN", "US", "NG", "KE"}
 _COUNTER_BASE = 52_000
 _counter_session = 0
 
+# In-memory result cache — avoids repeated yt-dlp calls for the same URL
+_CACHE: dict[str, tuple[float, dict]] = {}  # url -> (timestamp, data)
+_CACHE_TTL = 600  # 10 minutes
+
+
+def _cache_get(url: str) -> dict | None:
+    entry = _CACHE.get(url)
+    if entry and time.time() - entry[0] < _CACHE_TTL:
+        return entry[1]
+    if entry:
+        del _CACHE[url]
+    return None
+
+
+def _cache_set(url: str, data: dict):
+    # Keep cache small — evict oldest if over 200 entries
+    if len(_CACHE) >= 200:
+        oldest = min(_CACHE, key=lambda k: _CACHE[k][0])
+        del _CACHE[oldest]
+    _CACHE[url] = (time.time(), data)
+
 
 class DownloadRequest(BaseModel):
     url: str
@@ -69,9 +96,16 @@ class DownloadResponse(BaseModel):
 
 
 @app.post("/api/download", response_model=DownloadResponse)
-async def download(req: DownloadRequest):
+@limiter.limit("20/minute")
+async def download(request: Request, req: DownloadRequest):
     if not SUPPORTED_PATTERN.search(req.url):
         raise HTTPException(status_code=400, detail="Unsupported platform")
+
+    # Return cached result if fresh
+    cached = _cache_get(req.url)
+    if cached:
+        print(f"[cache] HIT for {req.url[:60]}", flush=True)
+        return DownloadResponse(**cached)
 
     class _SilentLogger:
         def debug(self, msg): pass
@@ -222,11 +256,14 @@ async def download(req: DownloadRequest):
     global _counter_session
     _counter_session += 1
 
-    return DownloadResponse(
-        title=info.get("title", "Video"),
-        thumbnail=info.get("thumbnail"),
-        formats=formats,
-    )
+    response_data = {
+        "title": info.get("title", "Video"),
+        "thumbnail": info.get("thumbnail"),
+        "formats": formats,
+    }
+    _cache_set(req.url, response_data)
+
+    return DownloadResponse(**response_data)
 
 
 @app.get("/api/trending")
