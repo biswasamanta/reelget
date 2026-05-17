@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import ImageCompressor from './ImageCompressor';
+import LinkHelpGuide from './LinkHelpGuide';
 
 type DownloadResult = {
   title: string;
@@ -210,6 +211,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <span className="text-xs text-purple-400/80">🎮 Twitch ✓</span>
         <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-medium">▶️ YouTube — public only</span>
       </div>
+
+      {/* Link help guide */}
+      <LinkHelpGuide />
 
       {/* Status messages */}
       {status === 'loading' && (
