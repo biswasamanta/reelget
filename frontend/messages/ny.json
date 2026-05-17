@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Kutsitsa Makanema - Tsitsa Makanema a Instagram, YouTube & Facebook",
+    "description": "Tsitsa makanema kuchokera ku Instagram, YouTube ndi Facebook kwaulere. Palibe app yofunikira. Mwachangu ndi mosavuta.",
+    "lang": "ny",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Kwaulere • Palibe Kulowa • Palibe App",
+    "title": "Chotsitsa Makanema a Instagram & Facebook",
+    "subtitle": "Tsitsa Instagram Reels, Facebook ndi YouTube makanema mwamsanga. Kwaulere, mwachangu, palibe app yofunikira.",
+    "placeholder": "Yikani apa ulalo wa kanema wanu...",
+    "button": "Tsitsa",
+    "paste": "Yikani"
+  },
+  "platforms": {
+    "title": "Malo Otsatiridwa",
+    "instagram": "Instagram Reels, Zolemba & Stories",
+    "youtube": "Makanema a YouTube & Shorts",
+    "facebook": "Makanema a Facebook & Reels",
+    "tiktok": "Makanema a TikTok & Reels",
+    "twitter": "Makanema a Twitter / X & GIFs",
+    "pinterest": "Makanema a Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Mmene Mutsitsira Makanema",
+    "step1_title": "Kopiyani Ulalo",
+    "step1_desc": "Tsegulan Instagram, YouTube kapena Facebook ndikopiyani ulalo wa kanema.",
+    "step2_title": "Yikani ndi Dinani Tsitsa",
+    "step2_desc": "Yikani ulalo mu bokosi pamwamba ndikudina batani la Kutsitsa.",
+    "step3_title": "Sungani Kanema",
+    "step3_desc": "Sankhani ubwino ofuna ndikusunga kanema pazida yanu."
+  },
+  "result": {
+    "title": "Kanema Wanu Wakhala Wokonzeka!",
+    "download_hd": "Tsitsa HD",
+    "download_sd": "Tsitsa SD",
+    "download_audio": "Tsitsa Mawu Okha",
+    "processing": "Akufunafuna kanema wanu...",
+    "error": "Sinapeze kanema. Chonde onani ulalo ndikuyesanso.",
+    "invalid_url": "Chonde lowetsani ulalo woona wa Instagram, TikTok, Facebook kapena YouTube."
+  },
+  "faq": {
+    "title": "Mafunso Ofunsidwa Kawirikawiri",
+    "q1": "Kodi chida ichi ndi kwaulere?",
+    "a1": "Inde, kwaulere kwa konse. Palibe cholembetsa kapena app yofunikira.",
+    "q2": "Kodi malo ati amatumikirwa?",
+    "a2": "Instagram (Reels, Zolemba, Stories), YouTube (Makanema, Shorts), ndi Facebook (Makanema, Reels).",
+    "q3": "Kodi ndi bwino kugwiritsa ntchito?",
+    "a3": "Inde. Sitisungirako maulalo anu kapena makanema. Zonse zimachitidwa nthawi yeniyeni.",
+    "q4": "Ndingatsitse makanema achinsinsi?",
+    "a4": "Ayi. Makanema a anthu okha amatha kutsitsidwa."
+  },
+  "trending": {
+    "badge": "Akutchuka Tsopano",
+    "title": "Makanema Abwino Kwambiri Mulungu Uno",
+    "subtitle": "Dinani kuona pa YouTube • kopiyani ulalo kutsitsa"
+  },
+  "footer": {
+    "tagline": "Kutsitsa makanema mwachangu ndi kwaulere kuchokera ku malo amene mukonda.",
+    "disclaimer": "Chida ichi ndi chagwiritsa ntchito wokha wokha. Chonde lemekezani malamulo a ufulu wa zolemba."
+  }
+}

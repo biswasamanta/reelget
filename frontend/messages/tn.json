@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Go Dikela Divideo - Dikela Divideo tsa Instagram, YouTube & Facebook",
+    "description": "Dikela divideo go tswa Instagram, YouTube le Facebook mahala. Ga go na app e e hlokafalang. Ka bonako le ka bonolo.",
+    "lang": "tn",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Mahala • Ga go Tsena • Ga go App",
+    "title": "Sedikeli sa Divideo tsa Instagram & Facebook",
+    "subtitle": "Dikela Instagram Reels, Facebook le YouTube divideo ka bonako. Mahala, ka bonako, ga go na app e e hlokafalang.",
+    "placeholder": "Baya mona kgolagano ya video ya gago...",
+    "button": "Dikela",
+    "paste": "Baya"
+  },
+  "platforms": {
+    "title": "Maphata a a Tshegetswang",
+    "instagram": "Instagram Reels, Dikwalo & Stories",
+    "youtube": "Divideo tsa YouTube & Shorts",
+    "facebook": "Divideo tsa Facebook & Reels",
+    "tiktok": "Divideo tsa TikTok & Reels",
+    "twitter": "Divideo tsa Twitter / X & GIFs",
+    "pinterest": "Divideo tsa Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Tsela ya go Dikela Divideo",
+    "step1_title": "Kopitsa Kgolagano",
+    "step1_desc": "Bula Instagram, YouTube kgotsa Facebook o kopitse kgolagano ya video.",
+    "step2_title": "Baya o Kgotle Dikela",
+    "step2_desc": "Baya kgolagano mo lebokosong le ka godimo o kgotle konopo ya go Dikela.",
+    "step3_title": "Boloka Video",
+    "step3_desc": "Tlhopha boleng jo o bo batlang o boloke video mo seetseng sa gago."
+  },
+  "result": {
+    "title": "Video ya Gago e Itokisitse!",
+    "download_hd": "Dikela HD",
+    "download_sd": "Dikela SD",
+    "download_audio": "Dikela Modumo Fela",
+    "processing": "E batla video ya gago...",
+    "error": "E tlholegelwa ke go bona video. Ke kopa o leke gape.",
+    "invalid_url": "Ke kopa o tseye kgolagano e e nepagetseng ya Instagram, TikTok, Facebook kgotsa YouTube."
+  },
+  "faq": {
+    "title": "Dipotso tse di Botswang Gantsi",
+    "q1": "A sediriswa seno ke sa mahala?",
+    "a1": "Ee, mahala gotlhe. Ga go na ngodiso kgotsa app e e hlokafalang.",
+    "q2": "Ke maphata afe a a tshegetswang?",
+    "a2": "Instagram (Reels, Dikwalo, Stories), YouTube (Divideo, Shorts), le Facebook (Divideo, Reels).",
+    "q3": "A go babalesegile go dirisa?",
+    "a3": "Ee. Ga re boloke dikgolagano tsa gago kgotsa divideo. Tsotlhe di dirwa ka nako ya nnete.",
+    "q4": "A nka dikela divideo tsa sephiri?",
+    "a4": "Nnyaa. Divideo tsa sechaba fela di ka dikelwa."
+  },
+  "trending": {
+    "badge": "E Tumileng Jaanong",
+    "title": "Divideo tse di Kwa Godimo Beke Eno",
+    "subtitle": "Kgotle go bona mo YouTube • kopitsa kgolagano go dikela"
+  },
+  "footer": {
+    "tagline": "Go dikela divideo ka bonako le mahala go tswa mo maphateng a o a ratang.",
+    "disclaimer": "Sediriswa seno ke sa tiriso ya motho ka nonofo fela. Ke kopa o tlhomphe melao ya ditshwanelo."
+  }
+}

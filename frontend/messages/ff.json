@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Hokkude Video - Hokkude Video Instagram, YouTube & Facebook",
+    "description": "Hokkude video Instagram, YouTube e Facebook seerondiral. Nayi app ɗo wanaa. Gaawnde e juumde.",
+    "lang": "ff",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Seerondiral • Nayi Jippitde • Nayi App",
+    "title": "Mbotiri Video Instagram & Facebook",
+    "subtitle": "Hokkude Instagram Reels, Facebook e YouTube video jooni jooni. Seerondiral, gaawnde, nayi app.",
+    "placeholder": "Soo ɗo jokke video maa...",
+    "button": "Hokkude",
+    "paste": "Soo"
+  },
+  "platforms": {
+    "title": "Leydi Ɗi Ndewa",
+    "instagram": "Instagram Reels, Binndanɗe & Stories",
+    "youtube": "Video YouTube & Shorts",
+    "facebook": "Video Facebook & Reels",
+    "tiktok": "Video TikTok & Reels",
+    "twitter": "Video Twitter / X & GIFs",
+    "pinterest": "Video Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Hol No Hokkude Video",
+    "step1_title": "Natto Jokke",
+    "step1_desc": "Uddit Instagram, YouTube walla Facebook a natto jokke video.",
+    "step2_title": "Soo a Fay Hokkude",
+    "step2_desc": "Soo jokke ɓe e kaaɗe dowayel a fay batu Hokkude.",
+    "step3_title": "Danndu Video",
+    "step3_desc": "Suɓo ɓaleendi maa a danndaa video e keccol maa."
+  },
+  "result": {
+    "title": "Video Maa Udditi!",
+    "download_hd": "Hokkude HD",
+    "download_sd": "Hokkude SD",
+    "download_audio": "Hokkude Semmbe Tan",
+    "processing": "Yiɗude video maa...",
+    "error": "Qaawnude video alaa. Ƴeewa jokke a jokka haa.",
+    "invalid_url": "Soo jokke feewi Instagram, TikTok, Facebook walla YouTube."
+  },
+  "faq": {
+    "title": "Ɗo Ɓesngu Naatoo Fota",
+    "q1": "Kuutorgal ngal seerondiral woni?",
+    "a1": "Eey, seerondiral heddiiɗo. Nayi togge walla app.",
+    "q2": "Leydi hol ɗi ndewa?",
+    "a2": "Instagram (Reels, Binndanɗe, Stories), YouTube (Video, Shorts), e Facebook (Video, Reels).",
+    "q3": "Heɓude waɗde maa?",
+    "a3": "Eey. Min ndannda jokke maa walla video. Fof waɗee sahaa feewi.",
+    "q4": "Miin hokkude video laawɗinɗe?",
+    "a4": "Alaa. Video ɗe woodi tan mbaawaa hokkude."
+  },
+  "trending": {
+    "badge": "Jooni Moƴƴinooɗe",
+    "title": "Video Ɗi Moƴƴiri Yontere Ndee",
+    "subtitle": "Fay hito YouTube • natto jokke a hokkude"
+  },
+  "footer": {
+    "tagline": "Hokkude video gaawnde e seerondiral leydi ɗi ndewa.",
+    "disclaimer": "Kuutorgal ngal ko ngal goɗɗo tan. Hollude sariyaaji hakkunde."
+  }
+}

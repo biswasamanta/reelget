@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Kokitisa Bavideo - Kitisa Bavideo ya Instagram, YouTube & Facebook",
+    "description": "Kitisa bavideo wuta Instagram, YouTube pe Facebook ya ofele. Ezali na app te. Mbangu pe pete.",
+    "lang": "ln",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Ya Ofele • Na Kokota Te • Na App Te",
+    "title": "Mokitisi ya Bavideo ya Instagram & Facebook",
+    "subtitle": "Kitisa Instagram Reels, Facebook pe YouTube bavideo mbala moko. Ya ofele, mbangu, na app te.",
+    "placeholder": "Tiya awa link ya video na yo...",
+    "button": "Kitisa",
+    "paste": "Tiya"
+  },
+  "platforms": {
+    "title": "Esika Oyo Etosami",
+    "instagram": "Instagram Reels, Bapost & Stories",
+    "youtube": "Bavideo ya YouTube & Shorts",
+    "facebook": "Bavideo ya Facebook & Reels",
+    "tiktok": "Bavideo ya TikTok & Reels",
+    "twitter": "Bavideo ya Twitter / X & GIFs",
+    "pinterest": "Bavideo ya Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Ndenge ya Kokitisa Bavideo",
+    "step1_title": "Kopya Link",
+    "step1_desc": "Fungola Instagram, YouTube to Facebook kopya link ya video.",
+    "step2_title": "Tiya pe Pesa Kitisa",
+    "step2_desc": "Tiya link na koffre ya likolo pe pesa bouton ya Kokitisa.",
+    "step3_title": "Bomba Video",
+    "step3_desc": "Pona kalite oyo olingi pe bomba video na engomba na yo."
+  },
+  "result": {
+    "title": "Video na Yo Ezali Pona!",
+    "download_hd": "Kitisa HD",
+    "download_sd": "Kitisa SD",
+    "download_audio": "Kitisa Mongongo Kaka",
+    "processing": "Koluka video na yo...",
+    "error": "Ekoki na kozwa video te. Tala link pe leka lisusu.",
+    "invalid_url": "Tiya link ya solo ya Instagram, TikTok, Facebook to YouTube."
+  },
+  "faq": {
+    "title": "Mituna Oyo Etunami Mingi",
+    "q1": "Esaleli oyo ya ofele?",
+    "a1": "Iyo, ya ofele nyonso. Na lisikilisi to app te.",
+    "q2": "Esika nini etosami?",
+    "a2": "Instagram (Reels, Bapost, Stories), YouTube (Bavideo, Shorts), pe Facebook (Bavideo, Reels).",
+    "q3": "Esaleli ya kokeba?",
+    "a3": "Iyo. Tobombi link to bavideo na yo te. Makambo nyonso esalemi na ntango ya solo.",
+    "q4": "Nakoki kokitisa bavideo ya siri?",
+    "a4": "Te. Bavideo ya bato nyonso kaka nakoki kokitisa."
+  },
+  "trending": {
+    "badge": "Elingami Sikoyo",
+    "title": "Bavideo ya Monene Semaine Oyo",
+    "subtitle": "Pesa mpe kotala na YouTube • kopya link mpo na kokitisa"
+  },
+  "footer": {
+    "tagline": "Kokitisa bavideo mbangu pe ya ofele wuta na esika oyo olingaka.",
+    "disclaimer": "Esaleli oyo ezali mpo na bosebentisi ya moto moko kaka. Batolela mitindo ya droit ya kopyrité."
+  }
+}

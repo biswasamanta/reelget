@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Fakana Horonan-tsary - Fakana Horonan-tsary Instagram, YouTube & Facebook",
+    "description": "Fakana horonan-tsary avy amin'ny Instagram, YouTube ary Facebook maimaim-poana. Tsy mila app. Haingana sy mora.",
+    "lang": "mg",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Maimaim-poana • Tsy Mila Hidirana • Tsy Mila App",
+    "title": "Mpaka Horonan-tsary Instagram & Facebook",
+    "subtitle": "Fakana Instagram Reels, Facebook ary YouTube horonan-tsary avy hatrany. Maimaim-poana, haingana, tsy mila app.",
+    "placeholder": "Apetaho eto ny rohy horonan-tsary...",
+    "button": "Fakana",
+    "paste": "Apetaho"
+  },
+  "platforms": {
+    "title": "Rindranasa Azo Ampiasaina",
+    "instagram": "Instagram Reels, Lahatsoratra & Stories",
+    "youtube": "Horonan-tsary YouTube & Shorts",
+    "facebook": "Horonan-tsary Facebook & Reels",
+    "tiktok": "Horonan-tsary TikTok & Reels",
+    "twitter": "Horonan-tsary Twitter / X & GIFs",
+    "pinterest": "Horonan-tsary Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Fomba Fakana Horonan-tsary",
+    "step1_title": "Kopy ny Rohy",
+    "step1_desc": "Sokafy ny Instagram, YouTube na Facebook ary kopy ny rohy horonan-tsary.",
+    "step2_title": "Apetaho ary Tsindrio Fakana",
+    "step2_desc": "Apetaho ny rohy ao amin'ny boaty ambony ary tsindrio ny bokotra Fakana.",
+    "step3_title": "Tehirizo ny Horonan-tsary",
+    "step3_desc": "Safidio ny kalitao tianao ary tehirizo ny horonan-tsary ao amin'ny fitaovanao."
+  },
+  "result": {
+    "title": "Vonona ny Horonan-tsary Anao!",
+    "download_hd": "Fakana HD",
+    "download_sd": "Fakana SD",
+    "download_audio": "Fakana Feo Ihany",
+    "processing": "Mitady ny horonan-tsary anao...",
+    "error": "Tsy nahita ny horonan-tsary. Azafady jereo ny rohy ary andramo indray.",
+    "invalid_url": "Azafady ampidiro rohy marina Instagram, TikTok, Facebook na YouTube."
+  },
+  "faq": {
+    "title": "Fanontaniana Matetika",
+    "q1": "Maimaim-poana ve ity fitaovana ity?",
+    "a1": "Eny, maimaim-poana tanteraka. Tsy mila fisoratana anarana na app.",
+    "q2": "Inona ny rindranasa azo ampiasaina?",
+    "a2": "Instagram (Reels, Lahatsoratra, Stories), YouTube (Horonan-tsary, Shorts), ary Facebook (Horonan-tsary, Reels).",
+    "q3": "Azo antoka ve ny fampiasana azy?",
+    "a3": "Eny. Tsy tehirizinay ny rohynao na horonan-tsary. Rehetra dia atao amin'ny fotoana tena izy.",
+    "q4": "Azoko fakana ve ny horonan-tsary tsy ambara?",
+    "a4": "Tsia. Ny horonan-tsary hoan'ny rehetra ihany no azo fakana."
+  },
+  "trending": {
+    "badge": "Malaza Ankehitriny",
+    "title": "Horonan-tsary Tsara Indrindra Ity Herinandro Ity",
+    "subtitle": "Tsindrio hijery ao YouTube • kopy rohy mba hofakana"
+  },
+  "footer": {
+    "tagline": "Fakana horonan-tsary haingana sy maimaim-poana avy amin'ny rindranasa tianao.",
+    "disclaimer": "Ity fitaovana ity dia ho fampiasana manokana ihany. Azafady hajao ny zo manan-kasina."
+  }
+}

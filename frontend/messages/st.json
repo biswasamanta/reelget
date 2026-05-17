@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Ho Kenya Livideo - Kenya Livideo tsa Instagram, YouTube & Facebook",
+    "description": "Kenya livideo ho tswa Instagram, YouTube le Facebook mahala. Ha ho app e hlokahalang. Ka potlako le bobebe.",
+    "lang": "st",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Mahala • Ha ho Kena • Ha ho App",
+    "title": "Sekenyi sa Livideo tsa Instagram & Facebook",
+    "subtitle": "Kenya Instagram Reels, Facebook le YouTube livideo ka potlako. Mahala, ka potlako, ha ho app e hlokahalang.",
+    "placeholder": "Beha mona sehokelo sa video ya hao...",
+    "button": "Kenya",
+    "paste": "Beha"
+  },
+  "platforms": {
+    "title": "Maphathisane a Tshehetsiwang",
+    "instagram": "Instagram Reels, Dipalo & Stories",
+    "youtube": "Livideo tsa YouTube & Shorts",
+    "facebook": "Livideo tsa Facebook & Reels",
+    "tiktok": "Livideo tsa TikTok & Reels",
+    "twitter": "Livideo tsa Twitter / X & GIFs",
+    "pinterest": "Livideo tsa Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Mokhoa oa Ho Kenya Livideo",
+    "step1_title": "Kopitsa Sehokelo",
+    "step1_desc": "Bula Instagram, YouTube kapa Facebook o kopitse sehokelo sa video.",
+    "step2_title": "Beha o Kgotle Ho Kenya",
+    "step2_desc": "Beha sehokelo lebokosing le ka holimo o kgotle konopo ya Ho Kenya.",
+    "step3_title": "Boloka Video",
+    "step3_desc": "Khetha boleng bo o bo batlang o boloke video setshabelong sa hao."
+  },
+  "result": {
+    "title": "Video ya Hao e Lokile!",
+    "download_hd": "Kenya HD",
+    "download_sd": "Kenya SD",
+    "download_audio": "Kenya Modumo Feela",
+    "processing": "E batla video ya hao...",
+    "error": "Ha ea kgona ho fumana video. Ka kopo sheba sehokelo o leke hape.",
+    "invalid_url": "Ka kopo kenyelletsa sehokelo se nepahetseng sa Instagram, TikTok, Facebook kapa YouTube."
+  },
+  "faq": {
+    "title": "Dipotso tse Botswang Hangata",
+    "q1": "Na sethemiswa sena se mahala?",
+    "a1": "Ee, mahala ka botlalo. Ha ho ngodiso kapa app e hlokahalang.",
+    "q2": "Ke maphathisane afe a tshehetsiwang?",
+    "a2": "Instagram (Reels, Dipalo, Stories), YouTube (Livideo, Shorts), le Facebook (Livideo, Reels).",
+    "q3": "Na ho babatsehile ho sebedisa?",
+    "a3": "Ee. Ha re boloke dihokelo kapa livideo tsa hao. Tsohle li sebetswa nako ya nnete.",
+    "q4": "Na nka kenya livideo tsa sephiri?",
+    "a4": "Tjhe. Livideo tsa sechaba feela li ka kenywa."
+  },
+  "trending": {
+    "badge": "E Tummeng Hona Joale",
+    "title": "Livideo tse Phahameng Bekeng Ena",
+    "subtitle": "Kgotle ho sheba ho YouTube • kopitsa sehokelo ho kenya"
+  },
+  "footer": {
+    "tagline": "Ho kenya livideo ka potlako le mahala ho tswa maphathisaneng a o a ratang.",
+    "disclaimer": "Sethemiswa sena ke sa tšebeliso ya motho ka mong feela. Ka kopo hlompha molao oa boitšoaro."
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Video De - De Video Instagram, YouTube & Facebook",
+    "description": "De video firi Instagram, YouTube ne Facebook fere. Ɛhia app biara. Ntɛm na mmerɛw.",
+    "lang": "ak",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Fere • Wo Hyɛ Mu Nhia • App Nhia",
+    "title": "Instagram & Facebook Video De-adeɛ",
+    "subtitle": "De Instagram Reels, Facebook ne YouTube video ntɛm. Fere, ntɛm, ɛhia app biara.",
+    "placeholder": "Si wo video kra ha...",
+    "button": "De",
+    "paste": "Si"
+  },
+  "platforms": {
+    "title": "Adesua Ahemfo A Yɛboa Wɔn",
+    "instagram": "Instagram Reels, Nkyerɛwee & Stories",
+    "youtube": "YouTube Video & Shorts",
+    "facebook": "Facebook Video & Reels",
+    "tiktok": "TikTok Video & Reels",
+    "twitter": "Twitter / X Video & GIFs",
+    "pinterest": "Pinterest Video & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Sɛnea Wode Video",
+    "step1_title": "Copy Kra No",
+    "step1_desc": "Bue Instagram, YouTube anaa Facebook na copy video kra no.",
+    "step2_title": "Si Na Bɔ De",
+    "step2_desc": "Si kra no ahorow a ɛwɔ so no mu na bɔ De tomrofo.",
+    "step3_title": "Sie Video No",
+    "step3_desc": "Yi suban a wopɛ na sie video no wo wo nnwuma mu."
+  },
+  "result": {
+    "title": "Wo Video Awie!",
+    "download_hd": "De HD",
+    "download_sd": "De SD",
+    "download_audio": "De Nne Nko Ara",
+    "processing": "Rehwehwɛ wo video...",
+    "error": "Ensi yɛ adi video no. Hwɛ kra no na sɔ bio.",
+    "invalid_url": "Fa Instagram, TikTok, Facebook anaa YouTube kra pa bi fa."
+  },
+  "faq": {
+    "title": "Nsɛmmisa A Wɔbisa Wɔn Pii",
+    "q1": "Nnwuma yi yɛ fere?",
+    "a1": "Yiw, fere paa. Ɛhia enlistment anaa app biara.",
+    "q2": "Adesua ahemfo bɛn na yɛboa wɔn?",
+    "a2": "Instagram (Reels, Nkyerɛwee, Stories), YouTube (Video, Shorts), ne Facebook (Video, Reels).",
+    "q3": "Ɛho ban sɛ wode?",
+    "a3": "Yiw. Yɛnsie wo kra anaa video biara. Yɛyɛ biribiara bere a ɛto so.",
+    "q4": "Mede video a ɛwɔ mu nhyɛ?",
+    "a4": "Daabi. Wɔde video a wɔn nyinaa hu ne nsuo no nko ara."
+  },
+  "trending": {
+    "badge": "Ɛrekɔ Saa Ara",
+    "title": "Video A Wɔpɛ Wɔn Pii Nnawotwe Yi Mu",
+    "subtitle": "Bɔ YouTube so na hwɛ • copy kra no de video"
+  },
+  "footer": {
+    "tagline": "De video ntɛm na fere firi adesua a wopɛ wɔn.",
+    "disclaimer": "Nnwuma yi yɛ ma onipa koro nko ara. Fa tirim so copyright mmara."
+  }
+}

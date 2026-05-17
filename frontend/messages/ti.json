@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "ምስፋር ቪዲዮ - ካብ Instagram፣ YouTube & Facebook ቪዲዮ ምስፋር",
+    "description": "ካብ Instagram፣ YouTube ከምኡ'ውን Facebook ብዘይ ክፍሊት ቪዲዮ ምስፋር። ኣፕ ኣየድልን። ቅልጡፍን ቀሊልን።",
+    "lang": "ti",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "ብዘይ ክፍሊት • ብዘይ ምእታው • ብዘይ ኣፕ",
+    "title": "ናይ Instagram & Facebook ቪዲዮ ወሃቢ",
+    "subtitle": "Instagram Reels፣ Facebook ከምኡ'ውን YouTube ቪዲዮ ወዲኡ ምስፋር። ብዘይ ክፍሊት፣ ቅልጡፍ፣ ኣፕ ኣየድልን።",
+    "placeholder": "ናይ ቪዲዮ ሊንክ ኣብዚ ለጢፍ...",
+    "button": "ምስፋር",
+    "paste": "ለጢፍ"
+  },
+  "platforms": {
+    "title": "ዝስገሩ መድረኻት",
+    "instagram": "Instagram Reels፣ ጽሑፋት & Stories",
+    "youtube": "ቪዲዮ YouTube & Shorts",
+    "facebook": "ቪዲዮ Facebook & Reels",
+    "tiktok": "ቪዲዮ TikTok & Reels",
+    "twitter": "ቪዲዮ Twitter / X & GIFs",
+    "pinterest": "ቪዲዮ Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "ከመይ ቪዲዮ ምስፋር",
+    "step1_title": "ሊንክ ቅዳሕ",
+    "step1_desc": "Instagram፣ YouTube ወይ Facebook ክፈት ናይ ቪዲዮ ሊንክ ቅዳሕ።",
+    "step2_title": "ለጢፍ ምስፋር ጠውቕ",
+    "step2_desc": "ሊንክ ኣብ ሳጹን ላዕሊ ለጢፍ ናይ ምስፋር ኩሩን ጠውቕ።",
+    "step3_title": "ቪዲዮ ዓቅብ",
+    "step3_desc": "ዝደለኻዮ ጽሬት ምረጽ ቪዲዮ ኣብ ኣሌክትሮኒካዊ መሳርሒ ዓቅብ።"
+  },
+  "result": {
+    "title": "ቪዲዮ ተዳሊዩ!",
+    "download_hd": "HD ምስፋር",
+    "download_sd": "SD ምስፋር",
+    "download_audio": "ድምጺ ጥራሕ ምስፋር",
+    "processing": "ቪዲዮ ኣብ ምድላይ...",
+    "error": "ቪዲዮ ክርከብ ኣይካኣለን። ሊንክ ሕሰብ ኣብ ሓደ ፈትን።",
+    "invalid_url": "ናይ Instagram፣ TikTok፣ Facebook ወይ YouTube ቅኑዕ ሊንክ ኣእቱ።"
+  },
+  "faq": {
+    "title": "ብዙሕ ዝሕተቱ ሕቶታት",
+    "q1": "ናይዚ መሳርሒ ብዘይ ክፍሊት ድዩ?",
+    "a1": "እወ፣ ብጥምሉ ብዘይ ክፍሊት። ምምዝጋብ ወይ ኣፕ ኣየድልን።",
+    "q2": "ኣየኖት መድረኻት ይስገሩ?",
+    "a2": "Instagram (Reels፣ ጽሑፋት፣ Stories)፣ YouTube (ቪዲዮ፣ Shorts)፣ ከምኡ'ውን Facebook (ቪዲዮ፣ Reels)።",
+    "q3": "ምጥቃሙ ውሑስ ድዩ?",
+    "a3": "እወ። ሊንካት ወይ ቪዲዮ ኣይነዓቅብን። ኩሉ ብቐጥታ ይሰርሕ።",
+    "q4": "ናይ ሓበን ቪዲዮ ምስፋር ይካኣልዶ?",
+    "a4": "ኣይካኣልን። ናይ ህዝቢ ቪዲዮ ጥራሕ ምስፋር ይካኣል።"
+  },
+  "trending": {
+    "badge": "ሕጂ ዝዝውተሩ",
+    "title": "ሰሙን'ዚ ዝዝወተሩ ቪዲዮ",
+    "subtitle": "YouTube ንምርኣይ ጠውቕ • ምስፋር ሊንክ ቅዳሕ"
+  },
+  "footer": {
+    "tagline": "ካብ ዝፈትዎ ሜዲያ ቅልጡፍን ብዘይ ክፍሊትን ቪዲዮ ምስፋር።",
+    "disclaimer": "እዚ መሳርሒ ንውልቃዊ ጥቕሚ ጥራሕ ዝዉዕል'ዩ። ሕጊ መሰል ደረሰኛ ክብሩ።"
+  }
+}

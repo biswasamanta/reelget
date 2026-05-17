@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Video Aflaai - Laai Instagram, YouTube & Facebook Videos af",
+    "description": "Laai videos gratis af van Instagram, YouTube en Facebook. Geen app nodig. Vinnig en maklik.",
+    "lang": "af",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Gratis • Geen Aanmelding • Geen App",
+    "title": "Instagram & Facebook Video Aflaaier",
+    "subtitle": "Laai Instagram Reels, Facebook- en YouTube-videos onmiddellik af. Gratis, vinnig, geen app nodig.",
+    "placeholder": "Plak jou video-skakel hier...",
+    "button": "Laai af",
+    "paste": "Plak"
+  },
+  "platforms": {
+    "title": "Ondersteunde Platforms",
+    "instagram": "Instagram Reels, Plasings & Stories",
+    "youtube": "YouTube Videos & Shorts",
+    "facebook": "Facebook Videos & Reels",
+    "tiktok": "TikTok Videos & Reels",
+    "twitter": "Twitter / X Videos & GIFs",
+    "pinterest": "Pinterest Videos & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Hoe om Videos af te Laai",
+    "step1_title": "Kopieer die Skakel",
+    "step1_desc": "Maak Instagram, YouTube of Facebook oop en kopieer die video-skakel.",
+    "step2_title": "Plak & Klik Laai af",
+    "step2_desc": "Plak die skakel in die boks hierbo en klik die Laai af-knoppie.",
+    "step3_title": "Stoor die Video",
+    "step3_desc": "Kies jou gehalte en stoor die video op jou toestel."
+  },
+  "result": {
+    "title": "Jou Video is Gereed!",
+    "download_hd": "Laai HD af",
+    "download_sd": "Laai SD af",
+    "download_audio": "Laai Slegs Klank af",
+    "processing": "Soek jou video...",
+    "error": "Kon nie die video vind nie. Gaan die skakel na en probeer weer.",
+    "invalid_url": "Voer 'n geldige Instagram-, TikTok-, Facebook- of YouTube-skakel in."
+  },
+  "faq": {
+    "title": "Gereeld Gevraagde Vrae",
+    "q1": "Is hierdie hulpmiddel gratis?",
+    "a1": "Ja, heeltemal gratis. Geen registrasie of app nodig nie.",
+    "q2": "Watter platforms word ondersteun?",
+    "a2": "Instagram (Reels, Plasings, Stories), YouTube (Videos, Shorts) en Facebook (Videos, Reels).",
+    "q3": "Is dit veilig om te gebruik?",
+    "a3": "Ja. Ons stoor nie jou skakels of videos nie. Alles word intyds verwerk.",
+    "q4": "Kan ek privaatvideos aflaai?",
+    "a4": "Nee. Slegs openbare videos kan afgelaai word."
+  },
+  "trending": {
+    "badge": "Tans Gewild",
+    "title": "Top Videos Hierdie Week",
+    "subtitle": "Tik om op YouTube te kyk • kopieer die skakel om af te laai"
+  },
+  "footer": {
+    "tagline": "Vinnige, gratis video-aflaai van jou gunsteling platforms.",
+    "disclaimer": "Hierdie hulpmiddel is slegs vir persoonlike gebruik. Respekteer asseblief outeursregte."
+  }
+}

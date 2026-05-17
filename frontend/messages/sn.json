@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Kurodha Mavhidhiyo - Rodha Mavhidhiyo eInstagram, YouTube & Facebook",
+    "description": "Rodha mavhidhiyo kubva Instagram, YouTube neFacebook mahara. Hapana app inodikanwa. Nokukurumidza uye nyore.",
+    "lang": "sn",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Mahara • Hapana Kupinda • Hapana App",
+    "title": "Murodhi weVhidhiyo yeInstagram & Facebook",
+    "subtitle": "Rodha Instagram Reels, Facebook neYouTube mavhidhiyo pakarepo. Mahara, kukurumidza, hapana app inodikanwa.",
+    "placeholder": "Isa link yako yevhidhiyo pano...",
+    "button": "Rodha",
+    "paste": "Isa"
+  },
+  "platforms": {
+    "title": "Nzvimbo Dzinotsigirwa",
+    "instagram": "Instagram Reels, Zvinyorwa & Stories",
+    "youtube": "Mavhidhiyo eYouTube & Shorts",
+    "facebook": "Mavhidhiyo eFacebook & Reels",
+    "tiktok": "Mavhidhiyo eTikTok & Reels",
+    "twitter": "Mavhidhiyo eTwitter / X & GIFs",
+    "pinterest": "Mavhidhiyo ePinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Maitiro eKurodha Mavhidhiyo",
+    "step1_title": "Kopa Link",
+    "step1_desc": "Vhura Instagram, YouTube kana Facebook ukope link yevhidhiyo.",
+    "step2_title": "Isa Wobaya Rodha",
+    "step2_desc": "Isa link mubhokisi riri pamusoro wobaya bhatani reKurodha.",
+    "step3_title": "Sevha Vhidhiyo",
+    "step3_desc": "Sarudza mwero waunoda uye sevha vhidhiyo pagadzirwa yako."
+  },
+  "result": {
+    "title": "Vhidhiyo Yako Yakagadzirwa!",
+    "download_hd": "Rodha HD",
+    "download_sd": "Rodha SD",
+    "download_audio": "Rodha Ruzha Chete",
+    "processing": "Kutsvaga vhidhiyo yako...",
+    "error": "Haikusvika kuwana vhidhiyo. Tarisa link wobva waedza zvakare.",
+    "invalid_url": "Isa link ine musoro yeInstagram, TikTok, Facebook kana YouTube."
+  },
+  "faq": {
+    "title": "Mibvunzo Inobvunzwa Nguva Dzose",
+    "q1": "Chishandiso ichi mahara here?",
+    "a1": "Hongu, mahara zvachose. Hapana kunyoresa kana app inodikanwa.",
+    "q2": "Nzvimbo dzipi dzinotsigirwa?",
+    "a2": "Instagram (Reels, Zvinyorwa, Stories), YouTube (Mavhidhiyo, Shorts), neFacebook (Mavhidhiyo, Reels).",
+    "q3": "Zvakachengeteka here kushandisa?",
+    "a3": "Hongu. Hatichengeti links kana mavhidhiyo ako. Zvose zvinoitwa panguva yechokwadi.",
+    "q4": "Ndinogona kurodha mavhidhiyo akavanzika?",
+    "a4": "Kwete. Mavhidhiyo eruzhinji chete anogona kurodhwa."
+  },
+  "trending": {
+    "badge": "Achikura Izvozvi",
+    "title": "Mavhidhiyo Anotevedzwa Kwazvo Vhiki Rino",
+    "subtitle": "Baya kuona paYouTube • kopa link kurodha"
+  },
+  "footer": {
+    "tagline": "Kurodha mavhidhiyo nokukurumidza uye mahara kubva panzvimbo dzaunoda.",
+    "disclaimer": "Chishandiso ichi chiri chekushandisa kwemunhu mumwe chete. Tevedzai mitemo yemakwikwi."
+  }
+}

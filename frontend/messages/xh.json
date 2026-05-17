@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Ukuhlola Iividiyo - Hlola Iividiyo ze-Instagram, YouTube & Facebook",
+    "description": "Hlola iividiyo ze-Instagram, YouTube ne-Facebook simahla. Akukho app efunekayo. Kukhawuleza kwaye kulula.",
+    "lang": "xh",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Simahla • Akukho Ngena • Akukho App",
+    "title": "Ukuhlola Iividiyo ze-Instagram & Facebook",
+    "subtitle": "Hlola iividiyo ze-Instagram Reels, Facebook ne-YouTube ngoko nangoko. Simahla, kukhawuleza, akukho app efunekayo.",
+    "placeholder": "Cofa apha isixhobo sakho sevidiyo...",
+    "button": "Hlola",
+    "paste": "Cofa"
+  },
+  "platforms": {
+    "title": "Iindawo Ezixhaswayo",
+    "instagram": "Instagram Reels, Izithombe & Stories",
+    "youtube": "Iividiyo ze-YouTube & Shorts",
+    "facebook": "Iividiyo ze-Facebook & Reels",
+    "tiktok": "Iividiyo ze-TikTok & Reels",
+    "twitter": "Iividiyo ze-Twitter / X & GIFs",
+    "pinterest": "Iividiyo ze-Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Indlela Yokufota Iividiyo",
+    "step1_title": "Kopisha Isixhobo",
+    "step1_desc": "Vula i-Instagram, YouTube okanye Facebook ukopisha isixhobo sevidiyo.",
+    "step2_title": "Cofa uze uCofa Hlola",
+    "step2_desc": "Cofa isixhobo ebhokisini elingasentla uze ucofe inkinobho Yokufota.",
+    "step3_title": "Gcina Ividiyo",
+    "step3_desc": "Khetha umgangatho ofunekayo ugcine ividiyo kwisixhobo sakho."
+  },
+  "result": {
+    "title": "Ividiyo Yakho Ilungile!",
+    "download_hd": "Hlola HD",
+    "download_sd": "Hlola SD",
+    "download_audio": "Hlola Isandi Kuphela",
+    "processing": "Sifuna ividiyo yakho...",
+    "error": "Ayikwazanga ukufumana ividiyo. Nceda uhlole isixhobo uzame kwakhona.",
+    "invalid_url": "Nceda ufake isixhobo esifanelekileyo se-Instagram, TikTok, Facebook okanye YouTube."
+  },
+  "faq": {
+    "title": "Imibuzo Ebuzwa Rhoqo",
+    "q1": "Ngaba eli xabiso lisetyenziswa simahla?",
+    "a1": "Ewe, simahla ngokupheleleyo. Akukho kubhalisa okanye app efunekayo.",
+    "q2": "Zeziphi iindawo ezixhaswayo?",
+    "a2": "Instagram (Reels, Izithombe, Stories), YouTube (Iividiyo, Shorts), ne-Facebook (Iividiyo, Reels).",
+    "q3": "Ngaba kukhuselekile ukusebenzisa?",
+    "a3": "Ewe. Asigcini izixhobo okanye iividiyo zakho. Yonke into iyenziwa ngexesha lokwenene.",
+    "q4": "Ndingafota iividiyo eziyimfihlo?",
+    "a4": "Hayi. Iividiyo zoluntu kuphela ezinokufotwa."
+  },
+  "trending": {
+    "badge": "Iyathatha Ngoku",
+    "title": "Iividiyo Eziphezulu Kule Veki",
+    "subtitle": "Cinezela ukubukela ku-YouTube • kopisha isixhobo ukufota"
+  },
+  "footer": {
+    "tagline": "Ukufota ividiyo ngokukhawuleza nangokumahhala kwiindawo zakho ozithandayo.",
+    "disclaimer": "Eli xabiso lisetyenziselwa ukusetyenziswa komntu ngamnye kuphela. Nceda uhloniphe imiqathango yamalungelo."
+  }
+}

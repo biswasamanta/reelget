@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "Jëfandikoo Vidéo - Jëfandikoo Vidéo yi Instagram, YouTube & Facebook",
+    "description": "Jëfandikoo vidéo yi ci Instagram, YouTube ak Facebook, dafa yomb. Amul app bu soxor. Bu gaaw ak bu yomb.",
+    "lang": "wo",
+    "dir": "ltr"
+  },
+  "nav": {
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "tiktok": "TikTok",
+    "twitter": "Twitter / X",
+    "pinterest": "Pinterest",
+    "snapchat": "Snapchat"
+  },
+  "hero": {
+    "badge": "Yomb • Amul Dugub • Amul App",
+    "title": "Jëfandikoo Vidéo yi Instagram & Facebook",
+    "subtitle": "Jëfandikoo Instagram Reels, Facebook ak YouTube vidéo yi léegi léegi. Yomb, bu gaaw, amul app bu soxor.",
+    "placeholder": "Dox ci fii liggéey bi sa vidéo...",
+    "button": "Jëfandikoo",
+    "paste": "Dox"
+  },
+  "platforms": {
+    "title": "Jëfandikuwaayu Dëkk yi Taxaw nanu ci",
+    "instagram": "Instagram Reels, Xam-xam yi & Stories",
+    "youtube": "Vidéo yi YouTube & Shorts",
+    "facebook": "Vidéo yi Facebook & Reels",
+    "tiktok": "Vidéo yi TikTok & Reels",
+    "twitter": "Vidéo yi Twitter / X & GIFs",
+    "pinterest": "Vidéo yi Pinterest & Pins",
+    "snapchat": "Snapchat Spotlight & Stories"
+  },
+  "howto": {
+    "title": "Lan Ngay Jëfandikoo Vidéo yi",
+    "step1_title": "Kopi Liggéey bi",
+    "step1_desc": "Ubbi Instagram, YouTube walla Facebook nguy kopi liggéey bi sa vidéo.",
+    "step2_title": "Dox nguy Topp Jëfandikoo",
+    "step2_desc": "Dox liggéey bi ci kaarange bi ci topp nguy doon ci bouton Jëfandikoo.",
+    "step3_title": "Yëgël Vidéo bi",
+    "step3_desc": "Tann kalite bi nga bëgg nguy yëgël vidéo bi ci sa benn juntukaay."
+  },
+  "result": {
+    "title": "Sa Vidéo Dafa Dëkk!",
+    "download_hd": "Jëfandikoo HD",
+    "download_sd": "Jëfandikoo SD",
+    "download_audio": "Jëfandikoo Dégg bi Rekk",
+    "processing": "Danu seet sa vidéo...",
+    "error": "Mënuñu gis vidéo bi. Xool liggéey bi nguy jëf ci kanam.",
+    "invalid_url": "Dugal liggéey bu baax bu Instagram, TikTok, Facebook walla YouTube."
+  },
+  "faq": {
+    "title": "Laaj yi Ñuy Laajoon",
+    "q1": "Jëfandikuwaayu bi dafa yomb?",
+    "a1": "Waaw, yomb lool. Amul liggéeyal walla app bu soxor.",
+    "q2": "Dëkk yi fan lañuy taxaw ci?",
+    "a2": "Instagram (Reels, Xam-xam, Stories), YouTube (Vidéo, Shorts), ak Facebook (Vidéo, Reels).",
+    "q3": "Dafa am kanam ci jëfandikoo?",
+    "a3": "Waaw. Dañu du yëgël sa liggéey walla vidéo yi. Dëkki yépp ëmbu ci waxtu bi.",
+    "q4": "Mën naa jëfandikoo vidéo yi bu siri?",
+    "a4": "Deedeet. Vidéo yi ñëw ci biir dëkk rekk la mën a jëfandikoo."
+  },
+  "trending": {
+    "badge": "Yëgëloon Léegi",
+    "title": "Vidéo yi bu baax bi ci Ayu Bis mi",
+    "subtitle": "Jiital ci YouTube nguy xool • kopi liggéey bi nguy jëfandikoo"
+  },
+  "footer": {
+    "tagline": "Jëfandikoo vidéo bu gaaw ak yomb ci jëfandikuwaayu bi ngay bëgg.",
+    "disclaimer": "Jëfandikuwaayu bi dafa soxor ci jëfandikoo bu réy rekk. Bul fey droit d'auteur."
+  }
+}
