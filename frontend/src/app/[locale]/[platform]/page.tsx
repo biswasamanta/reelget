@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import DownloaderForm from '@/components/DownloaderForm';
+import Tracker from '@/components/Tracker';
 import { routing } from '@/../i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
@@ -824,6 +825,7 @@ export default async function PlatformPage({
 
     return (
       <div className="min-h-screen bg-slate-950">
+        <Tracker page={`landing:${platform}`} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
 
         <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 shadow-sm">
@@ -949,6 +951,7 @@ export default async function PlatformPage({
 
   return (
     <div className="min-h-screen bg-slate-950">
+      <Tracker page={`platform:${locale}:${platform}`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
 
       <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 shadow-sm">

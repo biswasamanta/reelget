@@ -92,10 +92,35 @@ def _init_db():
                 INSERT INTO counter (id, count)
                 VALUES (1, %s)
                 ON CONFLICT (id) DO NOTHING;
+
+                CREATE TABLE IF NOT EXISTS page_stats (
+                    page VARCHAR(255) PRIMARY KEY,
+                    count BIGINT NOT NULL DEFAULT 0,
+                    last_seen TIMESTAMPTZ DEFAULT NOW()
+                );
             """, (_COUNTER_BASE,))
-        print("[db] counter table ready", flush=True)
+        print("[db] tables ready", flush=True)
     except Exception as ex:
         print(f"[db] init failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+def _db_track_page(page: str):
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO page_stats (page, count, last_seen)
+                VALUES (%s, 1, NOW())
+                ON CONFLICT (page) DO UPDATE
+                SET count = page_stats.count + 1,
+                    last_seen = NOW()
+            """, (page[:255],))
+    except Exception as ex:
+        print(f"[db] track page failed: {ex}", flush=True)
     finally:
         conn.close()
 
@@ -331,6 +356,25 @@ async def download(request: Request, req: DownloadRequest):
     _counter_session += 1
     _db_increment()  # persist to DB (fire and forget — fallback to in-memory if fails)
 
+    # Track which platform was downloaded
+    for pattern, label in [
+        (r"instagram\.com", "download:instagram"),
+        (r"youtube\.com|youtu\.be", "download:youtube"),
+        (r"tiktok\.com|vm\.tiktok\.com", "download:tiktok"),
+        (r"facebook\.com|fb\.watch", "download:facebook"),
+        (r"twitter\.com|x\.com|t\.co", "download:twitter"),
+        (r"pinterest\.com|pin\.it", "download:pinterest"),
+        (r"snapchat\.com", "download:snapchat"),
+        (r"linkedin\.com", "download:linkedin"),
+        (r"reddit\.com|redd\.it", "download:reddit"),
+        (r"vimeo\.com", "download:vimeo"),
+        (r"dailymotion\.com|dai\.ly", "download:dailymotion"),
+        (r"twitch\.tv", "download:twitch"),
+    ]:
+        if re.search(pattern, req.url):
+            _db_track_page(label)
+            break
+
     response_data = {
         "title": info.get("title", "Video"),
         "thumbnail": info.get("thumbnail"),
@@ -559,6 +603,42 @@ def get_counter():
     if db_count is not None:
         return {"count": db_count}
     return {"count": _COUNTER_BASE + _counter_session}
+
+
+class TrackRequest(BaseModel):
+    page: str
+
+@app.post("/api/track")
+async def track_page(req: TrackRequest):
+    """Lightweight page-view / event tracker — fire-and-forget from frontend."""
+    if req.page:
+        _db_track_page(req.page.strip()[:255])
+    return {"ok": True}
+
+
+@app.get("/api/analytics")
+def get_analytics():
+    """Return page stats sorted by count descending."""
+    conn = _get_db_conn()
+    if not conn:
+        return {"error": "db_unavailable", "rows": []}
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT page, count, last_seen
+                FROM page_stats
+                ORDER BY count DESC
+                LIMIT 200
+            """)
+            rows = [
+                {"page": r[0], "count": r[1], "last_seen": r[2].isoformat() if r[2] else None}
+                for r in cur.fetchall()
+            ]
+        return {"rows": rows, "total_pages": len(rows)}
+    except Exception as ex:
+        return {"error": str(ex), "rows": []}
+    finally:
+        conn.close()
 
 
 @app.get("/health")
