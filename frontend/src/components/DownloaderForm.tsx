@@ -138,13 +138,21 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   }
 
   async function handleCopy() {
+    const shareUrl = 'https://reelget.com';
+    const shareText = result ? `📥 "${result.title.slice(0, 80)}" — download it free at ReelGet` : 'Download videos free at ReelGet';
     try {
-      const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://reelget.com';
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Use native share sheet on mobile if available
+      if (navigator.share) {
+        await navigator.share({ title: 'ReelGet', text: shareText, url: shareUrl });
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     } catch {
-      // silently fail
+      // silently fail (user cancelled share sheet)
     }
   }
 
@@ -317,7 +325,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 onClick={handleCopy}
                 className="flex flex-1 min-w-[100px] items-center justify-center gap-2 border border-gray-200 text-gray-600 font-semibold py-2.5 px-3 rounded-xl text-sm hover:bg-gray-50 transition"
               >
-                {copied ? <>✅ Copied!</> : <>📋 Copy</>}
+                {copied ? <>✅ Shared!</> : <><span className="hidden sm:inline">📋 Copy Link</span><span className="sm:hidden">↗ Share</span></>}
               </button>
               {/* WhatsApp share */}
               <a

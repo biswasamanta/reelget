@@ -34,6 +34,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'youtube-to-mp3',
     'facebook-reels-downloader',
     'twitter-video-downloader',
+    'reddit-video-downloader',
+    'linkedin-video-downloader',
+    'vimeo-downloader',
+    'dailymotion-downloader',
+    'twitch-clips-downloader',
   ].map((slug) => ({
     url: `${BASE_URL}/en/${slug}`,
     lastModified: new Date(),
