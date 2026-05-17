@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 SUPPORTED_PATTERN = re.compile(
-    r"(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|story\.snapchat\.com)"
+    r"(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|story\.snapchat\.com|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|clips\.twitch\.tv)"
 )
 
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")

@@ -34,7 +34,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     ['jpg', 'jpeg', 'webp', 'png', 'gif', 'avif'].includes(ext.toLowerCase());
 
   const isValidUrl = (val: string) =>
-    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app/.test(val);
+    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv/.test(val);
 
   async function handleDownload() {
     const trimmed = url.trim();
@@ -150,6 +150,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <span className="text-xs text-sky-400/80">🐦 Twitter / X ✓</span>
         <span className="text-xs text-red-400/80">📌 Pinterest ✓</span>
         <span className="text-xs text-yellow-400/80">👻 Snapchat ✓</span>
+        <span className="text-xs text-blue-300/80">💼 LinkedIn ✓</span>
+        <span className="text-xs text-orange-400/80">🤖 Reddit ✓</span>
+        <span className="text-xs text-cyan-400/80">🎬 Vimeo ✓</span>
+        <span className="text-xs text-blue-400/80">📺 Dailymotion ✓</span>
+        <span className="text-xs text-purple-400/80">🎮 Twitch ✓</span>
         <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-medium">▶️ YouTube — public only</span>
       </div>
 

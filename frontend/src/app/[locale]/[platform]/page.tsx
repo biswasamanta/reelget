@@ -6,7 +6,7 @@ import { routing } from '@/../i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
 const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am', 'es', 'ru', 'tr', 'th', 'ko'];
-const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat'] as const;
+const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat', 'linkedin', 'reddit', 'vimeo', 'dailymotion', 'twitch'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
 // ─── Landing page slugs (English-only targeted keyword pages) ─────────────────
@@ -260,6 +260,126 @@ const PLATFORM_META: Record<Platform, {
       'ReelGet fetches the original video quality, not the compressed preview.',
     ],
   },
+  linkedin: {
+    emoji: '💼',
+    gradient: 'from-blue-600 to-blue-800',
+    types: 'Videos & Posts',
+    body: [
+      'LinkedIn has evolved from a text-based professional network into a rich video platform, with creators sharing industry insights, tutorials, conference talks, and career advice. ReelGet\'s LinkedIn video downloader lets you save any public LinkedIn video post as an MP4 file — no LinkedIn Premium, no app, and no login required.',
+      'Simply copy the URL of any public LinkedIn post that contains a video and paste it into ReelGet. The downloader fetches the video at its original quality from LinkedIn\'s CDN and streams it directly to your browser or device.',
+      'Downloaded LinkedIn videos are great for offline reference, sharing with colleagues who aren\'t on LinkedIn, or archiving content from your industry leaders. Works on any device — phone, tablet, or desktop.',
+    ],
+    faq: [
+      { q: 'Can I download LinkedIn videos without an account?', a: 'Yes — only a public LinkedIn post URL is needed. No LinkedIn login or Premium subscription is required.' },
+      { q: 'What types of LinkedIn videos are supported?', a: 'Public LinkedIn video posts, native uploads, and shared video content are all supported.' },
+      { q: 'Can I download LinkedIn Learning videos?', a: 'LinkedIn Learning videos are behind a paywall and are not publicly accessible — only public post videos can be downloaded.' },
+      { q: 'What quality are the downloads?', a: 'ReelGet fetches the original video quality as uploaded by the creator on LinkedIn\'s CDN.' },
+      { q: 'Do I need to install anything?', a: 'No — ReelGet is a web app that works entirely in your browser on any device.' },
+    ],
+    features: [
+      'Download LinkedIn video posts as MP4',
+      'No LinkedIn account or Premium required',
+      'Fetches original quality from LinkedIn\'s CDN',
+      'Works on iPhone, Android, PC, and Mac',
+      'No browser extension or app installation needed',
+    ],
+    tips: [
+      'Open the LinkedIn post containing the video.',
+      'Click the three-dot menu (⋯) on the post and select "Copy link to post."',
+      'Paste the link into ReelGet\'s input box and click Download.',
+      'The video saves as MP4 to your device.',
+    ],
+  },
+  reddit: {
+    emoji: '🤖',
+    gradient: 'from-orange-500 to-red-600',
+    types: 'Videos & GIFs',
+    body: [
+      'Reddit hosts millions of video posts across thousands of subreddits — funny clips, gaming highlights, news footage, sports moments, and viral content. ReelGet\'s Reddit video downloader lets you save any public Reddit video post as a clean MP4 with audio, fixing the common problem where Reddit\'s native player separates video and audio streams.',
+      'Reddit videos are notoriously difficult to download because the platform splits audio and video into separate streams. ReelGet merges them server-side before delivering the file to you, so you get a complete video with sound — not a silent clip.',
+      'Both old-style reddit.com links and short redd.it share links are supported. Works on all devices without any app or browser extension.',
+    ],
+    faq: [
+      { q: 'Why do Reddit videos often have no sound when downloaded elsewhere?', a: 'Reddit stores audio and video as separate streams. ReelGet merges them server-side before download so you always get a complete video with audio.' },
+      { q: 'Do redd.it short links work?', a: 'Yes — short redd.it share links are automatically resolved.' },
+      { q: 'Can I download from any subreddit?', a: 'Yes — any public subreddit video post can be downloaded. Private or restricted subreddits are not accessible.' },
+      { q: 'What about Reddit GIFs?', a: 'Reddit GIFs are served as video files (MP4) and are fully supported.' },
+      { q: 'Do I need a Reddit account?', a: 'No — only a public Reddit post URL is needed.' },
+    ],
+    features: [
+      'Download Reddit videos with audio (merged automatically)',
+      'Supports redd.it short links and full reddit.com URLs',
+      'Works across all public subreddits',
+      'Reddit GIFs downloaded as MP4 with full quality',
+      'No Reddit account required',
+    ],
+    tips: [
+      'Open the Reddit post with the video and tap "Share" → "Copy link."',
+      'Paste the post URL (not the video direct URL) into ReelGet.',
+      'Click Download — audio and video are merged automatically.',
+      'Both redd.it and reddit.com links work identically.',
+    ],
+  },
+  vimeo: {
+    emoji: '🎬',
+    gradient: 'from-cyan-500 to-blue-600',
+    types: 'Videos & Showcases',
+    body: [
+      'Vimeo is the go-to platform for high-quality creative video — filmmakers, designers, animators, and agencies use it to showcase their best work. ReelGet\'s Vimeo downloader lets you save any public Vimeo video as an HD MP4 file, preserving the quality that creators upload at.',
+      'Unlike YouTube, Vimeo often hosts original creative projects, short films, and portfolio reels that aren\'t available anywhere else. ReelGet lets you archive these for offline viewing or reference, fetching the highest available quality from Vimeo\'s CDN.',
+      'Simply paste any public vimeo.com video URL into ReelGet. Password-protected or private Vimeo videos cannot be downloaded. Works on all devices without any Vimeo account.',
+    ],
+    faq: [
+      { q: 'Can I download private Vimeo videos?', a: 'No — only publicly accessible Vimeo videos can be downloaded. Password-protected or private videos are not supported.' },
+      { q: 'What quality are Vimeo downloads?', a: 'ReelGet selects the highest available quality from Vimeo\'s CDN, which can be up to 4K for some videos.' },
+      { q: 'Do I need a Vimeo account?', a: 'No — only a public Vimeo video URL is needed.' },
+      { q: 'Can I download Vimeo showcases?', a: 'Individual videos within a public showcase can be downloaded one at a time.' },
+      { q: 'What format are downloaded Vimeo videos?', a: 'Videos are downloaded as MP4 files, compatible with all devices and video players.' },
+    ],
+    features: [
+      'Download Vimeo videos in HD quality up to 4K',
+      'Saves original quality as uploaded by the creator',
+      'No Vimeo account or Vimeo Pro required',
+      'Works on iPhone, Android, PC, and Mac',
+      'No browser extension needed',
+    ],
+    tips: [
+      'Open the Vimeo video and copy the URL from your browser\'s address bar.',
+      'Alternatively, click "Share" on the video and copy the link.',
+      'Paste the URL into ReelGet and click Download.',
+      'Password-protected or private videos cannot be downloaded.',
+    ],
+  },
+  dailymotion: {
+    emoji: '📺',
+    gradient: 'from-blue-500 to-indigo-600',
+    types: 'Videos & Channels',
+    body: [
+      'Dailymotion is one of the world\'s largest video platforms, hosting news clips, entertainment content, sports highlights, and creator videos across dozens of countries. ReelGet\'s Dailymotion downloader lets you save any public Dailymotion video as an MP4 in HD quality.',
+      'Dailymotion is especially popular in France, the Middle East, and Southeast Asia — and ReelGet supports it fully alongside other major platforms. Both full dailymotion.com URLs and short dai.ly share links are accepted.',
+      'No Dailymotion account is required, and the tool works on any device. Simply paste the video URL and click Download to save the MP4 to your device.',
+    ],
+    faq: [
+      { q: 'Can I download Dailymotion videos for free?', a: 'Yes — ReelGet is completely free with no download limits for public Dailymotion videos.' },
+      { q: 'Do dai.ly short links work?', a: 'Yes — dai.ly short links are automatically resolved to the full video.' },
+      { q: 'What quality are Dailymotion downloads?', a: 'ReelGet selects the highest available quality, typically up to 1080p HD.' },
+      { q: 'Can I download age-restricted Dailymotion videos?', a: 'Age-restricted or private content cannot be downloaded without authentication.' },
+      { q: 'Do I need a Dailymotion account?', a: 'No account required for publicly accessible videos.' },
+    ],
+    features: [
+      'Download Dailymotion videos in HD MP4',
+      'Supports dai.ly short links and full dailymotion.com URLs',
+      'No Dailymotion account required',
+      'Works on all devices and browsers',
+      'Free with no download limits',
+    ],
+    tips: [
+      'Open the Dailymotion video and copy the URL from your browser.',
+      'Short dai.ly links work just as well as full URLs.',
+      'Paste the URL into ReelGet and click Download.',
+      'Only public, non-restricted videos can be downloaded.',
+    ],
+  },
   snapchat: {
     emoji: '👻',
     gradient: 'from-yellow-400 to-amber-500',
@@ -288,6 +408,36 @@ const PLATFORM_META: Record<Platform, {
       'Paste the snapchat.com or story.snapchat.com link into ReelGet.',
       'Only publicly shared content with a shareable URL can be downloaded.',
       'Private account snaps sent directly cannot be downloaded.',
+    ],
+  },
+  twitch: {
+    emoji: '🎮',
+    gradient: 'from-purple-600 to-violet-700',
+    types: 'Clips & VODs',
+    body: [
+      'Twitch is the world\'s leading live streaming platform for gaming, esports, and creative content. While live streams can\'t be saved directly, Twitch Clips — short highlights created from broadcasts — are fully downloadable with ReelGet. Save any public Twitch Clip as an MP4 in seconds.',
+      'Twitch Clips are automatically generated 30–60 second highlights that streamers and viewers create from VODs and live streams. They\'re great for sharing big moments: clutch plays, funny reactions, world-record runs, and viral gaming moments. ReelGet fetches them at their original 1080p60 quality.',
+      'Both clips.twitch.tv and twitch.tv/clip/ URL formats are supported. No Twitch account is required. Simply paste the Clip URL into ReelGet and download.',
+    ],
+    faq: [
+      { q: 'Can I download Twitch live streams?', a: 'Live streams cannot be downloaded in real time. Only Twitch Clips (short highlights) are supported.' },
+      { q: 'Can I download full Twitch VODs?', a: 'Twitch VODs that are publicly available may be supported. Subscriber-only or expired VODs cannot be accessed.' },
+      { q: 'What quality are Twitch Clip downloads?', a: 'ReelGet downloads Twitch Clips at the highest available quality, typically 1080p60.' },
+      { q: 'Do I need a Twitch account?', a: 'No — only a public Clip URL is needed. No Twitch account or subscription required.' },
+      { q: 'What URL formats are supported?', a: 'Both clips.twitch.tv/ClipName and twitch.tv/username/clip/ClipName formats are supported.' },
+    ],
+    features: [
+      'Download Twitch Clips in HD at up to 1080p60',
+      'Supports clips.twitch.tv and twitch.tv/clip/ URL formats',
+      'No Twitch account or subscription required',
+      'Save gaming highlights, esports moments, and viral clips',
+      'Works on iPhone, Android, PC, and Mac',
+    ],
+    tips: [
+      'Open the Twitch Clip you want to save.',
+      'Copy the URL from your browser\'s address bar (clips.twitch.tv/... or twitch.tv/.../clip/...).',
+      'Paste the URL into ReelGet and click Download.',
+      'Live streams cannot be saved — only Clips and public VODs.',
     ],
   },
 };
