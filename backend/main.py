@@ -20,6 +20,13 @@ try:
 except ImportError:
     pass
 
+try:
+    import psycopg2
+    from psycopg2.extras import DictCursor
+    _PG_AVAILABLE = True
+except ImportError:
+    _PG_AVAILABLE = False
+
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="VidSave API")
 app.state.limiter = limiter
@@ -58,6 +65,73 @@ ALLOWED_REGIONS = {"IN", "PK", "ID", "BR", "SA", "VN", "US", "NG", "KE"}
 # In-memory download counter — resets on restart but starts from a base
 _COUNTER_BASE = 52_000
 _counter_session = 0
+
+# ── PostgreSQL counter ────────────────────────────────────────────────────────
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+def _get_db_conn():
+    if not _PG_AVAILABLE or not DATABASE_URL:
+        return None
+    try:
+        return psycopg2.connect(DATABASE_URL, connect_timeout=5)
+    except Exception as ex:
+        print(f"[db] connect failed: {ex}", flush=True)
+        return None
+
+def _init_db():
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS counter (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    count BIGINT NOT NULL DEFAULT 0
+                );
+                INSERT INTO counter (id, count)
+                VALUES (1, %s)
+                ON CONFLICT (id) DO NOTHING;
+            """, (_COUNTER_BASE,))
+        print("[db] counter table ready", flush=True)
+    except Exception as ex:
+        print(f"[db] init failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+def _db_increment() -> int | None:
+    conn = _get_db_conn()
+    if not conn:
+        return None
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                "UPDATE counter SET count = count + 1 WHERE id = 1 RETURNING count"
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
+    except Exception as ex:
+        print(f"[db] increment failed: {ex}", flush=True)
+        return None
+    finally:
+        conn.close()
+
+def _db_get_count() -> int | None:
+    conn = _get_db_conn()
+    if not conn:
+        return None
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT count FROM counter WHERE id = 1")
+            row = cur.fetchone()
+            return row[0] if row else None
+    except Exception as ex:
+        print(f"[db] get count failed: {ex}", flush=True)
+        return None
+    finally:
+        conn.close()
+
+_init_db()
 
 # In-memory result cache — avoids repeated yt-dlp calls for the same URL
 _CACHE: dict[str, tuple[float, dict]] = {}  # url -> (timestamp, data)
@@ -255,6 +329,7 @@ async def download(request: Request, req: DownloadRequest):
 
     global _counter_session
     _counter_session += 1
+    _db_increment()  # persist to DB (fire and forget — fallback to in-memory if fails)
 
     response_data = {
         "title": info.get("title", "Video"),
@@ -480,6 +555,9 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
 
 @app.get("/api/counter")
 def get_counter():
+    db_count = _db_get_count()
+    if db_count is not None:
+        return {"count": db_count}
     return {"count": _COUNTER_BASE + _counter_session}
 
 
