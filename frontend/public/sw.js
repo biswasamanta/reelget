@@ -1,4 +1,4 @@
-const CACHE = 'reelget-v2';
+const CACHE = 'reelget-v3';
 const PRECACHE = ['/en', '/offline'];
 
 self.addEventListener('install', (e) => {
@@ -19,7 +19,6 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const { request } = e;
-  // Skip non-GET, API calls, and cross-origin
   if (request.method !== 'GET') return;
   if (request.url.includes('/api/')) return;
   if (!request.url.startsWith(self.location.origin)) return;
@@ -32,10 +31,44 @@ self.addEventListener('fetch', (e) => {
         }
         return res;
       });
-      // Serve cache immediately, update in background (stale-while-revalidate)
       return cached || network.catch(() =>
         caches.match('/offline').then((off) => off || new Response('Offline', { status: 503 }))
       );
+    })
+  );
+});
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+self.addEventListener('push', (e) => {
+  let data = { title: 'ReelGet', body: 'New update available!', url: '/en' };
+  try {
+    if (e.data) data = { ...data, ...e.data.json() };
+  } catch {}
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      tag: 'reelget-notification',
+      renotify: true,
+      data: { url: data.url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || '/en';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
     })
   );
 });

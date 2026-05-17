@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import ImageCompressor from './ImageCompressor';
 import LinkHelpGuide from './LinkHelpGuide';
+import AdSlot from './AdSlot';
 
 type DownloadResult = {
   title: string;
@@ -317,6 +318,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 <ImageCompressor formats={imgFmts} title={result.title} />
               ) : null;
             })()}
+
+            {/* Ad slot — shown between download buttons and share row */}
+            <AdSlot slot="3921547860" format="auto" className="my-1 rounded-xl overflow-hidden" />
 
             {/* Share row: Copy link + WhatsApp + Telegram */}
             <div className="flex gap-2 pt-1 flex-wrap">
