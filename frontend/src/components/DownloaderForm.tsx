@@ -176,7 +176,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
           type="url"
           value={url}
           onChange={(e) => { setUrl(e.target.value); setStatus('idle'); }}
-          onKeyDown={(e) => e.key === 'Enter' && handleDownload()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleDownload();
+            if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
+          }}
           placeholder={t('hero.placeholder')}
           className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-sm"
           dir="ltr"
