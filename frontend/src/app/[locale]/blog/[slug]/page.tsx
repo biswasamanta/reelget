@@ -1,10 +1,6 @@
-'use client';
-
-// NOTE: This file uses 'use client' only for the FAQ accordion interaction.
-// JSON-LD schemas are injected via dangerouslySetInnerHTML on the server render.
-
-import { useState } from 'react';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import FaqAccordion from './FaqAccordion';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
 
@@ -55,11 +51,11 @@ const BLOG_POSTS: BlogPost[] = [
       },
       {
         title: 'Open ReelGet in Safari',
-        body: 'On your iPhone, open Safari (or any browser) and go to reelget.com. You\'ll see a single input box in the centre of the page.',
+        body: "On your iPhone, open Safari (or any browser) and go to reelget.com. You'll see a single input box in the centre of the page.",
       },
       {
         title: 'Paste the link and tap Download',
-        body: 'Tap inside the input box, paste the copied Instagram URL, then tap the "Download" button. ReelGet will fetch the video from Instagram\'s servers.',
+        body: "Tap inside the input box, paste the copied Instagram URL, then tap the \"Download\" button. ReelGet will fetch the video from Instagram's servers.",
       },
       {
         title: 'Save the video to your Camera Roll',
@@ -72,7 +68,7 @@ const BLOG_POSTS: BlogPost[] = [
     ],
     body: [
       'Instagram Reels downloaded via ReelGet retain their original quality. We fetch the highest-resolution version available for the public URL you provide — typically 1080p for most modern Reels.',
-      'One important note: ReelGet can only download public content. If the account is set to private or the Reel has been deleted, the download will not work. Always make sure the content you download is something you have a right to save, and respect the original creator\'s copyright.',
+      "One important note: ReelGet can only download public content. If the account is set to private or the Reel has been deleted, the download will not work. Always make sure the content you download is something you have a right to save, and respect the original creator's copyright.",
       'Looking to download Instagram Stories instead? ReelGet supports those too — just paste the Story URL (available by tapping the share icon on a Story) and follow the same steps above.',
     ],
     faq: [
@@ -86,7 +82,7 @@ const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: 'Can I download Instagram Reels on iPhone without any app?',
-        a: 'Yes — that\'s exactly what ReelGet is for. You use it entirely in your browser with no installation step.',
+        a: "Yes — that's exactly what ReelGet is for. You use it entirely in your browser with no installation step.",
       },
       {
         q: 'Does ReelGet work for Instagram Stories and Posts too?',
@@ -104,7 +100,7 @@ const BLOG_POSTS: BlogPost[] = [
     readTime: '4 min',
     category: 'TikTok',
     intro:
-      'Every TikTok video carries a watermark — the creator\'s username and the TikTok logo — when you save it natively through the app. If you want a clean version to edit, re-post on another platform, or simply archive without the overlay, ReelGet lets you download TikTok videos without a watermark in a few simple steps, completely free.',
+      "Every TikTok video carries a watermark — the creator's username and the TikTok logo — when you save it natively through the app. If you want a clean version to edit, re-post on another platform, or simply archive without the overlay, ReelGet lets you download TikTok videos without a watermark in a few simple steps, completely free.",
     steps: [
       {
         title: 'Find the TikTok video you want to save',
@@ -120,7 +116,7 @@ const BLOG_POSTS: BlogPost[] = [
       },
       {
         title: 'Paste the link and click Download',
-        body: 'Tap the input box on ReelGet, paste your TikTok URL, and press the Download button. ReelGet will process the request and retrieve the watermark-free version directly from TikTok\'s content delivery network.',
+        body: "Tap the input box on ReelGet, paste your TikTok URL, and press the Download button. ReelGet will process the request and retrieve the watermark-free version directly from TikTok's content delivery network.",
       },
       {
         title: 'Choose your download option',
@@ -132,14 +128,14 @@ const BLOG_POSTS: BlogPost[] = [
       },
     ],
     body: [
-      'Why does TikTok add watermarks in the first place? The watermark serves two purposes: branding for TikTok, and attribution for the creator. When you download through the TikTok app, the watermark is baked into the video. ReelGet bypasses this by fetching the original source file before the watermark overlay is applied.',
-      'Note that some TikTok creators have disabled downloads on their videos. If the video cannot be downloaded, ReelGet will display an error. In those cases, the creator has intentionally restricted access and you should respect that choice.',
+      "Why does TikTok add watermarks in the first place? The watermark serves two purposes: branding for TikTok, and attribution for the creator. When you download through the TikTok app, the watermark is baked into the video. ReelGet bypasses this by fetching the original source file before the watermark overlay is applied.",
+      "Note that some TikTok creators have disabled downloads on their videos. If the video cannot be downloaded, ReelGet will display an error. In those cases, the creator has intentionally restricted access and you should respect that choice.",
       'ReelGet also works for TikTok Slideshows (photo posts with music). You can download each image individually, or download the video version of the Slideshow as a standard .mp4 file.',
     ],
     faq: [
       {
         q: 'Is downloading TikTok videos without watermark legal?',
-        a: 'This depends on your jurisdiction and how you intend to use the video. Downloading for personal, offline viewing is generally acceptable. Redistributing or monetising a creator\'s content without permission is a violation of copyright law. Always credit original creators when sharing their work.',
+        a: "This depends on your jurisdiction and how you intend to use the video. Downloading for personal, offline viewing is generally acceptable. Redistributing or monetising a creator's content without permission is a violation of copyright law. Always credit original creators when sharing their work.",
       },
       {
         q: 'Why does the downloaded TikTok video still have a watermark?',
@@ -151,7 +147,7 @@ const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: 'Does ReelGet work for TikTok Live replays?',
-        a: 'TikTok Live replays are not always publicly accessible after the stream ends. ReelGet can attempt to download them if the URL is public and still active, but availability depends on TikTok\'s own policies.',
+        a: "TikTok Live replays are not always publicly accessible after the stream ends. ReelGet can attempt to download them if the URL is public and still active, but availability depends on TikTok's own policies.",
       },
     ],
   },
@@ -173,7 +169,7 @@ const BLOG_POSTS: BlogPost[] = [
       },
       {
         title: 'Copy the video URL',
-        body: 'On desktop: copy the URL from your browser\'s address bar. On mobile: tap the Share button under the video and select "Copy link".',
+        body: "On desktop: copy the URL from your browser's address bar. On mobile: tap the Share button under the video and select \"Copy link\".",
       },
       {
         title: 'Visit ReelGet',
@@ -190,8 +186,8 @@ const BLOG_POSTS: BlogPost[] = [
     ],
     body: [
       'YouTube videos downloaded via ReelGet are saved in the original quality offered by the platform. For most videos you can choose 720p, 1080p, or in some cases 4K. YouTube Shorts are typically available at up to 1080p.',
-      'Extracting audio as MP3 is a popular use case — great for podcast-style content, lectures, music mixes, or workout playlists you want to listen to offline. ReelGet handles the audio extraction server-side so you get a clean .mp3 file without needing any software.',
-      'Please note that downloading YouTube videos may violate YouTube\'s Terms of Service for some content types. ReelGet is designed for personal, offline use of publicly available content. Do not use downloaded videos for commercial purposes or redistribution without proper licensing.',
+      "Extracting audio as MP3 is a popular use case — great for podcast-style content, lectures, music mixes, or workout playlists you want to listen to offline. ReelGet handles the audio extraction server-side so you get a clean .mp3 file without needing any software.",
+      "Please note that downloading YouTube videos may violate YouTube's Terms of Service for some content types. ReelGet is designed for personal, offline use of publicly available content. Do not use downloaded videos for commercial purposes or redistribution without proper licensing.",
     ],
     faq: [
       {
@@ -222,7 +218,7 @@ const BLOG_POSTS: BlogPost[] = [
     readTime: '3 min',
     category: 'Facebook',
     intro:
-      'Facebook doesn\'t provide a native "save video" option for most content, which can be frustrating when you want to watch a video offline or share it on another platform. ReelGet makes it easy to download any public Facebook video or Reel to your Android or iPhone in HD quality — with no login, no app installation, and no charge.',
+      "Facebook doesn't provide a native \"save video\" option for most content, which can be frustrating when you want to watch a video offline or share it on another platform. ReelGet makes it easy to download any public Facebook video or Reel to your Android or iPhone in HD quality — with no login, no app installation, and no charge.",
     steps: [
       {
         title: 'Find the Facebook video',
@@ -238,7 +234,7 @@ const BLOG_POSTS: BlogPost[] = [
       },
       {
         title: 'Paste the link and press Download',
-        body: 'Paste the Facebook URL into the input box and press the Download button. ReelGet will retrieve the video from Facebook\'s servers.',
+        body: "Paste the Facebook URL into the input box and press the Download button. ReelGet will retrieve the video from Facebook's servers.",
       },
       {
         title: 'Download in HD or SD',
@@ -246,9 +242,9 @@ const BLOG_POSTS: BlogPost[] = [
       },
     ],
     body: [
-      'Facebook Reels, Watch videos, and feed videos are all supported by ReelGet. Group videos may or may not be accessible depending on the group\'s privacy settings — only videos from public groups or public profiles can be downloaded.',
+      "Facebook Reels, Watch videos, and feed videos are all supported by ReelGet. Group videos may or may not be accessible depending on the group's privacy settings — only videos from public groups or public profiles can be downloaded.",
       'On Android, the downloaded file will appear in your Downloads folder and automatically be added to your Gallery app. On iPhone, the file downloads to the Files app; open Files, tap and hold the video, and choose "Save to Photos" to add it to your Camera Roll.',
-      'If you encounter an error downloading a Facebook video, double-check that the post is public and that the URL you copied is the direct post URL (not a short redirect). Some Facebook videos are hosted on third-party sites embedded in Facebook — in those cases you may need to find the original source URL.',
+      "If you encounter an error downloading a Facebook video, double-check that the post is public and that the URL you copied is the direct post URL (not a short redirect). Some Facebook videos are hosted on third-party sites embedded in Facebook — in those cases you may need to find the original source URL.",
     ],
     faq: [
       {
@@ -256,8 +252,8 @@ const BLOG_POSTS: BlogPost[] = [
         a: 'Yes. Facebook Reels are supported. Copy the Reel link from the share menu and paste it into ReelGet just as you would for a regular Facebook video.',
       },
       {
-        q: 'Why can\'t I download a Facebook video from a private profile?',
-        a: 'ReelGet can only access publicly available content. Videos from private profiles, private groups, or content restricted to "Friends only" cannot be fetched.',
+        q: "Why can't I download a Facebook video from a private profile?",
+        a: "ReelGet can only access publicly available content. Videos from private profiles, private groups, or content restricted to \"Friends only\" cannot be fetched.",
       },
       {
         q: 'Does ReelGet require me to log in to Facebook?',
@@ -273,29 +269,29 @@ const BLOG_POSTS: BlogPost[] = [
     slug: 'best-video-downloader-2025',
     title: 'Best Free Online Video Downloader Tools in 2025',
     description:
-      'We compared the top free video downloader tools. Here\'s what works best for Instagram, TikTok, YouTube, and more.',
+      "We compared the top free video downloader tools. Here's what works best for Instagram, TikTok, YouTube, and more.",
     emoji: '🏆',
     date: '2025-04-28',
     readTime: '5 min',
     category: 'Guide',
     intro:
-      'There are dozens of free online video downloader tools competing for your attention in 2025, but most of them fall short in one way or another — riddled with ads, limited to one platform, slow, or simply unreliable. We tested the leading options across Instagram, TikTok, YouTube, Facebook, Twitter, and Pinterest to find out which tools actually deliver. Here\'s our honest comparison.',
+      "There are dozens of free online video downloader tools competing for your attention in 2025, but most of them fall short in one way or another — riddled with ads, limited to one platform, slow, or simply unreliable. We tested the leading options across Instagram, TikTok, YouTube, Facebook, Twitter, and Pinterest to find out which tools actually deliver. Here's our honest comparison.",
     steps: [
       {
         title: 'ReelGet (reelget.com) — Best overall',
-        body: 'ReelGet supports the widest range of platforms: Instagram (Reels, Posts, Stories), TikTok (no watermark), YouTube (MP4 + MP3 up to 4K), Facebook (Videos + Reels), Twitter/X, Pinterest, and Snapchat. It\'s fast, has no download limits, requires no login, and works flawlessly on both mobile and desktop.',
+        body: "ReelGet supports the widest range of platforms: Instagram (Reels, Posts, Stories), TikTok (no watermark), YouTube (MP4 + MP3 up to 4K), Facebook (Videos + Reels), Twitter/X, Pinterest, and Snapchat. It's fast, has no download limits, requires no login, and works flawlessly on both mobile and desktop.",
       },
       {
         title: 'SaveFrom.net — Best for YouTube',
-        body: 'SaveFrom has been around for years and remains one of the most reliable YouTube downloaders. It handles most YouTube URLs quickly. However, it\'s heavily ad-supported and less reliable for Instagram and TikTok.',
+        body: "SaveFrom has been around for years and remains one of the most reliable YouTube downloaders. It handles most YouTube URLs quickly. However, it's heavily ad-supported and less reliable for Instagram and TikTok.",
       },
       {
         title: 'SnapTik.app — Good TikTok-only option',
-        body: 'SnapTik specialises exclusively in TikTok watermark removal and works well for that use case. The trade-off is that it only does TikTok, so you\'ll need a separate tool for every other platform.',
+        body: "SnapTik specialises exclusively in TikTok watermark removal and works well for that use case. The trade-off is that it only does TikTok, so you'll need a separate tool for every other platform.",
       },
       {
         title: 'Y2mate — Popular but ad-heavy',
-        body: 'Y2mate is one of the most-searched video downloader tools globally. It handles YouTube and Facebook reasonably well, but the user experience is poor on mobile due to aggressive pop-up ads, and it frequently redirects to unrelated pages.',
+        body: "Y2mate is one of the most-searched video downloader tools globally. It handles YouTube and Facebook reasonably well, but the user experience is poor on mobile due to aggressive pop-up ads, and it frequently redirects to unrelated pages.",
       },
       {
         title: 'SSYouTube / SSstagram — Platform-specific',
@@ -303,7 +299,7 @@ const BLOG_POSTS: BlogPost[] = [
       },
     ],
     body: [
-      'Our testing criteria included: platform coverage, download speed, video quality (maximum resolution offered), ease of use on mobile, number of ads/redirects, and watermark removal for TikTok. ReelGet came out on top largely because of its breadth — you don\'t need to remember a different tool for each platform.',
+      "Our testing criteria included: platform coverage, download speed, video quality (maximum resolution offered), ease of use on mobile, number of ads/redirects, and watermark removal for TikTok. ReelGet came out on top largely because of its breadth — you don't need to remember a different tool for each platform.",
       'If you\'re a heavy YouTube user who wants playlist support and desktop software integration, a tool like yt-dlp (command-line) or 4K Video Downloader (desktop app) may be worth considering. For casual, occasional downloads on a phone, browser-based tools like ReelGet are by far the most convenient.',
       'The landscape of video downloader tools changes frequently as platforms update their APIs and CDNs. Always verify that the tool you\'re using still works before relying on it, and favour tools with active maintenance records. ReelGet is actively maintained and updated to stay compatible with platform changes.',
     ],
@@ -321,7 +317,7 @@ const BLOG_POSTS: BlogPost[] = [
         a: 'Yes. All browser-based tools in this comparison work on both iPhone and Android through the device\'s browser. ReelGet is specifically optimised for mobile use.',
       },
       {
-        q: 'What\'s the best tool for downloading TikTok videos without a watermark?',
+        q: "What's the best tool for downloading TikTok videos without a watermark?",
         a: 'Both ReelGet and SnapTik reliably remove TikTok watermarks. ReelGet has the advantage of also handling all other major platforms, so it\'s the more versatile choice.',
       },
     ],
@@ -329,14 +325,39 @@ const BLOG_POSTS: BlogPost[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Helper: generate static params (exported for Next.js)
+// generateStaticParams — server-only, must NOT be in a 'use client' file
 // ---------------------------------------------------------------------------
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));
 }
 
 // ---------------------------------------------------------------------------
-// Helper: format date
+// generateMetadata
+// ---------------------------------------------------------------------------
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = BLOG_POSTS.find((p) => p.slug === slug);
+  if (!post) return {};
+  return {
+    title: `${post.title} | ReelGet Blog`,
+    description: post.description,
+    alternates: { canonical: `${BASE_URL}/en/blog/${post.slug}` },
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      url: `${BASE_URL}/en/blog/${post.slug}`,
+      type: 'article',
+      publishedTime: post.date,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
 // ---------------------------------------------------------------------------
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -346,9 +367,6 @@ function formatDate(iso: string): string {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Category colours
-// ---------------------------------------------------------------------------
 const CATEGORY_COLORS: Record<string, string> = {
   Instagram: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
   TikTok: 'bg-slate-700/60 text-slate-200 border-slate-600',
@@ -358,53 +376,20 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// FAQ accordion (client component logic inlined)
+// Page (Server Component)
 // ---------------------------------------------------------------------------
-function FaqAccordion({ items }: { items: FaqItem[] }) {
-  const [open, setOpen] = useState<number | null>(null);
-  return (
-    <div className="space-y-2">
-      {items.map((item, i) => (
-        <div
-          key={i}
-          className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden"
-        >
-          <button
-            onClick={() => setOpen(open === i ? null : i)}
-            className="w-full text-left px-5 py-4 flex items-center justify-between gap-4 text-white font-semibold text-sm hover:bg-slate-700/50 transition-colors"
-          >
-            <span>{item.q}</span>
-            <span className="text-teal-400 text-lg flex-shrink-0">
-              {open === i ? '−' : '+'}
-            </span>
-          </button>
-          {open === i && (
-            <div className="px-5 pb-4 text-slate-300 text-sm leading-relaxed border-t border-slate-700">
-              <p className="pt-3">{item.a}</p>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Page component
-// ---------------------------------------------------------------------------
-export default function BlogPostPage({
+export default async function BlogPostPage({
   params,
 }: {
-  params: { locale: string; slug: string };
+  params: Promise<{ locale: string; slug: string }>;
 }) {
-  const { locale, slug } = params;
+  const { locale, slug } = await params;
   const post = BLOG_POSTS.find((p) => p.slug === slug);
   if (!post) notFound();
 
   const related = BLOG_POSTS.filter((p) => p.slug !== slug).slice(0, 3);
   const canonicalUrl = `${BASE_URL}/en/blog/${post.slug}`;
 
-  // JSON-LD: Article schema
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -422,7 +407,6 @@ export default function BlogPostPage({
     mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
   };
 
-  // JSON-LD: FAQPage schema
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -435,7 +419,6 @@ export default function BlogPostPage({
 
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
@@ -454,10 +437,7 @@ export default function BlogPostPage({
             </div>
             <span className="font-bold text-slate-800 text-lg">ReelGet</span>
           </a>
-          <a
-            href={`/${locale}/blog`}
-            className="text-sm text-slate-500 hover:text-teal-600 font-medium transition"
-          >
+          <a href={`/${locale}/blog`} className="text-sm text-slate-500 hover:text-teal-600 font-medium transition">
             ← Blog
           </a>
         </div>
@@ -466,38 +446,25 @@ export default function BlogPostPage({
       {/* Breadcrumb */}
       <div className="bg-slate-900 border-b border-slate-800">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2 text-xs text-slate-500">
-          <a href={`/${locale}`} className="hover:text-teal-400 transition">
-            Home
-          </a>
+          <a href={`/${locale}`} className="hover:text-teal-400 transition">Home</a>
           <span>›</span>
-          <a href={`/${locale}/blog`} className="hover:text-teal-400 transition">
-            Blog
-          </a>
+          <a href={`/${locale}/blog`} className="hover:text-teal-400 transition">Blog</a>
           <span>›</span>
           <span className="text-slate-300 truncate max-w-xs">{post.title}</span>
         </div>
       </div>
 
-      {/* Article hero */}
+      {/* Hero */}
       <section className="relative bg-slate-900 text-white py-16 px-4 overflow-hidden">
         <div className="absolute top-10 left-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-10" />
         <div className="absolute top-20 right-10 w-72 h-72 bg-violet-600 rounded-full mix-blend-screen filter blur-3xl opacity-10" />
         <div className="relative max-w-3xl mx-auto">
           <div className="text-5xl mb-4">{post.emoji}</div>
-          <span
-            className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border mb-4 ${
-              CATEGORY_COLORS[post.category] ??
-              'bg-slate-700/60 text-slate-300 border-slate-600'
-            }`}
-          >
+          <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border mb-4 ${CATEGORY_COLORS[post.category] ?? 'bg-slate-700/60 text-slate-300 border-slate-600'}`}>
             {post.category}
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-4">
-            {post.title}
-          </h1>
-          <p className="text-slate-300 text-base sm:text-lg mb-6">
-            {post.description}
-          </p>
+          <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-4">{post.title}</h1>
+          <p className="text-slate-300 text-base sm:text-lg mb-6">{post.description}</p>
           <div className="flex items-center gap-4 text-sm text-slate-400">
             <span>{formatDate(post.date)}</span>
             <span className="text-slate-700">·</span>
@@ -508,13 +475,9 @@ export default function BlogPostPage({
 
       {/* Article body */}
       <main className="max-w-3xl mx-auto px-4 py-12 text-slate-300 text-sm leading-relaxed">
-        {/* Intro */}
         <p className="text-base leading-relaxed mb-10 text-slate-200">{post.intro}</p>
 
-        {/* Steps */}
-        <h2 className="text-xl font-bold text-white mb-6">
-          Step-by-Step Guide
-        </h2>
+        <h2 className="text-xl font-bold text-white mb-6">Step-by-Step Guide</h2>
         <ol className="space-y-4 mb-10">
           {post.steps.map((step, i) => (
             <li key={i} className="flex gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
@@ -529,21 +492,14 @@ export default function BlogPostPage({
           ))}
         </ol>
 
-        {/* Additional body paragraphs */}
         <div className="space-y-4 mb-12">
-          {post.body.map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
+          {post.body.map((para, i) => <p key={i}>{para}</p>)}
         </div>
 
-        {/* CTA banner */}
+        {/* CTA */}
         <div className="bg-gradient-to-r from-cyan-900/40 to-teal-900/40 border border-teal-500/30 rounded-2xl p-6 mb-12 text-center">
-          <p className="text-white font-bold text-lg mb-1">
-            Ready to try it yourself?
-          </p>
-          <p className="text-slate-300 text-sm mb-4">
-            Paste any video URL into ReelGet and download in seconds.
-          </p>
+          <p className="text-white font-bold text-lg mb-1">Ready to try it yourself?</p>
+          <p className="text-slate-300 text-sm mb-4">Paste any video URL into ReelGet and download in seconds.</p>
           <a
             href={`/${locale}`}
             className="inline-block bg-gradient-to-r from-cyan-400 to-teal-500 text-slate-950 font-bold px-6 py-2.5 rounded-full text-sm hover:opacity-90 transition"
@@ -552,10 +508,8 @@ export default function BlogPostPage({
           </a>
         </div>
 
-        {/* FAQ */}
-        <h2 className="text-xl font-bold text-white mb-6">
-          Frequently Asked Questions
-        </h2>
+        {/* FAQ — client component */}
+        <h2 className="text-xl font-bold text-white mb-6">Frequently Asked Questions</h2>
         <FaqAccordion items={post.faq} />
 
         {/* Related posts */}
@@ -569,20 +523,13 @@ export default function BlogPostPage({
                 className="group flex flex-col bg-slate-900 border border-slate-800 hover:border-teal-500/60 rounded-2xl p-4 transition-all hover:shadow-md hover:shadow-teal-900/20"
               >
                 <span className="text-2xl mb-2">{rel.emoji}</span>
-                <span
-                  className={`inline-block self-start text-xs font-semibold px-2 py-0.5 rounded-full border mb-2 ${
-                    CATEGORY_COLORS[rel.category] ??
-                    'bg-slate-700/60 text-slate-300 border-slate-600'
-                  }`}
-                >
+                <span className={`inline-block self-start text-xs font-semibold px-2 py-0.5 rounded-full border mb-2 ${CATEGORY_COLORS[rel.category] ?? 'bg-slate-700/60 text-slate-300 border-slate-600'}`}>
                   {rel.category}
                 </span>
                 <h3 className="text-white text-xs font-semibold leading-snug group-hover:text-teal-300 transition-colors mb-1">
                   {rel.title}
                 </h3>
-                <span className="text-teal-400 text-xs mt-auto pt-2">
-                  Read more →
-                </span>
+                <span className="text-teal-400 text-xs mt-auto pt-2">Read more →</span>
               </a>
             ))}
           </div>
@@ -592,26 +539,15 @@ export default function BlogPostPage({
       {/* Footer */}
       <footer className="bg-slate-950 text-slate-500 text-center py-10 px-4 text-sm border-t border-slate-800 mt-8">
         <div className="flex justify-center mb-3">
-          <a
-            href={`/${locale}`}
-            className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent font-black text-xl"
-          >
+          <a href={`/${locale}`} className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent font-black text-xl">
             ReelGet
           </a>
         </div>
         <div className="flex justify-center gap-4 text-xs text-slate-600 mt-2">
-          <a href={`/${locale}/privacy`} className="hover:text-teal-400 transition">
-            Privacy Policy
-          </a>
-          <a href={`/${locale}/terms`} className="hover:text-teal-400 transition">
-            Terms of Service
-          </a>
-          <a href={`/${locale}/about`} className="hover:text-teal-400 transition">
-            About
-          </a>
-          <a href={`/${locale}/blog`} className="hover:text-teal-400 transition">
-            Blog
-          </a>
+          <a href={`/${locale}/privacy`} className="hover:text-teal-400 transition">Privacy Policy</a>
+          <a href={`/${locale}/terms`} className="hover:text-teal-400 transition">Terms of Service</a>
+          <a href={`/${locale}/about`} className="hover:text-teal-400 transition">About</a>
+          <a href={`/${locale}/blog`} className="hover:text-teal-400 transition">Blog</a>
         </div>
       </footer>
     </div>
