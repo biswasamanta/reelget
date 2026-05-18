@@ -195,7 +195,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               if (e.key === 'Enter') handleDownload();
               if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
             }}
-            onFocus={(e) => e.target.select()}
+            onFocus={(e) => {
+              const target = e.target;
+              requestAnimationFrame(() => target.select());
+            }}
             onPaste={(e) => {
               // Prevent the browser default so it never places the cursor at
               // the end of a long URL (which shifts the page on Android PWA).
