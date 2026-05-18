@@ -29,6 +29,11 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir}>
       <head>
+        {/* Prevent Android PWA viewport shift when keyboard opens */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, interactive-widget=resizes-visual"
+        />
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308669348522445"
