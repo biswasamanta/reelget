@@ -175,7 +175,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <div className="flex flex-1 items-center">
           <input
             ref={inputRef}
-            type="url"
+            type="text"
+            inputMode="url"
             value={url}
             onChange={(e) => { setUrl(e.target.value); setStatus('idle'); }}
             onKeyDown={(e) => {

@@ -19,22 +19,31 @@
   }
 }
 
+html {
+  /* Hard-stop horizontal overflow — long URLs in inputs must not shift the page */
+  overflow-x: clip; /* clip is stronger than hidden — doesn't create a scroll container */
+  max-width: 100%;
+  height: -webkit-fill-available;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
   /* Prevent layout shift when virtual keyboard opens in PWA/mobile */
-  overscroll-behavior: none;
-}
-
-/* Use dynamic viewport height so content never hides behind the keyboard */
-html {
-  height: -webkit-fill-available;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
 }
 
 /* Inputs: prevent iOS/Android auto-zoom (font-size must be >= 16px on mobile) */
 input, textarea, select {
   font-size: max(16px, 1em);
+  /* Prevent the input's text content from stretching the page */
+  max-width: 100%;
+  min-width: 0;
 }
 
 @keyframes blob {
