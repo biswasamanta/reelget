@@ -47,6 +47,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [pasteHint, setPasteHint] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load history from localStorage on mount
@@ -164,8 +165,18 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   }
 
   async function handlePaste() {
+    // iOS Safari blocks clipboard.readText() unless the user explicitly
+    // grants permission. Fall back to focusing the input so iOS shows
+    // its native "Paste" popup in the text selection toolbar.
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      inputRef.current?.focus();
+      setPasteHint(true);
+      setTimeout(() => setPasteHint(false), 2500);
+      return;
+    }
     try {
       const text = await navigator.clipboard.readText();
+      if (!text.trim()) return;
       setUrl(text.trim());
       requestAnimationFrame(() => {
         if (inputRef.current) {
@@ -175,7 +186,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         }
       });
     } catch {
+      // Permission denied or clipboard unavailable (common on iOS PWA)
+      // Focus the input — iOS will show the native Paste option on tap
       inputRef.current?.focus();
+      setPasteHint(true);
+      setTimeout(() => setPasteHint(false), 2500);
     }
   }
 
@@ -228,12 +243,20 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               ✕
             </button>
           ) : (
-            <button
-              onClick={handlePaste}
-              className="px-3 py-3 text-teal-600 hover:text-teal-800 text-sm font-medium flex-shrink-0"
-            >
-              {t('hero.paste')}
-            </button>
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={handlePaste}
+                className="px-3 py-3 text-teal-600 hover:text-teal-800 text-sm font-medium"
+              >
+                {t('hero.paste')}
+              </button>
+              {pasteHint && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 bg-gray-800 text-white text-xs text-center rounded-lg px-2 py-1.5 shadow-lg pointer-events-none">
+                  Tap the box &amp; choose Paste
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                </div>
+              )}
+            </div>
           )}
         </div>
         {/* Download button — full width on mobile, inline on desktop */}
