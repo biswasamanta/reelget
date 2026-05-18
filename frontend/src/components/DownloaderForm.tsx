@@ -183,7 +183,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
             }}
             placeholder={t('hero.placeholder')}
-            className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-sm min-w-0"
+            className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-[16px] sm:text-sm min-w-0"
             dir="ltr"
           />
           {url ? (
