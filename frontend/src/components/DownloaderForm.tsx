@@ -196,6 +196,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               if (e.key === 'Enter') handleDownload();
               if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
             }}
+            onFocus={(e) => e.target.select()}
             onPaste={(e) => {
               // After paste the cursor lands at the end of a long URL, which
               // causes Android PWA to scroll the page right. Reset to start.
