@@ -79,12 +79,12 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       setUrl(customUrl);
       setStatus('idle');
       setResult(null);
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (inputRef.current) {
           inputRef.current.setSelectionRange(0, 0);
           inputRef.current.scrollLeft = 0;
         }
-      }, 0);
+      });
     };
     window.addEventListener('fill-url', handler);
     return () => window.removeEventListener('fill-url', handler);
@@ -166,15 +166,14 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   async function handlePaste() {
     try {
       const text = await navigator.clipboard.readText();
-      setUrl(text);
-      // Reset scroll/cursor so long URLs don't shift the page on Android PWA
-      setTimeout(() => {
+      setUrl(text.trim());
+      requestAnimationFrame(() => {
         if (inputRef.current) {
           inputRef.current.focus();
           inputRef.current.setSelectionRange(0, 0);
           inputRef.current.scrollLeft = 0;
         }
-      }, 0);
+      });
     } catch {
       inputRef.current?.focus();
     }
@@ -198,14 +197,21 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             }}
             onFocus={(e) => e.target.select()}
             onPaste={(e) => {
-              // After paste the cursor lands at the end of a long URL, which
-              // causes Android PWA to scroll the page right. Reset to start.
-              setTimeout(() => {
+              // Prevent the browser default so it never places the cursor at
+              // the end of a long URL (which shifts the page on Android PWA).
+              e.preventDefault();
+              const pasted = (e.clipboardData?.getData('text/plain') || '').trim();
+              if (!pasted) return;
+              setUrl(pasted);
+              setStatus('idle');
+              // requestAnimationFrame fires after React has painted the new
+              // value, so the cursor reset is guaranteed to win.
+              requestAnimationFrame(() => {
                 if (inputRef.current) {
                   inputRef.current.setSelectionRange(0, 0);
                   inputRef.current.scrollLeft = 0;
                 }
-              }, 0);
+              });
             }}
             placeholder={t('hero.placeholder')}
             className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-[16px] sm:text-sm min-w-0"
