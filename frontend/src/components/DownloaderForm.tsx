@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import ImageCompressor from './ImageCompressor';
 import LinkHelpGuide from './LinkHelpGuide';
@@ -89,15 +90,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   useEffect(() => {
     const handler = (e: Event) => {
       const customUrl = (e as CustomEvent<string>).detail;
-      setUrl(customUrl);
-      setStatus('idle');
-      setResult(null);
-      requestAnimationFrame(() => {
-        if (inputRef.current) {
-          inputRef.current.setSelectionRange(0, 0);
-          inputRef.current.scrollLeft = 0;
-        }
-      });
+      flushSync(() => { setUrl(customUrl); setStatus('idle'); setResult(null); });
+      if (inputRef.current) {
+        inputRef.current.setSelectionRange(0, 0);
+        inputRef.current.scrollLeft = 0;
+      }
     };
     window.addEventListener('fill-url', handler);
     return () => window.removeEventListener('fill-url', handler);
@@ -177,9 +174,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   }
 
   async function handlePaste() {
-    // iOS Safari blocks clipboard.readText() unless the user explicitly
-    // grants permission. Fall back to focusing the input so iOS shows
-    // its native "Paste" popup in the text selection toolbar.
+    // iOS Safari blocks clipboard.readText() — fall back to native paste popup
     if (!navigator.clipboard || !navigator.clipboard.readText) {
       inputRef.current?.focus();
       setPasteHint(true);
@@ -189,17 +184,16 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     try {
       const text = await navigator.clipboard.readText();
       if (!text.trim()) return;
-      setUrl(text.trim());
-      requestAnimationFrame(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          inputRef.current.setSelectionRange(0, 0);
-          inputRef.current.scrollLeft = 0;
-        }
-      });
+      // flushSync forces React to render the new value synchronously so we
+      // can reset cursor/scroll BEFORE the browser paints — requestAnimationFrame
+      // was too late and the page was already shifting by then.
+      flushSync(() => setUrl(text.trim()));
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.setSelectionRange(0, 0);
+        inputRef.current.scrollLeft = 0;
+      }
     } catch {
-      // Permission denied or clipboard unavailable (common on iOS PWA)
-      // Focus the input — iOS will show the native Paste option on tap
       inputRef.current?.focus();
       setPasteHint(true);
       setTimeout(() => setPasteHint(false), 2500);
@@ -227,21 +221,14 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               requestAnimationFrame(() => target.select());
             }}
             onPaste={(e) => {
-              // Prevent the browser default so it never places the cursor at
-              // the end of a long URL (which shifts the page on Android PWA).
               e.preventDefault();
               const pasted = (e.clipboardData?.getData('text/plain') || '').trim();
               if (!pasted) return;
-              setUrl(pasted);
-              setStatus('idle');
-              // requestAnimationFrame fires after React has painted the new
-              // value, so the cursor reset is guaranteed to win.
-              requestAnimationFrame(() => {
-                if (inputRef.current) {
-                  inputRef.current.setSelectionRange(0, 0);
-                  inputRef.current.scrollLeft = 0;
-                }
-              });
+              flushSync(() => { setUrl(pasted); setStatus('idle'); });
+              if (inputRef.current) {
+                inputRef.current.setSelectionRange(0, 0);
+                inputRef.current.scrollLeft = 0;
+              }
             }}
             placeholder={t('hero.placeholder')}
             className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-[16px] sm:text-sm min-w-0"
