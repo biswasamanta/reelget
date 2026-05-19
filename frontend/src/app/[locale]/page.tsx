@@ -7,6 +7,7 @@ import PlatformBadges from '@/components/PlatformBadges';
 import TrendingSection from '@/components/TrendingSection';
 import StatsBar from '@/components/StatsBar';
 import Tracker from '@/components/Tracker';
+import ServiceStatus from '@/components/ServiceStatus';
 
 const FAQ_SCHEMA = {
   '@context': 'https://schema.org',
@@ -46,6 +47,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <div className="min-h-screen bg-slate-950">
+      <ServiceStatus />
       <Tracker page={`home:${locale}`} />
       <script
         type="application/ld+json"

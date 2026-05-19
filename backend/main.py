@@ -643,4 +643,17 @@ def get_analytics():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    db_ok = False
+    try:
+        conn = _get_db_conn()
+        if conn:
+            conn.close()
+            db_ok = True
+    except Exception:
+        pass
+    return {
+        "status": "ok",
+        "db": "ok" if db_ok else "unavailable",
+        "proxy": "configured" if PROXY_URL else "none",
+        "cache_entries": len(_CACHE),
+    }
