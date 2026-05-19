@@ -58,6 +58,18 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     } catch { /* ignore */ }
   }, []);
 
+  // Always keep the input scrolled to the start.
+  // Android keyboard paste fires onChange (not onPaste), bypassing our
+  // onPaste handler. Listening to the input's own scroll event and
+  // immediately resetting scrollLeft catches every paste path.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const resetScroll = () => { input.scrollLeft = 0; };
+    input.addEventListener('scroll', resetScroll, { passive: true });
+    return () => input.removeEventListener('scroll', resetScroll);
+  }, []);
+
   function saveToHistory(downloadUrl: string, data: DownloadResult) {
     const item: HistoryItem = {
       url: downloadUrl,
