@@ -56,12 +56,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* Nav */}
       <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <a href={`/${locale}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-teal-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
             <span className="font-bold text-slate-800 text-lg">ReelGet</span>
-          </div>
+          </a>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex gap-4 text-sm">
               <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 font-medium transition">{t('nav.instagram')}</a>
