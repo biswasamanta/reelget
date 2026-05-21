@@ -49,6 +49,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [pasteHint, setPasteHint] = useState(false);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [transcriptStatus, setTranscriptStatus] = useState<'idle' | 'loading' | 'done' | 'unavailable'>('idle');
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load history from localStorage on mount
@@ -148,6 +152,23 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       setResult(data);
       setStatus('success');
       saveToHistory(trimmed, data);
+
+      // Kick off transcript fetch in the background (non-blocking)
+      setTranscript(null);
+      setTranscriptStatus('loading');
+      setShowTranscript(false);
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      fetch(`${apiBase}/api/transcript?url=${encodeURIComponent(trimmed)}`)
+        .then(r => r.json())
+        .then(td => {
+          if (td.transcript) {
+            setTranscript(td.transcript);
+            setTranscriptStatus('done');
+          } else {
+            setTranscriptStatus('unavailable');
+          }
+        })
+        .catch(() => setTranscriptStatus('unavailable'));
     } catch {
       setStatus('error');
       setErrorMsg(t('result.error'));
@@ -419,6 +440,44 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 Telegram
               </a>
             </div>
+
+            {/* Transcript panel — shown when captions are available or loading */}
+            {transcriptStatus !== 'idle' && transcriptStatus !== 'unavailable' && (
+              <div className="border-t border-gray-100 pt-3">
+                <button
+                  onClick={() => setShowTranscript(s => !s)}
+                  className="flex w-full items-center justify-between text-sm font-semibold text-gray-700 hover:text-gray-900 transition"
+                >
+                  <span>📝 Video Transcript</span>
+                  {transcriptStatus === 'loading' ? (
+                    <span className="text-xs text-gray-400 animate-pulse">Loading…</span>
+                  ) : (
+                    <span className="text-gray-400">{showTranscript ? '▲' : '▼'}</span>
+                  )}
+                </button>
+                {showTranscript && transcript && (
+                  <div className="mt-2 space-y-2">
+                    <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 leading-relaxed max-h-48 overflow-y-auto">
+                      {transcript}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(transcript);
+                          setTranscriptCopied(true);
+                          setTimeout(() => setTranscriptCopied(false), 2000);
+                        }}
+                        className="text-xs text-teal-600 hover:text-teal-800 font-semibold transition"
+                      >
+                        {transcriptCopied ? '✅ Copied!' : '📋 Copy transcript'}
+                      </button>
+                      <span className="text-gray-300">·</span>
+                      <span className="text-xs text-gray-400">Auto-generated captions</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

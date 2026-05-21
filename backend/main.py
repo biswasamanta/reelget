@@ -162,6 +162,10 @@ _init_db()
 _CACHE: dict[str, tuple[float, dict]] = {}  # url -> (timestamp, data)
 _CACHE_TTL = 600  # 10 minutes
 
+# Separate cache for transcript results (longer TTL — subtitles rarely change)
+_SUBTITLE_CACHE: dict[str, tuple[float, dict]] = {}
+_SUBTITLE_CACHE_TTL = 3600  # 1 hour
+
 
 def _cache_get(url: str) -> dict | None:
     entry = _CACHE.get(url)
@@ -178,6 +182,94 @@ def _cache_set(url: str, data: dict):
         oldest = min(_CACHE, key=lambda k: _CACHE[k][0])
         del _CACHE[oldest]
     _CACHE[url] = (time.time(), data)
+
+
+def _subtitle_cache_get(url: str) -> dict | None:
+    entry = _SUBTITLE_CACHE.get(url)
+    if entry and time.time() - entry[0] < _SUBTITLE_CACHE_TTL:
+        return entry[1]
+    if entry:
+        del _SUBTITLE_CACHE[url]
+    return None
+
+
+def _subtitle_cache_set(url: str, data: dict):
+    if len(_SUBTITLE_CACHE) >= 100:
+        oldest = min(_SUBTITLE_CACHE, key=lambda k: _SUBTITLE_CACHE[k][0])
+        del _SUBTITLE_CACHE[oldest]
+    _SUBTITLE_CACHE[url] = (time.time(), data)
+
+
+def _parse_vtt(text: str) -> str:
+    """Convert WebVTT subtitle text to plain readable text, deduplicating overlapping lines."""
+    lines = text.splitlines()
+    result = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        # Skip WEBVTT header and metadata blocks
+        if re.match(r'^(WEBVTT|NOTE|STYLE|REGION)', line):
+            continue
+        # Skip timing lines like "00:00:01.000 --> 00:00:04.000 ..."
+        if re.match(r'^\d{1,2}:\d{2}[\d:.]+\s*-->', line):
+            continue
+        # Skip bare sequence numbers
+        if re.match(r'^\d+$', line):
+            continue
+        # Strip VTT tags: <00:00:01.000>, <c>, </c>, <i>, etc.
+        line = re.sub(r'<[^>]+>', '', line).strip()
+        if line:
+            result.append(line)
+    # Deduplicate consecutive identical lines (YouTube repeats the rolling caption)
+    deduped: list[str] = []
+    prev = None
+    for ln in result:
+        if ln != prev:
+            deduped.append(ln)
+            prev = ln
+    return ' '.join(deduped)
+
+
+def _parse_json3(text: str) -> str:
+    """Parse YouTube json3 subtitle format to plain text."""
+    try:
+        data = json.loads(text)
+        parts: list[str] = []
+        for event in data.get('events', []):
+            for seg in event.get('segs', []):
+                t = seg.get('utf8', '')
+                if t and t.strip() and t != '\n':
+                    parts.append(t.strip())
+        joined = ' '.join(parts)
+        # Collapse runs of whitespace
+        return re.sub(r'\s+', ' ', joined).strip()
+    except Exception:
+        return ''
+
+
+def _find_subtitle(sub_dict: dict) -> tuple[str, str, str]:
+    """
+    Given a subtitles or automatic_captions dict from yt-dlp, pick the best
+    English track.  Returns (lang_code, ext, url) or ('', '', '').
+    """
+    preferred_langs = ['en', 'en-US', 'en-GB', 'en-orig', 'en-CA', 'en-AU']
+    en_variants = [k for k in sub_dict if k.startswith('en') and k not in preferred_langs]
+    candidates = preferred_langs + en_variants
+
+    for lang in candidates:
+        if lang not in sub_dict:
+            continue
+        formats = sub_dict[lang]
+        for pref_ext in ['json3', 'vtt', 'ttml', 'srv3', 'srv2', 'srv1']:
+            for fmt in formats:
+                if fmt.get('ext') == pref_ext and fmt.get('url'):
+                    return lang, pref_ext, fmt['url']
+        # Any format with a URL
+        for fmt in formats:
+            if fmt.get('url'):
+                return lang, fmt.get('ext', 'vtt'), fmt['url']
+    return '', '', ''
 
 
 class DownloadRequest(BaseModel):
@@ -639,6 +731,142 @@ def get_analytics():
         return {"error": str(ex), "rows": []}
     finally:
         conn.close()
+
+
+@app.get("/api/transcript")
+@limiter.limit("10/minute")
+async def get_transcript(request: Request, url: str = Query(...)):
+    """
+    Return a plain-text transcript for a video URL using yt-dlp subtitle data.
+    Tries manual captions first, then auto-generated captions.
+    Only English tracks are returned; other languages return {transcript: null, error: "no_captions"}.
+    """
+    if not SUPPORTED_PATTERN.search(url):
+        return {"transcript": None, "error": "unsupported_platform"}
+
+    # Check subtitle cache first
+    cached = _subtitle_cache_get(url)
+    if cached:
+        print(f"[subtitle cache] HIT for {url[:60]}", flush=True)
+        return cached
+
+    class _SilentLogger:
+        def debug(self, msg): pass
+        def warning(self, msg): pass
+        def error(self, msg): pass
+
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "extract_flat": False,
+        "logger": _SilentLogger(),
+        "check_formats": False,
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["tv_embedded", "ios", "android", "web"],
+            }
+        },
+    }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
+
+    # Apply same cookie logic as the download endpoint
+    if re.search(r"instagram\.com", url):
+        cookie_content = INSTAGRAM_COOKIES or None
+    elif re.search(r"youtube\.com|youtu\.be", url):
+        cookie_content = YOUTUBE_COOKIES or None
+    else:
+        cookie_content = COOKIES or None
+
+    cookies_file = None
+    if cookie_content:
+        try:
+            tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+            tmp.write(cookie_content)
+            tmp.close()
+            cookies_file = tmp.name
+            ydl_opts["cookiefile"] = cookies_file
+        except Exception:
+            pass
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        result = {"transcript": None, "error": f"extraction_failed"}
+        print(f"[transcript] extraction error: {e}", flush=True)
+        return result
+    finally:
+        if cookies_file:
+            try:
+                os.unlink(cookies_file)
+            except Exception:
+                pass
+
+    if not info:
+        return {"transcript": None, "error": "no_info"}
+
+    # Try manual subtitles first, then automatic captions
+    subs = info.get("subtitles") or {}
+    auto = info.get("automatic_captions") or {}
+
+    lang, ext, sub_url = _find_subtitle(subs)
+    source = "manual"
+    if not sub_url:
+        lang, ext, sub_url = _find_subtitle(auto)
+        source = "auto"
+
+    if not sub_url:
+        result = {"transcript": None, "error": "no_captions"}
+        _subtitle_cache_set(url, result)
+        return result
+
+    # Fetch the subtitle file content
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(sub_url, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code != 200:
+                return {"transcript": None, "error": "subtitle_fetch_failed"}
+            content = r.text
+    except Exception as e:
+        return {"transcript": None, "error": "subtitle_fetch_error"}
+
+    # Parse to plain text
+    if ext == "json3":
+        transcript = _parse_json3(content)
+    else:
+        transcript = _parse_vtt(content)
+
+    if not transcript or not transcript.strip():
+        result = {"transcript": None, "error": "empty_captions"}
+        _subtitle_cache_set(url, result)
+        return result
+
+    # Truncate very long transcripts (e.g. 2-hour videos)
+    MAX_CHARS = 8000
+    truncated = False
+    if len(transcript) > MAX_CHARS:
+        transcript = transcript[:MAX_CHARS].rsplit(' ', 1)[0]
+        truncated = True
+
+    result = {
+        "transcript": transcript,
+        "lang": lang,
+        "source": source,
+        "truncated": truncated,
+    }
+    _subtitle_cache_set(url, result)
+    print(f"[transcript] OK — {lang}/{source}, {len(transcript)} chars, truncated={truncated}", flush=True)
+    return result
 
 
 @app.get("/health")
