@@ -121,7 +121,7 @@ export default async function AboutPage({
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-white mb-4">Contact Us</h2>
+            <h2 id="contact" className="text-xl font-bold text-white mb-4">Contact Us</h2>
             <p className="mb-4">We'd love to hear from you — whether it's a bug report, a feature request, or a general question.</p>
             <div className="space-y-2">
               <p>📧 General: <span className="text-teal-400">hello@reelget.com</span></p>

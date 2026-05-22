@@ -96,13 +96,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </a>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex gap-4 text-sm">
-              <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 font-medium transition">{t('nav.instagram')}</a>
-              <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white font-medium transition">{t('nav.tiktok')}</a>
-              <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-500 font-medium transition">{t('nav.facebook')}</a>
-              <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-sky-500 font-medium transition">{t('nav.twitter')}</a>
-              <a href="https://www.pinterest.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.pinterest')}</a>
-              <a href="https://www.snapchat.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-yellow-400 font-medium transition">{t('nav.snapchat')}</a>
-              <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.youtube')}</a>
+              <a href={`/${locale}/instagram`} className="text-slate-500 hover:text-pink-500 font-medium transition">{t('nav.instagram')}</a>
+              <a href={`/${locale}/tiktok`} className="text-slate-500 hover:text-slate-800 font-medium transition">{t('nav.tiktok')}</a>
+              <a href={`/${locale}/facebook`} className="text-slate-500 hover:text-blue-500 font-medium transition">{t('nav.facebook')}</a>
+              <a href={`/${locale}/twitter`} className="text-slate-500 hover:text-sky-500 font-medium transition">{t('nav.twitter')}</a>
+              <a href={`/${locale}/youtube`} className="text-slate-500 hover:text-red-500 font-medium transition">{t('nav.youtube')}</a>
+              <a href={`/${locale}/blog`} className="text-slate-500 hover:text-teal-600 font-medium transition">Blog</a>
             </div>
             <LanguageSwitcher currentLocale={locale} />
           </div>
@@ -196,10 +195,18 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </div>
         <p className="mb-1 text-slate-400">{t('footer.tagline')}</p>
         <p className="text-xs text-slate-600 mt-3">{t('footer.disclaimer')}</p>
-        <div className="flex justify-center gap-4 text-xs text-slate-600 mt-4">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-slate-600 mt-4">
+          <a href={`/${locale}/instagram`} className="hover:text-teal-400 transition">Instagram</a>
+          <a href={`/${locale}/tiktok`} className="hover:text-teal-400 transition">TikTok</a>
+          <a href={`/${locale}/youtube`} className="hover:text-teal-400 transition">YouTube</a>
+          <a href={`/${locale}/facebook`} className="hover:text-teal-400 transition">Facebook</a>
+          <a href={`/${locale}/twitter`} className="hover:text-teal-400 transition">Twitter/X</a>
+          <span className="text-slate-800">·</span>
+          <a href={`/${locale}/blog`} className="hover:text-teal-400 transition">Blog</a>
+          <a href={`/${locale}/about`} className="hover:text-teal-400 transition">About</a>
+          <a href={`/${locale}/about#contact`} className="hover:text-teal-400 transition">Contact</a>
           <a href={`/${locale}/privacy`} className="hover:text-teal-400 transition">Privacy Policy</a>
           <a href={`/${locale}/terms`} className="hover:text-teal-400 transition">Terms of Service</a>
-          <a href={`/${locale}/about`} className="hover:text-teal-400 transition">About</a>
         </div>
       </footer>
     </div>
