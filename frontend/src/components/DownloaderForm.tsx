@@ -120,6 +120,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     resetRafRef.current = requestAnimationFrame(() => {
       apply();
       resetRafRef.current = null;
+      // Clear the skip flag here so future focus events (tap after paste) work normally.
+      skipFocusSelectRef.current = false;
     });
   };
 
