@@ -64,6 +64,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const resetRafRef = useRef<number | null>(null);
+  // Set to true in paste handlers to prevent onFocus from overriding cursor placement.
+  const skipFocusSelectRef = useRef(false);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -101,30 +103,24 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   //      pan, which is separate from window.scrollX.
   // ─────────────────────────────────────────────────────────────────────────
 
-  /** Run a rAF loop for `durationMs` ms, zeroing input scroll each frame. */
-  const startScrollReset = () => {
+  /**
+   * Place cursor at position 0 and zero out all scroll, then do one rAF
+   * correction in case Android asynchronously re-scrolls after layout.
+   */
+  const resetCursorToStart = () => {
     if (resetRafRef.current !== null) cancelAnimationFrame(resetRafRef.current);
-    const deadline = performance.now() + 350;
-    const step = (now: number) => {
+    const apply = () => {
       const inp = inputRef.current;
-      if (inp && inp.scrollLeft !== 0) {
-        inp.scrollLeft = 0;
-        inp.setSelectionRange(0, 0);
-      }
+      if (!inp) return;
+      inp.setSelectionRange(0, 0);
+      inp.scrollLeft = 0;
       if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
-      // Android visual-viewport API — the visual viewport can pan independently
-      // of the layout viewport; offsetLeft is its horizontal shift.
-      const vv = (window as Window & { visualViewport?: { offsetLeft: number } }).visualViewport;
-      if (vv && vv.offsetLeft !== 0) {
-        window.scrollTo(window.scrollX + vv.offsetLeft, window.scrollY);
-      }
-      if (now < deadline) {
-        resetRafRef.current = requestAnimationFrame(step);
-      } else {
-        resetRafRef.current = null;
-      }
     };
-    resetRafRef.current = requestAnimationFrame(step);
+    apply();
+    resetRafRef.current = requestAnimationFrame(() => {
+      apply();
+      resetRafRef.current = null;
+    });
   };
 
   useEffect(() => {
@@ -295,15 +291,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     try {
       const text = await navigator.clipboard.readText();
       if (!text.trim()) return;
-      // flushSync forces React to render the new value synchronously so we
-      // can reset cursor/scroll BEFORE the browser paints — requestAnimationFrame
-      // was too late and the page was already shifting by then.
+      skipFocusSelectRef.current = true;
       flushSync(() => setUrl(text.trim()));
-      if (inputRef.current) {
-        inputRef.current.focus();
-        inputRef.current.setSelectionRange(0, 0);
-        inputRef.current.scrollLeft = 0;
-      }
+      inputRef.current?.focus();
+      resetCursorToStart();
     } catch {
       inputRef.current?.focus();
       setPasteHint(true);
@@ -333,17 +324,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 nativeInputType.startsWith('insertFromPaste') ||
                 Math.abs(newVal.length - url.length) > 5;
               if (isPaste) {
-                // flushSync renders synchronously so we can reset cursor/scroll
-                // BEFORE the browser paints the shifted layout.
+                skipFocusSelectRef.current = true;
                 flushSync(() => { setUrl(newVal); setStatus('idle'); });
-                if (inputRef.current) {
-                  inputRef.current.setSelectionRange(0, 0);
-                  inputRef.current.scrollLeft = 0;
-                  window.scrollTo(0, window.scrollY);
-                }
-                // rAF loop: Android may render a shifted frame BEFORE our JS
-                // runs; keep correcting every frame for 350 ms.
-                startScrollReset();
+                resetCursorToStart();
               } else {
                 setUrl(newVal);
                 setStatus('idle');
@@ -354,6 +337,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
             }}
             onFocus={(e) => {
+              // Skip select-all if a paste just happened — cursor is already at 0.
+              if (skipFocusSelectRef.current) {
+                skipFocusSelectRef.current = false;
+                return;
+              }
               const target = e.target;
               requestAnimationFrame(() => target.select());
             }}
@@ -361,15 +349,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               e.preventDefault();
               const pasted = (e.clipboardData?.getData('text/plain') || '').trim();
               if (!pasted) return;
+              skipFocusSelectRef.current = true;
               flushSync(() => { setUrl(pasted); setStatus('idle'); });
-              if (inputRef.current) {
-                inputRef.current.setSelectionRange(0, 0);
-                inputRef.current.scrollLeft = 0;
-                window.scrollTo(0, window.scrollY);
-              }
-              // rAF loop: keep correcting for 350 ms in case the browser
-              // asynchronously scrolls after the paste settles.
-              startScrollReset();
+              resetCursorToStart();
             }}
             placeholder={t('hero.placeholder')}
             className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-[16px] sm:text-sm min-w-0"
