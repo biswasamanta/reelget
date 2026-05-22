@@ -63,16 +63,33 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     } catch { /* ignore */ }
   }, []);
 
-  // Always keep the input scrolled to the start.
-  // Android keyboard paste fires onChange (not onPaste), bypassing our
-  // onPaste handler. Listening to the input's own scroll event and
-  // immediately resetting scrollLeft catches every paste path.
+  // Prevent Android horizontal page shift when long URLs are pasted.
+  // Two layers of defence:
+  //   1. input 'scroll' → reset input.scrollLeft AND window.scrollX
+  //   2. window 'scroll' → if page has drifted horizontally, snap it back
+  // Android GBoard paste fires onChange (not onPaste), so the onPaste handler
+  // alone is not enough — both listeners are required.
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
-    const resetScroll = () => { input.scrollLeft = 0; };
-    input.addEventListener('scroll', resetScroll, { passive: true });
-    return () => input.removeEventListener('scroll', resetScroll);
+
+    const resetInputScroll = () => {
+      input.scrollLeft = 0;
+      // Some Android browsers shift the viewport when the cursor moves to the
+      // end of a long input. snap window back immediately.
+      if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
+    };
+
+    const resetWindowHScroll = () => {
+      if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
+    };
+
+    input.addEventListener('scroll', resetInputScroll, { passive: true });
+    window.addEventListener('scroll', resetWindowHScroll, { passive: true });
+    return () => {
+      input.removeEventListener('scroll', resetInputScroll);
+      window.removeEventListener('scroll', resetWindowHScroll);
+    };
   }, []);
 
   function saveToHistory(downloadUrl: string, data: DownloadResult) {
@@ -232,7 +249,22 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             type="text"
             inputMode="url"
             value={url}
-            onChange={(e) => { setUrl(e.target.value); setStatus('idle'); }}
+            onChange={(e) => {
+              const newVal = e.target.value;
+              // Large jump in length = Android GBoard paste (fires onChange, not onPaste).
+              // Use flushSync so React renders synchronously, then reset scroll
+              // before the browser gets a chance to paint the shifted layout.
+              if (newVal.length - url.length > 10) {
+                flushSync(() => { setUrl(newVal); setStatus('idle'); });
+                if (inputRef.current) {
+                  inputRef.current.scrollLeft = 0;
+                  window.scrollTo(0, window.scrollY);
+                }
+              } else {
+                setUrl(newVal);
+                setStatus('idle');
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleDownload();
               if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
