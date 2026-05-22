@@ -13,22 +13,14 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // Static assets — cache for 1 year in browser + CDN
+      // Static assets — cache for 1 year in browser + CDN (immutable hashed filenames)
       {
         source: '/_next/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
-      // Fonts and favicons
-      {
-        source: '/:path*(\\.(ico|png|jpg|jpeg|svg|webp|woff|woff2|ttf|otf))',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
-        ],
-      },
-      // All HTML pages — cache at CDN for 1 hour, serve stale for up to 24h while revalidating
-      // This lets Vercel CDN serve repeat visits without hitting the edge function
+      // All pages — cache at Vercel CDN for 1 hour, serve stale for 24h while revalidating
       {
         source: '/:path*',
         headers: [
