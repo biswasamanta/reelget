@@ -24,6 +24,50 @@ const LOCALIZED_PLATFORM_BODY: Record<string, Record<string, string[]>> = {
       'Bạn có thể tải video YouTube đầy đủ ở chất lượng HD (1080p, 720p) hoặc SD (480p, 360p), lưu YouTube Shorts và Reels dưới dạng MP4, hoặc chỉ trích xuất âm thanh dưới dạng tệp M4A — lý tưởng cho podcast, âm nhạc và học ngoại ngữ.',
       'Để tải reel YouTube hoặc bất kỳ video nào, chỉ cần sao chép liên kết video, dán vào ReelGet và nhấn nút Tải xuống. Chỉ các video công khai, không có DRM mới có thể được tải xuống — hoàn toàn miễn phí.',
     ],
+    // ── High-traffic locales (/id/youtube, /pt/youtube, /hi/youtube, /tr/youtube)
+    id: [
+      'Mencari cara download YouTube yang simpel tanpa harus instal aplikasi berat? ReelGet hadir sebagai solusi download YouTube tanpa aplikasi yang bisa kamu gunakan langsung dari browser. Cukup buka YouTube, salin link video yang ingin diunduh, tempelkan di ReelGet, dan pilih kualitas yang kamu inginkan — proses download akan selesai dalam waktu singkat.',
+      'Dengan ReelGet, cara download YouTube menjadi jauh lebih mudah karena kamu bisa memilih format output sesuai kebutuhan: MP4 untuk video atau MP3 untuk audio saja. Download YouTube tanpa aplikasi ini berfungsi di semua perangkat, termasuk Android, iPhone, dan komputer. Tidak perlu login, tidak perlu berlangganan — semua fitur tersedia secara gratis tanpa batas.',
+      'ReelGet mendukung download video YouTube dalam berbagai resolusi mulai dari 360p hingga Full HD 1080p, termasuk YouTube Shorts. Cara download YouTube di ReelGet sangat cepat dan andal — cobalah sekarang dan nikmati konten YouTube favoritmu secara offline kapan saja!',
+    ],
+    pt: [
+      'Procurando uma maneira de baixar vídeo do YouTube grátis sem instalar nada? O ReelGet é a solução mais simples e rápida para quem quer saber como baixar vídeo do YouTube diretamente pelo navegador. Basta copiar o link do vídeo no YouTube, colar no campo do ReelGet, escolher a qualidade desejada e clicar em baixar — é só isso!',
+      'Com o ReelGet você pode baixar vídeo do YouTube grátis em vários formatos, incluindo MP4 em alta definição e áudio para extrair apenas a trilha sonora. A plataforma funciona em qualquer dispositivo — celular, tablet ou computador — sem necessidade de cadastro ou pagamento. Aprenda como baixar vídeo do YouTube de forma prática e guarde seus conteúdos favoritos para assistir sem internet.',
+      'O ReelGet suporta downloads de vídeos do YouTube em resoluções que vão de 360p até 1080p Full HD, incluindo YouTube Shorts. Não perca mais tempo procurando alternativas complicadas — o ReelGet é a forma mais confiável de baixar vídeo do YouTube grátis de maneira rápida e segura.',
+    ],
+    hi: [
+      'YouTube video download kaise kare — यह सवाल लाखों लोगों के मन में होता है। ReelGet के साथ यह काम बेहद आसान है। बस YouTube पर जाएं, वीडियो का लिंक कॉपी करें, ReelGet के सर्च बॉक्स में पेस्ट करें और अपनी पसंद की क्वालिटी चुनकर डाउनलोड करें। किसी ऐप की ज़रूरत नहीं, कोई साइनअप नहीं — सब कुछ बिल्कुल मुफ़्त।',
+      'ReelGet से YouTube video download करने पर आपको MP4 और ऑडियो दोनों फॉर्मेट का विकल्प मिलता है। आप 360p से लेकर 1080p Full HD तक की क्वालिटी में वीडियो डाउनलोड कर सकते हैं। YouTube video download kaise kare इसका सबसे आसान जवाब है ReelGet — जो Android, iPhone और कंप्यूटर सभी पर बिना किसी परेशानी के काम करता है।',
+      'ReelGet YouTube Shorts और लंबे वीडियो दोनों को सपोर्ट करता है। अपने पसंदीदा शैक्षिक वीडियो, म्यूज़िक, या मनोरंजन कंटेंट को ऑफलाइन सेव करें और कभी भी, कहीं भी देखें — बिना इंटरनेट के भी। YouTube video download अब इससे आसान कभी नहीं था।',
+    ],
+    tr: [
+      'YouTube video indir işlemini uygulama yüklemeden yapmak mı istiyorsunuz? ReelGet tam da bunun için tasarlandı. İndirmek istediğiniz YouTube videosunun linkini kopyalayın, ReelGet\'in arama kutusuna yapıştırın, istediğiniz kaliteyi seçin ve indirme butonuna tıklayın. İşlem bu kadar basit — saniyeler içinde video cihazınıza kaydedilir.',
+      'ReelGet ile YouTube indir ücretsiz hizmetinden yararlanarak MP4 ve ses formatlarında yüksek kaliteli videolar indirebilirsiniz. 360p\'den 1080p Full HD\'ye kadar farklı çözünürlük seçenekleri sunan ReelGet, Android, iPhone ve bilgisayar dahil tüm cihazlarla uyumludur. Hesap açmanıza ya da ödeme yapmanıza gerek yoktur.',
+      'ReelGet\'in YouTube video indir özelliği YouTube Shorts dahil her türlü videoyu destekler. YouTube indir ücretsiz seçeneğiyle eğitim videolarından müziklere kadar her şeyi çevrimdışı olarak saklayabilirsiniz. ReelGet\'i şimdi deneyin!',
+    ],
+  },
+  // ── /id/tiktok, /pt/tiktok, /hi/tiktok, /tr/tiktok ──────────────────────
+  tiktok: {
+    id: [
+      'Ingin download video TikTok tanpa watermark dengan mudah dan cepat? ReelGet adalah solusi terbaik untuk cara download TikTok yang praktis tanpa perlu instal aplikasi tambahan. Cukup salin link video TikTok yang ingin kamu simpan, tempelkan di kolom ReelGet, lalu klik tombol unduh — dalam hitungan detik video siap tersimpan di perangkatmu.',
+      'ReelGet mendukung download video TikTok tanpa watermark dalam kualitas HD, sehingga hasil unduhan terlihat bersih tanpa logo TikTok yang mengganggu. Cara download TikTok di ReelGet sangat sederhana: tidak perlu daftar akun, tidak perlu bayar, dan tidak ada batasan jumlah unduhan. Nikmati konten favoritmu kapan saja, bahkan tanpa koneksi internet.',
+      'Selain video biasa, ReelGet juga mendukung unduhan video TikTok Duet dan Stitch. Platform kami kompatibel dengan semua perangkat — smartphone Android, iPhone, laptop, maupun PC. Mulai download video TikTok tanpa watermark sekarang juga di ReelGet!',
+    ],
+    pt: [
+      'Quer baixar vídeo do TikTok sem marca d\'água de forma rápida e gratuita? O ReelGet é a ferramenta ideal para quem quer saber como baixar TikTok sem complicação. Basta copiar o link do vídeo desejado, colar no campo de busca do ReelGet e clicar em baixar — em poucos segundos o vídeo estará salvo no seu dispositivo, pronto para assistir offline.',
+      'Com o ReelGet, você pode baixar vídeo do TikTok sem marca d\'água em alta qualidade, sem precisar instalar nenhum aplicativo e sem criar conta. A plataforma funciona diretamente pelo navegador, seja no celular Android, iPhone ou computador. Aproveite seus vídeos favoritos do TikTok a qualquer momento, sem depender de conexão com a internet após o download.',
+      'O ReelGet suporta o download de todos os tipos de conteúdo do TikTok, incluindo vídeos normais e duetos. O processo de como baixar TikTok nunca foi tão simples: sem anúncios intrusivos, sem limite de downloads. Experimente agora e descubra por que o ReelGet é a escolha preferida para baixar vídeo do TikTok sem marca d\'água.',
+    ],
+    hi: [
+      'क्या आप जानना चाहते हैं कि TikTok video download kaise kare? ReelGet के साथ यह बिल्कुल आसान है। बस उस TikTok वीडियो का लिंक कॉपी करें, ReelGet के सर्च बॉक्स में पेस्ट करें और डाउनलोड बटन पर क्लिक करें — कुछ ही सेकंड में वीडियो आपके डिवाइस में सेव हो जाएगा।',
+      'ReelGet से TikTok video download करना पूरी तरह मुफ़्त है और इसके लिए कोई ऐप इंस्टॉल करने की ज़रूरत नहीं है। आप HD क्वालिटी में वॉटरमार्क-फ्री वीडियो डाउनलोड कर सकते हैं। चाहे Android फ़ोन हो, iPhone हो या कंप्यूटर — ReelGet हर डिवाइस पर बेहतरीन काम करता है।',
+      'TikTok video download kaise kare यह सवाल अब पुराना हो गया, क्योंकि ReelGet ने इसे एकदम सरल बना दिया है। आप असीमित वीडियो डाउनलोड कर सकते हैं — बिना किसी लिमिट के। ReelGet पर TikTok के सभी प्रकार के वीडियो डाउनलोड करें और इंटरनेट के बिना भी आनंद लें।',
+    ],
+    tr: [
+      'TikTok video indir işlemini hiç bu kadar kolay yapmamıştınız! ReelGet ile istediğiniz TikTok videosunu ücretsiz ve hızlı bir şekilde indirmek için videonun linkini kopyalayıp ReelGet\'in arama kutusuna yapıştırmanız ve indirme butonuna tıklamanız yeterlidir. Sadece birkaç saniye içinde video cihazınıza kaydedilecektir.',
+      'ReelGet, TikTok indir ücretsiz hizmeti sunan en güvenilir platformlardan biridir. Herhangi bir uygulama yüklemenize ya da hesap açmanıza gerek yoktur; tarayıcınız üzerinden doğrudan kullanabilirsiniz. Android, iPhone veya bilgisayarınızdan HD kalitede ve filigransız TikTok videoları indirebilirsiniz.',
+      'TikTok video indir konusunda ReelGet\'in en büyük avantajı, sınırsız indirme hakkı sunması ve tamamen ücretsiz olmasıdır. TikTok indir ücretsiz seçeneğiyle her tür içeriği kolayca indirebilirsiniz. Şimdi deneyin ve farkı kendiniz görün!',
+    ],
   },
 };
 

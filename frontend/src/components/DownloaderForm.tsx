@@ -175,7 +175,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     };
     setHistory(prev => {
       const filtered = prev.filter(h => h.url !== downloadUrl);
-      const updated = [item, ...filtered].slice(0, 10);
+      const updated = [item, ...filtered].slice(0, 20);
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
       return updated;
     });
@@ -638,34 +638,62 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             onClick={() => setShowHistory(h => !h)}
             className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition mx-auto"
           >
-            🕓 Recent downloads ({history.length})
+            🕓 Recent downloads
+            <span className="bg-white/10 text-white/70 px-1.5 py-0.5 rounded-full text-[10px] font-bold">{history.length}</span>
             <span>{showHistory ? '▲' : '▼'}</span>
           </button>
           {showHistory && (
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 space-y-1.5">
               {history.map((item) => (
                 <div
                   key={item.ts}
-                  className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-2 cursor-pointer hover:bg-white/20 transition"
-                  onClick={() => { setUrl(item.url); setStatus('idle'); setResult(null); setShowHistory(false); }}
+                  className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-2 hover:bg-white/20 transition group"
                 >
-                  {item.thumbnail ? (
-                    <img src={item.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0">▶</div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-xs font-medium truncate">{item.title}</p>
-                    <p className="text-white/40 text-[10px]">{item.platform} · {new Date(item.ts).toLocaleDateString()}</p>
-                  </div>
-                  <span className="text-white/40 text-xs shrink-0">↩</span>
+                  {/* Thumbnail — tap to re-fill URL */}
+                  <button
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                    onClick={() => { setUrl(item.url); setStatus('idle'); setResult(null); setShowHistory(false); }}
+                  >
+                    {item.thumbnail ? (
+                      <img src={item.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0">▶</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium truncate">{item.title}</p>
+                      <p className="text-white/40 text-[10px]">{item.platform} · {new Date(item.ts).toLocaleDateString()}</p>
+                    </div>
+                  </button>
+                  {/* Re-download instantly */}
+                  <button
+                    title="Download again"
+                    onClick={() => { setUrl(item.url); setStatus('idle'); setResult(null); setShowHistory(false); setTimeout(handleDownload, 50); }}
+                    className="shrink-0 text-white/30 hover:text-cyan-400 transition text-sm opacity-0 group-hover:opacity-100"
+                  >
+                    ⬇
+                  </button>
+                  {/* Remove from history */}
+                  <button
+                    title="Remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHistory(prev => {
+                        const updated = prev.filter(h => h.ts !== item.ts);
+                        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+                        return updated;
+                      });
+                    }}
+                    className="shrink-0 text-white/30 hover:text-red-400 transition text-xs opacity-0 group-hover:opacity-100"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
               <button
                 onClick={() => { setHistory([]); localStorage.removeItem(HISTORY_KEY); setShowHistory(false); }}
                 className="text-[10px] text-white/30 hover:text-white/60 transition w-full text-center pt-1"
               >
-                Clear history
+                Clear all history
               </button>
             </div>
           )}
