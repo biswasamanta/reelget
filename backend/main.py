@@ -12,6 +12,7 @@ import os
 import json
 import time
 import tempfile
+import asyncio
 from pathlib import Path
 
 try:
@@ -527,6 +528,77 @@ async def trending(region: str = Query("IN")):
         })
 
     result = {"region": region, "videos": videos, "cached_at": int(time.time())}
+    cache_file.write_text(json.dumps(result), encoding="utf-8")
+    return result
+
+
+# Trending Now — uses yt-dlp to scrape YouTube trending, no API key required.
+_TRENDING_NOW_URLS: dict[str, str] = {
+    "all":    "https://www.youtube.com/feed/trending",
+    "music":  "https://www.youtube.com/feed/trending?bp=4gInChMIARABGAAgBSgA",
+    "gaming": "https://www.youtube.com/feed/trending?bp=4gIcChMIARABGAAgDCgA",
+    "films":  "https://www.youtube.com/feed/trending?bp=4gIcChMIARABGAAgCCgA",
+}
+_TRENDING_NOW_CACHE_TTL = 2 * 3600  # 2 hours
+
+
+@app.get("/api/trending-now")
+async def trending_now(category: str = Query("all")):
+    category = category.lower()
+    if category not in _TRENDING_NOW_URLS:
+        category = "all"
+
+    CACHE_DIR.mkdir(exist_ok=True)
+    cache_file = CACHE_DIR / f"trending_now_{category}.json"
+
+    if cache_file.exists():
+        age = time.time() - cache_file.stat().st_mtime
+        if age < _TRENDING_NOW_CACHE_TTL:
+            return json.loads(cache_file.read_text(encoding="utf-8"))
+
+    url = _TRENDING_NOW_URLS[category]
+    try:
+        proc = await asyncio.wait_for(
+            asyncio.create_subprocess_exec(
+                "yt-dlp",
+                "--flat-playlist",
+                "--dump-json",
+                "-I", "1:12",
+                "--no-warnings",
+                "--quiet",
+                url,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            ),
+            timeout=30,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
+    except Exception:
+        raise HTTPException(status_code=502, detail="Could not fetch trending data")
+
+    videos = []
+    for line in stdout.decode(errors="replace").strip().splitlines():
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        video_id = item.get("id") or item.get("url", "").split("v=")[-1]
+        if not video_id:
+            continue
+        thumbnail = (
+            item.get("thumbnail")
+            or f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg"
+        )
+        videos.append({
+            "videoId": video_id,
+            "title": item.get("title", ""),
+            "thumbnail": thumbnail,
+            "channelTitle": item.get("uploader") or item.get("channel", ""),
+        })
+
+    result = {"category": category, "videos": videos, "cached_at": int(time.time())}
     cache_file.write_text(json.dumps(result), encoding="utf-8")
     return result
 

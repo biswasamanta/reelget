@@ -5,6 +5,7 @@ import FaqSection from '@/components/FaqSection';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import PlatformBadges from '@/components/PlatformBadges';
 import TrendingSection from '@/components/TrendingSection';
+import TrendingNowSection from '@/components/TrendingNowSection';
 import StatsBar from '@/components/StatsBar';
 import Tracker from '@/components/Tracker';
 import ServiceStatus from '@/components/ServiceStatus';
@@ -142,8 +143,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </div>
       </section>
 
-      {/* Trending videos */}
+      {/* Most Popular — YouTube API, region-aware */}
       <TrendingSection locale={locale} />
+
+      {/* Trending Now — yt-dlp scrape, no API key, with category tabs */}
+      <TrendingNowSection />
 
       {/* Platform badges */}
       <PlatformBadges />
