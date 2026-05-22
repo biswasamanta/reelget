@@ -322,6 +322,124 @@ const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+
+  // ── Bengali: YouTube without watermark ──────────────────────────────────────
+  {
+    slug: 'youtube-video-download-without-watermark-bengali',
+    title: 'ওয়াটারমার্ক ছাড়া ইউটিউব ভিডিও ডাউনলোড করুন (২০২৫)',
+    description:
+      'ReelGet দিয়ে বিনামূল্যে এবং ওয়াটারমার্ক ছাড়া ইউটিউব ভিডিও ডাউনলোড করুন। কোনো অ্যাপ বা লগইন ছাড়াই HD ভিডিও সেভ করুন।',
+    emoji: '▶️',
+    date: '2025-05-15',
+    readTime: '৩ মিনিট',
+    category: 'YouTube',
+    intro:
+      'ইউটিউব থেকে সরাসরি ভিডিও ডাউনলোড করার কোনো বিল্ট-ইন অপশন নেই — YouTube Premium ছাড়া। কিন্তু ReelGet ব্যবহার করে আপনি যেকোনো পাবলিক ইউটিউব ভিডিও বিনামূল্যে এবং ওয়াটারমার্ক ছাড়া ডাউনলোড করতে পারবেন। কোনো অ্যাপ ইনস্টল করতে হবে না, কোনো লগইন লাগবে না — শুধু লিঙ্ক পেস্ট করুন এবং ডাউনলোড করুন।',
+    steps: [
+      {
+        title: 'ইউটিউব ভিডিওর লিঙ্ক কপি করুন',
+        body: 'ইউটিউব অ্যাপ বা ওয়েবসাইটে যে ভিডিওটি ডাউনলোড করতে চান সেটি খুলুন। "Share" বাটনে ট্যাপ করুন, তারপর "Copy link" সিলেক্ট করুন। ডেস্কটপে অ্যাড্রেস বার থেকে সরাসরি URL কপি করুন।',
+      },
+      {
+        title: 'ReelGet খুলুন',
+        body: 'আপনার ব্রাউজারে reelget.com খুলুন। iPhone, Android, বা কম্পিউটার — যেকোনো ডিভাইসে কাজ করে।',
+      },
+      {
+        title: 'লিঙ্ক পেস্ট করুন',
+        body: 'ReelGet-এর ইনপুট বক্সে ট্যাপ করুন এবং কপি করা ইউটিউব লিঙ্কটি পেস্ট করুন। "Paste" বাটনে ট্যাপ করে সরাসরি পেস্ট করতে পারবেন।',
+      },
+      {
+        title: 'ডাউনলোড বাটনে ক্লিক করুন',
+        body: '"Download" বাটনে ক্লিক বা ট্যাপ করুন। ReelGet ইউটিউবের CDN থেকে সরাসরি ভিডিও ফেচ করবে এবং কয়েক সেকেন্ডের মধ্যে ডাউনলোড অপশন দেখাবে।',
+      },
+      {
+        title: 'কোয়ালিটি বেছে নিন এবং সেভ করুন',
+        body: 'HD Video (MP4) বা SD Video থেকে আপনার পছন্দের কোয়ালিটি বেছে নিন। ডাউনলোড সম্পন্ন হলে ভিডিওটি আপনার ডিভাইসে সেভ হবে। অডিও-মাত্র ফাইলও বের করতে পারবেন M4A ফরম্যাটে।',
+      },
+    ],
+    body: [
+      'ReelGet ইউটিউবের CDN থেকে সরাসরি অরিজিনাল ভিডিও স্ট্রিম ফেচ করে — ফলে কোনো ওয়াটারমার্ক বা রি-এনকোডিং ছাড়াই ফুল HD কোয়ালিটি পাওয়া যায়। YouTube Shorts, সাধারণ ভিডিও এবং youtu.be শর্ট লিঙ্ক — সব ধরনের পাবলিক ইউটিউব কন্টেন্ট সাপোর্ট করা হয়।',
+      'মনে রাখবেন: শুধুমাত্র পাবলিক ভিডিও ডাউনলোড করা সম্ভব। প্রাইভেট, বয়স-সীমাবদ্ধ বা মেম্বারশিপ-মাত্র ভিডিও ডাউনলোড হবে না। ব্যক্তিগত অফলাইন ব্যবহারের জন্য ReelGet সম্পূর্ণ বিনামূল্যে।',
+      'YouTube Shorts ডাউনলোড করতেও একই পদ্ধতি ব্যবহার করুন — YouTube অ্যাপে Shorts-এর "Share → Copy link" ট্যাপ করুন এবং ReelGet-এ পেস্ট করুন।',
+    ],
+    faq: [
+      {
+        q: 'ওয়াটারমার্ক ছাড়া ইউটিউব ভিডিও ডাউনলোড করা কি বিনামূল্যে?',
+        a: 'হ্যাঁ, ReelGet সম্পূর্ণ বিনামূল্যে। কোনো রেজিস্ট্রেশন, সাবস্ক্রিপশন বা অ্যাপ ডাউনলোডের প্রয়োজন নেই।',
+      },
+      {
+        q: 'YouTube Shorts ডাউনলোড করা যাবে?',
+        a: 'হ্যাঁ! YouTube Shorts সম্পূর্ণভাবে সাপোর্ট করা হয়। HD কোয়ালিটিতে ডাউনলোড হবে।',
+      },
+      {
+        q: 'কোনো অ্যাপ ইনস্টল করতে হবে?',
+        a: 'না। ReelGet একটি ওয়েব অ্যাপ — ব্রাউজারেই চলে। কোনো অ্যাপ ইনস্টলের দরকার নেই।',
+      },
+      {
+        q: 'ইউটিউব ভিডিও থেকে MP3 বা অডিও বের করা যাবে?',
+        a: 'হ্যাঁ! "Audio Only (M4A)" অপশন দিয়ে শুধুমাত্র অডিও ট্র্যাক ডাউনলোড করতে পারবেন।',
+      },
+    ],
+  },
+
+  // ── Vietnamese: Download YouTube video / reel ────────────────────────────────
+  {
+    slug: 'tai-reel-youtube-mien-phi',
+    title: 'Cách Tải Video YouTube Miễn Phí — Không Watermark (2025)',
+    description:
+      'Hướng dẫn tải reel YouTube và video YouTube miễn phí, không watermark, không cần đăng ký. Hỗ trợ HD, Shorts và chỉ âm thanh.',
+    emoji: '▶️',
+    date: '2025-05-16',
+    readTime: '3 phút',
+    category: 'YouTube',
+    intro:
+      'YouTube không có tính năng tải video offline miễn phí — bạn cần YouTube Premium. Nhưng với ReelGet, bạn có thể tải bất kỳ video YouTube công khai nào, bao gồm cả YouTube Reels và Shorts, hoàn toàn miễn phí và không có watermark. Không cần cài ứng dụng, không cần đăng ký tài khoản.',
+    steps: [
+      {
+        title: 'Sao chép liên kết video YouTube',
+        body: 'Mở ứng dụng YouTube hoặc truy cập youtube.com, tìm video hoặc reel bạn muốn tải. Nhấn "Chia sẻ" (Share) rồi chọn "Sao chép liên kết" (Copy link). Trên máy tính, bạn có thể sao chép URL trực tiếp từ thanh địa chỉ.',
+      },
+      {
+        title: 'Mở ReelGet',
+        body: 'Truy cập reelget.com trên trình duyệt của bạn — hoạt động trên iPhone, Android, máy tính bảng và máy tính. Không cần cài đặt thêm gì.',
+      },
+      {
+        title: 'Dán liên kết vào ô nhập',
+        body: 'Nhấn vào ô nhập liệu của ReelGet và dán liên kết YouTube vừa sao chép. Bạn cũng có thể nhấn nút "Paste" để dán nhanh.',
+      },
+      {
+        title: 'Nhấn nút Tải xuống',
+        body: 'Nhấn nút "Download". ReelGet sẽ tự động lấy video từ máy chủ YouTube và hiển thị các tùy chọn tải xuống trong vài giây.',
+      },
+      {
+        title: 'Chọn chất lượng và lưu file',
+        body: 'Chọn HD Video (MP4) để có chất lượng tốt nhất, hoặc SD Video để tiết kiệm dung lượng. Bạn cũng có thể chỉ tải âm thanh (M4A) — rất tiện cho podcast và nhạc.',
+      },
+    ],
+    body: [
+      'ReelGet tải video trực tiếp từ máy chủ CDN của YouTube, vì vậy bạn nhận được file gốc với chất lượng HD đầy đủ — không có watermark, không bị nén lại. Hỗ trợ đầy đủ YouTube Shorts, video thông thường và cả liên kết rút gọn youtu.be.',
+      'Lưu ý: chỉ có thể tải các video công khai. Video riêng tư, hạn chế độ tuổi hoặc video thành viên không thể tải được. ReelGet được thiết kế cho mục đích sử dụng cá nhân, offline.',
+      'Để tải reel YouTube (Shorts), mở video trong ứng dụng YouTube, nhấn "Chia sẻ → Sao chép liên kết" rồi dán vào ReelGet — đơn giản như vậy thôi.',
+    ],
+    faq: [
+      {
+        q: 'Tải reel YouTube có miễn phí không?',
+        a: 'Có, ReelGet hoàn toàn miễn phí. Không cần đăng ký, không có phí ẩn, không cần ứng dụng.',
+      },
+      {
+        q: 'Có tải được YouTube Shorts không?',
+        a: 'Có! YouTube Shorts được hỗ trợ đầy đủ. Chỉ cần sao chép liên kết Shorts và dán vào ReelGet.',
+      },
+      {
+        q: 'Video tải về có watermark không?',
+        a: 'Không. ReelGet lấy file gốc trực tiếp từ CDN của YouTube, không thêm watermark.',
+      },
+      {
+        q: 'Có thể tải âm thanh từ video YouTube không?',
+        a: 'Có! Chọn tùy chọn "Audio Only (M4A)" để tải chỉ phần âm thanh — lý tưởng cho nhạc và podcast.',
+      },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------

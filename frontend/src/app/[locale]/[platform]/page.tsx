@@ -10,6 +10,23 @@ const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or
 const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat', 'linkedin', 'reddit', 'vimeo', 'dailymotion', 'twitch'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
+// ─── Locale-specific body content for key platform+language combos ────────────
+// Used to serve native-language content on e.g. /bn/youtube, /vi/youtube
+const LOCALIZED_PLATFORM_BODY: Record<string, Record<string, string[]>> = {
+  youtube: {
+    bn: [
+      'ইউটিউব বিশ্বের সবচেয়ে বড় ভিডিও প্ল্যাটফর্ম, কিন্তু বিনামূল্যে অফলাইনে ভিডিও দেখার সুবিধা নেই। ReelGet আপনাকে যেকোনো ডিভাইসে বিনামূল্যে ইউটিউব ভিডিও ডাউনলোড করতে দেয় — কোনো YouTube Premium, ব্রাউজার এক্সটেনশন বা ডেস্কটপ সফটওয়্যার ছাড়াই।',
+      'ReelGet দিয়ে আপনি HD (1080p, 720p) বা SD (480p, 360p) মানে সম্পূর্ণ ইউটিউব ভিডিও ডাউনলোড করতে পারবেন, YouTube Shorts MP4 হিসেবে সেভ করতে পারবেন, অথবা শুধুমাত্র অডিও M4A ফাইল হিসেবে বের করতে পারবেন — পডকাস্ট, সংগীত ও ভাষা শেখার জন্য আদর্শ।',
+      'ওয়াটারমার্ক ছাড়া ইউটিউব ভিডিও ডাউনলোড করতে শুধু ভিডিওর লিঙ্ক কপি করুন, ReelGet-এ পেস্ট করুন এবং ডাউনলোড বাটনে ক্লিক করুন। শুধুমাত্র পাবলিক, নন-DRM ভিডিও ডাউনলোড করা যাবে।',
+    ],
+    vi: [
+      'YouTube là nền tảng video lớn nhất thế giới, nhưng tính năng tải video để xem offline không có trong gói miễn phí. ReelGet cung cấp cho bạn công cụ tải video YouTube miễn phí, nhanh chóng, hoạt động trên mọi thiết bị — không cần YouTube Premium, không cần tiện ích mở rộng, không cần phần mềm máy tính.',
+      'Bạn có thể tải video YouTube đầy đủ ở chất lượng HD (1080p, 720p) hoặc SD (480p, 360p), lưu YouTube Shorts và Reels dưới dạng MP4, hoặc chỉ trích xuất âm thanh dưới dạng tệp M4A — lý tưởng cho podcast, âm nhạc và học ngoại ngữ.',
+      'Để tải reel YouTube hoặc bất kỳ video nào, chỉ cần sao chép liên kết video, dán vào ReelGet và nhấn nút Tải xuống. Chỉ các video công khai, không có DRM mới có thể được tải xuống — hoàn toàn miễn phí.',
+    ],
+  },
+};
+
 // ─── Landing page slugs (English-only targeted keyword pages) ─────────────────
 const LANDING_SLUGS = [
   'instagram-reels-downloader',
@@ -1626,7 +1643,7 @@ export default async function PlatformPage({
       <section className="max-w-3xl mx-auto px-4 py-8">
         <h2 className="text-xl font-bold text-white mb-5">About the {name} Downloader</h2>
         <div className="space-y-4">
-          {p.body.map((para, i) => (
+          {(LOCALIZED_PLATFORM_BODY[platform]?.[locale] ?? p.body).map((para, i) => (
             <p key={i} className="text-slate-400 text-sm leading-relaxed">{para}</p>
           ))}
         </div>
