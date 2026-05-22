@@ -129,15 +129,6 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     const input = inputRef.current;
     if (!input) return;
 
-    // Listener: input scrolled (catches scroll not triggered by paste detection)
-    const onInputScroll = () => {
-      if (input.scrollLeft !== 0) {
-        input.scrollLeft = 0;
-        input.setSelectionRange(0, 0);
-      }
-      if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
-    };
-
     // Listener: layout-viewport horizontal drift
     const onWindowScroll = () => {
       if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
@@ -152,12 +143,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
     };
 
-    input.addEventListener('scroll', onInputScroll, { passive: true });
     window.addEventListener('scroll', onWindowScroll, { passive: true });
     vv?.addEventListener('scroll', onVVScroll, { passive: true } as AddEventListenerOptions);
 
     return () => {
-      input.removeEventListener('scroll', onInputScroll);
       window.removeEventListener('scroll', onWindowScroll);
       vv?.removeEventListener('scroll', onVVScroll);
     };
