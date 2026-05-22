@@ -257,6 +257,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               if (newVal.length - url.length > 10) {
                 flushSync(() => { setUrl(newVal); setStatus('idle'); });
                 if (inputRef.current) {
+                  inputRef.current.setSelectionRange(0, 0);
                   inputRef.current.scrollLeft = 0;
                   window.scrollTo(0, window.scrollY);
                 }
