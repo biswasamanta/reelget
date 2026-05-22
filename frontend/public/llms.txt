@@ -1,0 +1,53 @@
+# ReelGet
+
+> Free online video downloader — paste any social media URL to save the video instantly. No login, no app, no watermark.
+
+ReelGet is a free web tool that lets anyone download videos from Instagram, TikTok, YouTube, Facebook, Twitter/X, Pinterest, Snapchat, LinkedIn, Reddit, Vimeo, Dailymotion, Twitch, and Threads. It works directly in the browser with no account or software required.
+
+## How to use
+
+1. Copy the URL of any video from a supported platform.
+2. Go to reelget.com and paste the URL into the input box.
+3. Click "Download" and choose your preferred quality (HD or SD).
+4. The video saves directly to your device.
+
+## Key features
+
+- Download Instagram Reels, video posts, and Stories
+- Download TikTok videos without the watermark
+- Download YouTube videos and Shorts (public videos only)
+- Download Facebook videos and Reels
+- Download Twitter/X videos
+- Download Pinterest video pins
+- Extract MP3 audio from YouTube videos
+- Download YouTube video thumbnails (HD, HQ, MQ)
+- View auto-generated video transcripts
+- PWA: installable on Android, works as a share-target from the share sheet
+- Download history with re-download and delete controls
+- Trending YouTube videos section (by category: All, Music, Gaming, Films)
+
+## Supported platforms
+
+Instagram, TikTok, YouTube, Facebook, Twitter/X, Pinterest, Snapchat, LinkedIn, Reddit, Vimeo, Dailymotion, Twitch, Threads
+
+## Pricing
+
+Free. No plans, no subscriptions, no hidden fees.
+
+## Privacy
+
+ReelGet does not store URLs, does not save downloaded videos, and does not require an account. All processing happens in real time on the server and nothing is retained.
+
+## Available languages
+
+English, Hindi, Bengali, Indonesian, Urdu, Portuguese, Tamil, Telugu, Arabic, Vietnamese, Odia, French, Swahili, Filipino, Hausa, Amharic, Spanish, Russian, Turkish, Thai, Korean
+
+## URL structure
+
+- Homepage: reelget.com/en
+- Platform pages: reelget.com/en/instagram, reelget.com/en/tiktok, reelget.com/en/youtube, etc.
+- Localized: reelget.com/hi (Hindi), reelget.com/id (Indonesian), etc.
+
+## Contact / Source
+
+Site: https://reelget.com

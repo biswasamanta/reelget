@@ -34,6 +34,8 @@ export default async function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, interactive-widget=resizes-visual"
         />
+        {/* Plain-text site description for AI crawlers (llms.txt standard) */}
+        <link rel="alternate" type="text/plain" title="LLMs.txt" href="/llms.txt" />
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308669348522445"

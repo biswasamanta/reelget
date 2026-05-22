@@ -10,6 +10,33 @@ import StatsBar from '@/components/StatsBar';
 import Tracker from '@/components/Tracker';
 import ServiceStatus from '@/components/ServiceStatus';
 
+const SOFTWARE_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'ReelGet',
+  url: 'https://reelget.com',
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Web, Android, iOS',
+  description: 'Free online video downloader. Paste any Instagram, TikTok, YouTube, Facebook, or Twitter/X URL to save the video instantly — no login, no app, no watermark.',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  featureList: [
+    'Download Instagram Reels and Stories',
+    'Download TikTok videos without watermark',
+    'Download YouTube videos and Shorts',
+    'Download Facebook videos',
+    'Download Twitter/X videos',
+    'Extract MP3 audio from YouTube',
+    'Download YouTube thumbnails',
+    'Video transcript viewer',
+    'No login required',
+    'No file size limit',
+  ],
+};
+
 const FAQ_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -50,6 +77,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <div className="min-h-screen bg-slate-950">
       <ServiceStatus />
       <Tracker page={`home:${locale}`} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_SCHEMA) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
