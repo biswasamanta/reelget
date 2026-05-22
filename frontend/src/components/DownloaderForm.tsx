@@ -34,7 +34,16 @@ function detectPlatform(url: string): string {
   if (/vimeo\.com/.test(url)) return 'Vimeo';
   if (/dailymotion\.com|dai\.ly/.test(url)) return 'Dailymotion';
   if (/twitch\.tv/.test(url)) return 'Twitch';
+  if (/threads\.net/.test(url)) return 'Threads';
   return 'Video';
+}
+
+/** Extract the 11-character YouTube video ID from any YouTube URL format. */
+function getYouTubeVideoId(url: string): string | null {
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return m ? m[1] : null;
 }
 
 const HISTORY_KEY = 'rg_history';
@@ -62,6 +71,20 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (raw) setHistory(JSON.parse(raw));
     } catch { /* ignore */ }
+  }, []);
+
+  // Web Share Target: when redirected from /share-target the URL is in ?url=
+  // Read it once on mount, pre-fill the input, then clean the query string.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shared = params.get('url');
+    if (!shared) return;
+    flushSync(() => { setUrl(shared); setStatus('idle'); });
+    window.history.replaceState({}, '', window.location.pathname);
+    if (inputRef.current) {
+      inputRef.current.setSelectionRange(0, 0);
+      inputRef.current.scrollLeft = 0;
+    }
   }, []);
 
   // ─── Anti-shift scroll reset ─────────────────────────────────────────────
@@ -175,7 +198,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     ['jpg', 'jpeg', 'webp', 'png', 'gif', 'avif'].includes(ext.toLowerCase());
 
   const isValidUrl = (val: string) =>
-    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv/.test(val);
+    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|threads\.net/.test(val);
 
   async function handleDownload() {
     const trimmed = url.trim();
@@ -399,6 +422,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <span className="text-xs text-cyan-400/80">🎬 Vimeo ✓</span>
         <span className="text-xs text-blue-400/80">📺 Dailymotion ✓</span>
         <span className="text-xs text-purple-400/80">🎮 Twitch ✓</span>
+        <span className="text-xs text-gray-400/80">🧵 Threads ✓</span>
         <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-medium">▶️ YouTube — public only</span>
       </div>
 
@@ -537,6 +561,35 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 Telegram
               </a>
             </div>
+
+            {/* YouTube thumbnail downloader — shown for any YouTube URL */}
+            {(() => {
+              const ytId = getYouTubeVideoId(url);
+              if (!ytId) return null;
+              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+              const thumbs = [
+                { label: 'HD  1280×720', key: 'maxresdefault' },
+                { label: 'HQ  480×360',  key: 'hqdefault'     },
+                { label: 'MQ  320×180',  key: 'mqdefault'      },
+              ];
+              return (
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">🖼 Download Thumbnail</p>
+                  <div className="flex flex-wrap gap-2">
+                    {thumbs.map(({ label, key }) => (
+                      <a
+                        key={key}
+                        href={`${apiBase}/api/proxy?url=${encodeURIComponent(`https://i.ytimg.com/vi/${ytId}/${key}.jpg`)}&filename=thumbnail-${ytId}&ext=jpg`}
+                        download
+                        className="flex-1 min-w-[90px] text-center text-xs font-semibold py-2 px-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                      >
+                        {label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Transcript panel — shown when captions are available or loading */}
             {transcriptStatus !== 'idle' && transcriptStatus !== 'unavailable' && (
