@@ -48,6 +48,12 @@ input, textarea, select {
   /* Prevent the input's text content from stretching the page */
   max-width: 100%;
   min-width: 0;
+  /* Tell Android/iOS the input only participates in vertical panning —
+     this prevents the browser from interpreting the input's internal horizontal
+     scroll as a request to pan the visual viewport sideways. */
+  touch-action: pan-y;
+  /* Belt-and-suspenders: also disable horizontal overscroll on the input */
+  overscroll-behavior-x: none;
 }
 
 @keyframes blob {

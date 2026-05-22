@@ -54,6 +54,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [showTranscript, setShowTranscript] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const resetRafRef = useRef<number | null>(null);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -63,32 +64,81 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     } catch { /* ignore */ }
   }, []);
 
-  // Prevent Android horizontal page shift when long URLs are pasted.
-  // Two layers of defence:
-  //   1. input 'scroll' → reset input.scrollLeft AND window.scrollX
-  //   2. window 'scroll' → if page has drifted horizontally, snap it back
-  // Android GBoard paste fires onChange (not onPaste), so the onPaste handler
-  // alone is not enough — both listeners are required.
+  // ─── Anti-shift scroll reset ─────────────────────────────────────────────
+  // Android Chrome's native input pipeline can render a shifted scroll BEFORE
+  // our JS event handlers run, so a single synchronous reset is not enough.
+  //
+  // Strategy:
+  //   1. startScrollReset() — rAF loop that hammers the correction for 350 ms.
+  //      Called immediately after every paste (onChange + onPaste).
+  //   2. 'scroll' listener on the input — catches cases where the shift happens
+  //      outside a detected paste (e.g. first focus on a pre-filled input).
+  //   3. 'scroll' listener on the window — catches layout-viewport drift.
+  //   4. visualViewport 'scroll' listener — catches Android's visual-viewport
+  //      pan, which is separate from window.scrollX.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Run a rAF loop for `durationMs` ms, zeroing input scroll each frame. */
+  const startScrollReset = () => {
+    if (resetRafRef.current !== null) cancelAnimationFrame(resetRafRef.current);
+    const deadline = performance.now() + 350;
+    const step = (now: number) => {
+      const inp = inputRef.current;
+      if (inp && inp.scrollLeft !== 0) {
+        inp.scrollLeft = 0;
+        inp.setSelectionRange(0, 0);
+      }
+      if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
+      // Android visual-viewport API — the visual viewport can pan independently
+      // of the layout viewport; offsetLeft is its horizontal shift.
+      const vv = (window as Window & { visualViewport?: { offsetLeft: number } }).visualViewport;
+      if (vv && vv.offsetLeft !== 0) {
+        window.scrollTo(window.scrollX + vv.offsetLeft, window.scrollY);
+      }
+      if (now < deadline) {
+        resetRafRef.current = requestAnimationFrame(step);
+      } else {
+        resetRafRef.current = null;
+      }
+    };
+    resetRafRef.current = requestAnimationFrame(step);
+  };
+
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
 
-    const resetInputScroll = () => {
-      input.scrollLeft = 0;
-      // Some Android browsers shift the viewport when the cursor moves to the
-      // end of a long input. snap window back immediately.
+    // Listener: input scrolled (catches scroll not triggered by paste detection)
+    const onInputScroll = () => {
+      if (input.scrollLeft !== 0) {
+        input.scrollLeft = 0;
+        input.setSelectionRange(0, 0);
+      }
       if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
     };
 
-    const resetWindowHScroll = () => {
+    // Listener: layout-viewport horizontal drift
+    const onWindowScroll = () => {
       if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
     };
 
-    input.addEventListener('scroll', resetInputScroll, { passive: true });
-    window.addEventListener('scroll', resetWindowHScroll, { passive: true });
+    // Listener: visual-viewport pan (Android-specific)
+    const vv = (window as Window & { visualViewport?: EventTarget & { offsetLeft: number } }).visualViewport;
+    const onVVScroll = () => {
+      if (vv && vv.offsetLeft !== 0) {
+        window.scrollTo(window.scrollX + vv.offsetLeft, window.scrollY);
+      }
+      if (window.scrollX !== 0) window.scrollTo(0, window.scrollY);
+    };
+
+    input.addEventListener('scroll', onInputScroll, { passive: true });
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    vv?.addEventListener('scroll', onVVScroll, { passive: true } as AddEventListenerOptions);
+
     return () => {
-      input.removeEventListener('scroll', resetInputScroll);
-      window.removeEventListener('scroll', resetWindowHScroll);
+      input.removeEventListener('scroll', onInputScroll);
+      window.removeEventListener('scroll', onWindowScroll);
+      vv?.removeEventListener('scroll', onVVScroll);
     };
   }, []);
 
@@ -251,16 +301,26 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             value={url}
             onChange={(e) => {
               const newVal = e.target.value;
-              // Large jump in length = Android GBoard paste (fires onChange, not onPaste).
-              // Use flushSync so React renders synchronously, then reset scroll
-              // before the browser gets a chance to paint the shifted layout.
-              if (newVal.length - url.length > 10) {
+              // Detect Android GBoard paste — it fires onChange, not onPaste.
+              // Two signals: native inputType starts with 'insertFromPaste', OR
+              // a large absolute change in length (catches replacing a long URL
+              // with a shorter one, which a simple > 10 check would miss).
+              const nativeInputType = (e.nativeEvent as InputEvent).inputType ?? '';
+              const isPaste =
+                nativeInputType.startsWith('insertFromPaste') ||
+                Math.abs(newVal.length - url.length) > 5;
+              if (isPaste) {
+                // flushSync renders synchronously so we can reset cursor/scroll
+                // BEFORE the browser paints the shifted layout.
                 flushSync(() => { setUrl(newVal); setStatus('idle'); });
                 if (inputRef.current) {
                   inputRef.current.setSelectionRange(0, 0);
                   inputRef.current.scrollLeft = 0;
                   window.scrollTo(0, window.scrollY);
                 }
+                // rAF loop: Android may render a shifted frame BEFORE our JS
+                // runs; keep correcting every frame for 350 ms.
+                startScrollReset();
               } else {
                 setUrl(newVal);
                 setStatus('idle');
@@ -282,7 +342,11 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               if (inputRef.current) {
                 inputRef.current.setSelectionRange(0, 0);
                 inputRef.current.scrollLeft = 0;
+                window.scrollTo(0, window.scrollY);
               }
+              // rAF loop: keep correcting for 350 ms in case the browser
+              // asynchronously scrolls after the paste settles.
+              startScrollReset();
             }}
             placeholder={t('hero.placeholder')}
             className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-[16px] sm:text-sm min-w-0"
