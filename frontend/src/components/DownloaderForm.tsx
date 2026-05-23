@@ -574,6 +574,12 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                     key={i}
                     href={downloadUrl}
                     download
+                    onClick={e => {
+                      const el = e.currentTarget;
+                      const orig = el.innerHTML;
+                      el.innerHTML = '⏳ Starting…';
+                      setTimeout(() => { el.innerHTML = orig; }, 3000);
+                    }}
                     className={`flex-1 min-w-[120px] text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition ${
                       isImg
                         ? 'bg-gradient-to-r from-pink-500 to-rose-500'
@@ -596,6 +602,12 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                   key={i}
                   href={proxyUrl}
                   download
+                  onClick={e => {
+                    const el = e.currentTarget;
+                    const orig = el.innerHTML;
+                    el.innerHTML = '⏳ Starting…';
+                    setTimeout(() => { el.innerHTML = orig; }, 3000);
+                  }}
                   className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30"
                 >
                   🎵 Extract MP3 / Audio
