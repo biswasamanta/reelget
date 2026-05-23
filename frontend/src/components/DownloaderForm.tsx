@@ -72,11 +72,13 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [dlToast, setDlToast] = useState<{ isYT: boolean } | null>(null);
   const dlToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /** Show the download-in-progress toast and auto-hide after 60 s. */
+  /** Show the download-in-progress toast.
+   *  YouTube needs ~10-30 s to prepare → keep for 40 s.
+   *  Everything else starts immediately → dismiss after 6 s. */
   const showDlToast = (isYT: boolean) => {
     if (dlToastTimerRef.current) clearTimeout(dlToastTimerRef.current);
     setDlToast({ isYT });
-    dlToastTimerRef.current = setTimeout(() => setDlToast(null), 60_000);
+    dlToastTimerRef.current = setTimeout(() => setDlToast(null), isYT ? 40_000 : 6_000);
   };
 
   const inputRef = useRef<HTMLInputElement>(null);
