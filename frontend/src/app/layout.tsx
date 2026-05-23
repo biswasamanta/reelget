@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { getLocale } from 'next-intl/server';
-import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
 import PWAManager from '@/components/PWAManager';
 import CookieConsent from '@/components/CookieConsent';
@@ -40,11 +39,12 @@ export default async function RootLayout({
         />
         {/* Plain-text site description for AI crawlers (llms.txt standard) */}
         <link rel="alternate" type="text/plain" title="LLMs.txt" href="/llms.txt" />
-        <Script
+        {/* Plain <script> tag required — Next.js Script component adds data-nscript which AdSense rejects */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308669348522445"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
         />
       </head>
       <body>
