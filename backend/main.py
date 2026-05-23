@@ -850,18 +850,25 @@ def _referer_for(url: str) -> str:
 
 @app.get("/api/download-youtube")
 async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
-    """Extract YouTube CDN URL via yt-dlp (no download) then proxy-stream it immediately.
+    """Stream YouTube video via yt-dlp subprocess piped to stdout.
 
-    This avoids Railway's 30-second response timeout: yt-dlp only fetches metadata
-    (skip_download=True, ~5-10 s), then we start streaming the CDN URL through
-    httpx before the timeout fires.
+    Two-phase approach:
+      1. Fast metadata extraction (Python API, skip_download=True) → title
+      2. yt-dlp subprocess with --output - streams bytes to the client immediately
+
+    Phase 2 starts piping within ~2s of yt-dlp start, so response headers
+    are sent well within Railway's 30-second timeout.
+    Format selector uses progressive (combined A/V) mp4 formats (18=360p, 22=720p)
+    that need no ffmpeg merging and pipe cleanly to stdout.
     """
-    # ── Step 1: Fast metadata extraction ──────────────────────────────────────
+    import sys
+
+    # ── Phase 1: Quick metadata for title ─────────────────────────────────────
     ydl_opts: dict = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
-        "check_formats": False,          # skip per-format HEAD checks (faster)
+        "check_formats": False,
         "extractor_args": {
             "youtube": {
                 "player_client": ["tv_embedded", "ios", "android", "web"],
@@ -889,86 +896,79 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
     try:
         info = await asyncio.wait_for(asyncio.to_thread(_extract), timeout=25)
     except asyncio.TimeoutError:
+        if cookies_file:
+            try: os.unlink(cookies_file)
+            except Exception: pass
         raise HTTPException(status_code=504, detail="YouTube extraction timed out — please try again.")
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Could not extract video: {_clean_error(str(e))}")
-    finally:
         if cookies_file:
-            try:
-                os.unlink(cookies_file)
-            except Exception:
-                pass
+            try: os.unlink(cookies_file)
+            except Exception: pass
+        raise HTTPException(status_code=422, detail=f"Could not extract video: {_clean_error(str(e))}")
 
-    # ── Step 2: Pick the best *combined* (video+audio) format with a CDN URL ──
-    raw_formats = info.get("formats") or []
     title = info.get("title", "youtube_video")
     safe_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or "youtube_video"
 
+    # ── Phase 2: subprocess yt-dlp --output - ─────────────────────────────────
+    # Use progressive (combined A/V) mp4 formats only — they pipe to stdout
+    # without needing ffmpeg to merge separate video/audio streams.
+    #   22 = 720p mp4  (progressive, audio+video)
+    #   18 = 360p mp4  (progressive, audio+video, universal fallback)
     if quality == "audio":
-        fmt = (
-            _pick_format(raw_formats, vcodec=False, acodec=True, ext="m4a")
-            or _pick_format(raw_formats, vcodec=False, acodec=True)
-        )
+        fmt_sel = "bestaudio[ext=m4a]/bestaudio"
         out_ext, media_type = "m4a", "audio/mp4"
     elif quality == "sd":
-        fmt = (
-            _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4", max_height=480)
-            or _pick_format(raw_formats, vcodec=True, acodec=True, max_height=480)
-            or _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4")
-            or _pick_format(raw_formats, vcodec=True, acodec=True)
-        )
+        fmt_sel = "18"           # 360p mp4 progressive
         out_ext, media_type = "mp4", "video/mp4"
-    else:  # hd / default
-        fmt = (
-            _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4")
-            or _pick_format(raw_formats, vcodec=True, acodec=True)
-        )
+    else:                        # hd (default)
+        fmt_sel = "22/18"        # 720p mp4 → 360p mp4 fallback
         out_ext, media_type = "mp4", "video/mp4"
 
-    if not fmt or not fmt.get("url"):
-        raise HTTPException(
-            status_code=422,
-            detail="No suitable combined-stream format found. YouTube may have removed legacy formats for this video.",
-        )
+    cmd = [
+        sys.executable, "-m", "yt_dlp",
+        "--format", fmt_sel,
+        "--output", "-",         # write to stdout
+        "--quiet",
+        "--no-warnings",
+        "--no-part",
+        "--extractor-args", "youtube:player_client=tv_embedded,ios,android,web",
+    ]
+    if PROXY_URL:
+        cmd += ["--proxy", PROXY_URL]
+    if cookies_file:
+        cmd += ["--cookies", cookies_file]
+    cmd.append(url)
 
-    cdn_url: str = fmt["url"]
-    filesize = fmt.get("filesize") or fmt.get("filesize_approx")
-
-    # ── Step 3: Stream CDN URL → client immediately ────────────────────────────
-    _CDN_HEADERS = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Referer": "https://www.youtube.com/",
-        "Origin": "https://www.youtube.com",
-        "Accept-Ranges": "bytes",
-    }
-
-    async def stream_cdn():
-        async with httpx.AsyncClient(
-            follow_redirects=True,
-            timeout=httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0),
-        ) as client:
-            async with client.stream("GET", cdn_url, headers=_CDN_HEADERS) as r:
-                # Non-2xx from CDN → stop silently (client already has headers)
-                if r.status_code not in (200, 206):
-                    return
-                async for chunk in r.aiter_bytes(chunk_size=65536):
-                    yield chunk
-
-    response_headers: dict = {
-        "Content-Disposition": f'attachment; filename="{safe_title}.{out_ext}"',
-        "Cache-Control": "no-store",
-    }
-    if filesize:
-        response_headers["Content-Length"] = str(int(filesize))
+    async def stream_subprocess():
+        proc = None
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            if proc:
+                try: proc.kill()
+                except Exception: pass
+                try: await proc.wait()
+                except Exception: pass
+            if cookies_file:
+                try: os.unlink(cookies_file)
+                except Exception: pass
 
     return StreamingResponse(
-        stream_cdn(),
+        stream_subprocess(),
         media_type=media_type,
-        headers=response_headers,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_title}.{out_ext}"',
+            "Cache-Control": "no-store",
+        },
     )
 
 
