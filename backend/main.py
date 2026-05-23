@@ -846,26 +846,18 @@ def _referer_for(url: str) -> str:
 
 @app.get("/api/download-youtube")
 async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
-    """Download YouTube video server-side via yt-dlp and stream to browser."""
-    safe_filename = re.sub(r'[^\w\-.]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'youtube'
-    tmp_dir = tempfile.mkdtemp()
+    """Extract YouTube CDN URL via yt-dlp (no download) then proxy-stream it immediately.
 
-    if quality == "audio":
-        fmt = "bestaudio[ext=m4a]/bestaudio/best"
-        out_ext = "m4a"
-    elif quality == "sd":
-        fmt = "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best[height<=480]"
-        out_ext = "mp4"
-    else:  # hd
-        fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-        out_ext = "mp4"
-
-    ydl_opts = {
+    This avoids Railway's 30-second response timeout: yt-dlp only fetches metadata
+    (skip_download=True, ~5-10 s), then we start streaming the CDN URL through
+    httpx before the timeout fires.
+    """
+    # ── Step 1: Fast metadata extraction ──────────────────────────────────────
+    ydl_opts: dict = {
         "quiet": True,
         "no_warnings": True,
-        "format": fmt,
-        "outtmpl": os.path.join(tmp_dir, f"{safe_filename}.%(ext)s"),
-        "merge_output_format": out_ext,
+        "skip_download": True,
+        "check_formats": False,          # skip per-format HEAD checks (faster)
         "extractor_args": {
             "youtube": {
                 "player_client": ["tv_embedded", "ios", "android", "web"],
@@ -878,7 +870,7 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
     cookies_file = None
     if YOUTUBE_COOKIES:
         try:
-            tmp_c = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+            tmp_c = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
             tmp_c.write(YOUTUBE_COOKIES)
             tmp_c.close()
             cookies_file = tmp_c.name
@@ -886,15 +878,16 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         except Exception:
             pass
 
-    def _do_download():
+    def _extract():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            return ydl.extract_info(url, download=True)
+            return ydl.extract_info(url, download=False)
 
     try:
-        info = await asyncio.to_thread(_do_download)
-        title = info.get("title", "youtube_video")
+        info = await asyncio.wait_for(asyncio.to_thread(_extract), timeout=25)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="YouTube extraction timed out — please try again.")
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Download failed: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Could not extract video: {_clean_error(str(e))}")
     finally:
         if cookies_file:
             try:
@@ -902,37 +895,76 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
             except Exception:
                 pass
 
-    # Find the actual output file (yt-dlp may adjust extension)
-    candidates = list(Path(tmp_dir).glob(f"*.{out_ext}"))
-    if not candidates:
-        candidates = list(Path(tmp_dir).glob("*.*"))
-    if not candidates:
-        raise HTTPException(status_code=500, detail="Output file not found")
-    actual = str(candidates[0])
+    # ── Step 2: Pick the best *combined* (video+audio) format with a CDN URL ──
+    raw_formats = info.get("formats") or []
+    title = info.get("title", "youtube_video")
+    safe_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or "youtube_video"
 
-    clean_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or safe_filename
-    media_type = "audio/mp4" if quality == "audio" else "video/mp4"
+    if quality == "audio":
+        fmt = (
+            _pick_format(raw_formats, vcodec=False, acodec=True, ext="m4a")
+            or _pick_format(raw_formats, vcodec=False, acodec=True)
+        )
+        out_ext, media_type = "m4a", "audio/mp4"
+    elif quality == "sd":
+        fmt = (
+            _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4", max_height=480)
+            or _pick_format(raw_formats, vcodec=True, acodec=True, max_height=480)
+            or _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4")
+            or _pick_format(raw_formats, vcodec=True, acodec=True)
+        )
+        out_ext, media_type = "mp4", "video/mp4"
+    else:  # hd / default
+        fmt = (
+            _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4")
+            or _pick_format(raw_formats, vcodec=True, acodec=True)
+        )
+        out_ext, media_type = "mp4", "video/mp4"
 
-    def iterfile():
-        try:
-            with open(actual, "rb") as f:
-                while chunk := f.read(65536):
+    if not fmt or not fmt.get("url"):
+        raise HTTPException(
+            status_code=422,
+            detail="No suitable combined-stream format found. YouTube may have removed legacy formats for this video.",
+        )
+
+    cdn_url: str = fmt["url"]
+    filesize = fmt.get("filesize") or fmt.get("filesize_approx")
+
+    # ── Step 3: Stream CDN URL → client immediately ────────────────────────────
+    _CDN_HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Referer": "https://www.youtube.com/",
+        "Origin": "https://www.youtube.com",
+        "Accept-Ranges": "bytes",
+    }
+
+    async def stream_cdn():
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0),
+        ) as client:
+            async with client.stream("GET", cdn_url, headers=_CDN_HEADERS) as r:
+                # Non-2xx from CDN → stop silently (client already has headers)
+                if r.status_code not in (200, 206):
+                    return
+                async for chunk in r.aiter_bytes(chunk_size=65536):
                     yield chunk
-        finally:
-            try:
-                os.unlink(actual)
-                os.rmdir(tmp_dir)
-            except Exception:
-                pass
 
-    file_size = os.path.getsize(actual)
+    response_headers: dict = {
+        "Content-Disposition": f'attachment; filename="{safe_title}.{out_ext}"',
+        "Cache-Control": "no-store",
+    }
+    if filesize:
+        response_headers["Content-Length"] = str(int(filesize))
+
     return StreamingResponse(
-        iterfile(),
+        stream_cdn(),
         media_type=media_type,
-        headers={
-            "Content-Disposition": f'attachment; filename="{clean_title}.{out_ext}"',
-            "Content-Length": str(file_size),
-        },
+        headers=response_headers,
     )
 
 
