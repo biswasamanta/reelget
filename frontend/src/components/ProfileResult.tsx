@@ -64,7 +64,7 @@ export default function ProfileResult({
           <button
             key={`${video.id}-${i}`}
             onClick={() => onSelectVideo(video.url)}
-            className="group relative bg-white hover:bg-gray-50 transition"
+            className="group relative bg-white hover:bg-gray-50 transition cursor-pointer"
             title={video.title}
           >
             <div className="relative aspect-square overflow-hidden bg-gray-200">

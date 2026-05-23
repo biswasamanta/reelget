@@ -455,7 +455,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <button
           onClick={handleDownload}
           disabled={status === 'loading'}
-          className="btn-shimmer text-white font-black px-7 py-3 rounded-xl transition disabled:opacity-60 text-sm whitespace-nowrap animate-glow tracking-wide"
+          className="btn-shimmer text-white font-black px-7 py-3 rounded-xl transition disabled:opacity-60 text-sm whitespace-nowrap animate-glow tracking-wide cursor-pointer"
         >
           {status === 'loading' ? '...' : t('hero.button')}
         </button>
@@ -580,7 +580,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                       el.innerHTML = '⏳ Starting…';
                       setTimeout(() => { el.innerHTML = orig; }, 3000);
                     }}
-                    className={`flex-1 min-w-[120px] text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition ${
+                    className={`flex-1 min-w-[120px] text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition cursor-pointer ${
                       isImg
                         ? 'bg-gradient-to-r from-pink-500 to-rose-500'
                         : 'bg-gradient-to-r from-teal-500 to-cyan-500'
@@ -608,7 +608,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                     el.innerHTML = '⏳ Starting…';
                     setTimeout(() => { el.innerHTML = orig; }, 3000);
                   }}
-                  className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30"
+                  className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30 cursor-pointer"
                 >
                   🎵 Extract MP3 / Audio
                 </a>
