@@ -606,10 +606,14 @@ async def trending_now(category: str = Query("all")):
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
 def _clean_error(msg: str) -> str:
-    """Strip ANSI colour codes and yt-dlp ERROR prefix from error strings."""
+    """Strip ANSI colour codes, carriage returns, and yt-dlp prefixes from error strings."""
     msg = _ANSI_RE.sub('', str(msg))
-    msg = re.sub(r'^ERROR:\s*', '', msg).strip()
-    return msg
+    msg = msg.replace('\r', ' ')                        # carriage returns → space
+    msg = re.sub(r'\s+', ' ', msg)                      # collapse whitespace
+    msg = re.sub(r'^(ERROR|WARNING):\s*', '', msg)      # strip yt-dlp prefix
+    # Also remove progress noise like "[download] Got error: "
+    msg = re.sub(r'\[download\]\s*Got error:\s*', '', msg)
+    return msg.strip()
 
 
 # ─── Playlist endpoint ────────────────────────────────────────────────────────
