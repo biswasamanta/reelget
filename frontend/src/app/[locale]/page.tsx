@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import DownloaderForm from '@/components/DownloaderForm';
+import YouTubeNotice from '@/components/YouTubeNotice';
 import HowToSection from '@/components/HowToSection';
 import FaqSection from '@/components/FaqSection';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -132,6 +133,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             {t('hero.subtitle')}
           </p>
 
+          <YouTubeNotice />
           <DownloaderForm locale={locale} />
 
           {/* Language quick-switch */}
