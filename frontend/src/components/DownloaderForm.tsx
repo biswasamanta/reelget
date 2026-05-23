@@ -69,6 +69,16 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [transcriptStatus, setTranscriptStatus] = useState<'idle' | 'loading' | 'done' | 'unavailable'>('idle');
   const [showTranscript, setShowTranscript] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [dlToast, setDlToast] = useState<{ isYT: boolean } | null>(null);
+  const dlToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Show the download-in-progress toast and auto-hide after 60 s. */
+  const showDlToast = (isYT: boolean) => {
+    if (dlToastTimerRef.current) clearTimeout(dlToastTimerRef.current);
+    setDlToast({ isYT });
+    dlToastTimerRef.current = setTimeout(() => setDlToast(null), 60_000);
+  };
+
   const inputRef = useRef<HTMLInputElement>(null);
   const resetRafRef = useRef<number | null>(null);
   // Set to true in paste handlers to prevent onFocus from overriding cursor placement.
@@ -574,12 +584,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                     key={i}
                     href={downloadUrl}
                     download
-                    onClick={e => {
-                      const el = e.currentTarget;
-                      const orig = el.innerHTML;
-                      el.innerHTML = '⏳ Starting…';
-                      setTimeout(() => { el.innerHTML = orig; }, 3000);
-                    }}
+                    onClick={() => showDlToast(isYouTube)}
                     className={`flex-1 min-w-[120px] text-white text-center font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition cursor-pointer ${
                       isImg
                         ? 'bg-gradient-to-r from-pink-500 to-rose-500'
@@ -602,12 +607,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                   key={i}
                   href={proxyUrl}
                   download
-                  onClick={e => {
-                    const el = e.currentTarget;
-                    const orig = el.innerHTML;
-                    el.innerHTML = '⏳ Starting…';
-                    setTimeout(() => { el.innerHTML = orig; }, 3000);
-                  }}
+                  onClick={() => showDlToast(isYouTubeAudio)}
                   className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30 cursor-pointer"
                 >
                   🎵 Extract MP3 / Audio
@@ -794,6 +794,40 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Download progress toast ───────────────────────────────────────── */}
+      {dlToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm pointer-events-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-4 flex flex-col gap-3">
+            {/* Header row */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl shrink-0">⬇</span>
+                <div>
+                  <p className="text-white text-sm font-semibold leading-snug">
+                    {dlToast.isYT ? 'Preparing your video…' : 'Download in progress'}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-snug">
+                    {dlToast.isYT
+                      ? 'YouTube videos take 10–30 s to prepare — please wait.'
+                      : 'Your file will appear in Downloads shortly.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setDlToast(null); if (dlToastTimerRef.current) clearTimeout(dlToastTimerRef.current); }}
+                className="text-slate-500 hover:text-slate-300 transition shrink-0 text-lg leading-none mt-0.5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            {/* Indeterminate progress bar */}
+            <div className="h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full w-2/5 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full animate-dl-progress" />
+            </div>
+          </div>
         </div>
       )}
     </div>

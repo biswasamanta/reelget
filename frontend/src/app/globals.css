@@ -72,6 +72,13 @@ input, textarea, select {
   100% { background-position: 200% center; }
 }
 
+@keyframes dl-progress {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(150%); }
+  100% { transform: translateX(400%); }
+}
+.animate-dl-progress { animation: dl-progress 1.6s ease-in-out infinite; }
+
 .animate-blob       { animation: blob 7s infinite ease-in-out; }
 .animation-delay-2  { animation-delay: 2s; }
 .animation-delay-4  { animation-delay: 4s; }
