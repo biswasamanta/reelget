@@ -745,10 +745,17 @@ async def get_profile(url: str = Query(...)):
 
     entries = info.get("entries") or []
     videos = []
-    for entry in entries[:30]:
+    seen_ids: set = set()
+    for entry in entries[:60]:  # scan more to get 30 unique
         if not entry:
             continue
         vid_id = entry.get("id") or ""
+        if vid_id and vid_id in seen_ids:
+            continue
+        if vid_id:
+            seen_ids.add(vid_id)
+        if len(videos) >= 30:
+            break
         thumb = entry.get("thumbnail") or ""
         if not thumb and not is_instagram and vid_id:
             thumb = f"https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg"

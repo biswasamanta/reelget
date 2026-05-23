@@ -60,9 +60,9 @@ export default function ProfileResult({
 
       {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-gray-100">
-        {data.videos.map(video => (
+        {data.videos.map((video, i) => (
           <button
-            key={video.id}
+            key={`${video.id}-${i}`}
             onClick={() => onSelectVideo(video.url)}
             className="group relative bg-white hover:bg-gray-50 transition"
             title={video.title}
