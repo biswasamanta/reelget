@@ -4,6 +4,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['127.0.0.1', '192.168.86.229'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.cdninstagram.com' },
@@ -13,14 +14,8 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // Static assets — cache for 1 year in browser + CDN (immutable hashed filenames)
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
       // All pages — cache at Vercel CDN for 1 hour, serve stale for 24h while revalidating
+      // Note: /_next/static is intentionally excluded — Next.js manages those headers internally
       {
         source: '/:path*',
         headers: [

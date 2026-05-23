@@ -27,7 +27,9 @@ self.addEventListener('fetch', (e) => {
     caches.match(request).then((cached) => {
       const network = fetch(request).then((res) => {
         if (res.ok) {
-          caches.open(CACHE).then((c) => c.put(request, res.clone()));
+          // Clone BEFORE any async work — once res is returned the body may be consumed
+          const resClone = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, resClone));
         }
         return res;
       });

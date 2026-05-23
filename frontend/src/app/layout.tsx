@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { getLocale } from 'next-intl/server';
 import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
@@ -11,13 +11,16 @@ export const metadata: Metadata = {
     'google-adsense-account': 'ca-pub-2308669348522445',
     'google-site-verification': 'Lpygbm0p0QCOxQEXXDDehWNTCwJkvRh4FdsDCbc8dqI',
   },
-  themeColor: '#22d3ee',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'ReelGet',
   },
   formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#22d3ee',
 };
 
 const RTL_LOCALES = ['ar', 'ur'];

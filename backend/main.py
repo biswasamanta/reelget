@@ -35,7 +35,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:3001,https://reelget.com,https://www.reelget.com"
+    "http://localhost:3000,http://localhost:3001,http://192.168.86.229:3000,http://192.168.86.229:3001,https://reelget.com,https://www.reelget.com"
 ).split(",")
 
 app.add_middleware(
@@ -603,6 +603,176 @@ async def trending_now(category: str = Query("all")):
     return result
 
 
+_ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
+
+def _clean_error(msg: str) -> str:
+    """Strip ANSI colour codes and yt-dlp ERROR prefix from error strings."""
+    msg = _ANSI_RE.sub('', str(msg))
+    msg = re.sub(r'^ERROR:\s*', '', msg).strip()
+    return msg
+
+
+# ─── Playlist endpoint ────────────────────────────────────────────────────────
+
+_PLAYLIST_PATTERN = re.compile(
+    r"youtube\.com/(playlist|watch)\?.*list=|youtu\.be/.*\?.*list="
+)
+
+@app.get("/api/playlist")
+async def get_playlist(url: str = Query(...)):
+    """Return metadata + up to 50 video stubs for a YouTube playlist."""
+    if not _PLAYLIST_PATTERN.search(url):
+        raise HTTPException(status_code=400, detail="Only YouTube playlist URLs are supported.")
+
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "playlistend": 50,
+        "socket_timeout": 15,
+        "extractor_args": {
+            "youtube": {"player_client": ["tv_embedded", "web"]},
+        },
+    }
+
+    def _extract():
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            return ydl.extract_info(url, download=False)
+
+    try:
+        info = await asyncio.wait_for(asyncio.to_thread(_extract), timeout=45)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Request timed out. The playlist may be too large or YouTube is slow.")
+    except yt_dlp.utils.DownloadError as e:
+        raise HTTPException(status_code=422, detail=_clean_error(str(e)))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=_clean_error(f"Could not fetch playlist: {e}"))
+
+    entries = info.get("entries") or []
+    items = []
+    for entry in entries[:50]:
+        if not entry:
+            continue
+        vid_id = entry.get("id") or ""
+        thumb = (
+            entry.get("thumbnail")
+            or (f"https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg" if vid_id else "")
+        )
+        items.append({
+            "id": vid_id,
+            "title": entry.get("title") or "Untitled",
+            "thumbnail": thumb,
+            "url": entry.get("url") or f"https://www.youtube.com/watch?v={vid_id}",
+            "duration": entry.get("duration"),
+            "uploader": entry.get("uploader") or entry.get("channel") or "",
+        })
+
+    return {
+        "title": info.get("title") or "Playlist",
+        "thumbnail": info.get("thumbnail") or "",
+        "uploader": info.get("uploader") or info.get("channel") or "",
+        "total": len(items),
+        "items": items,
+    }
+
+
+# ─── Profile endpoint ─────────────────────────────────────────────────────────
+
+_PROFILE_PATTERN = re.compile(
+    r"instagram\.com/(?!p/|reel/|stories/)([^/?#]+)/?$"
+    r"|youtube\.com/(@[^/?#]+|c/[^/?#]+|user/[^/?#]+|channel/[^/?#]+)"
+)
+
+@app.get("/api/profile")
+async def get_profile(url: str = Query(...)):
+    """Return recent public videos from an Instagram profile or YouTube channel."""
+    # Allow bare @handle or username → normalise to Instagram URL
+    raw = url.strip()
+    if not raw.startswith("http"):
+        handle = raw.lstrip("@")
+        raw = f"https://www.instagram.com/{handle}/"
+
+    if not _PROFILE_PATTERN.search(raw):
+        raise HTTPException(
+            status_code=400,
+            detail="Enter an Instagram profile URL or YouTube channel URL.",
+        )
+
+    is_instagram = "instagram.com" in raw
+    ydl_opts: dict = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "playlistend": 30,
+        "socket_timeout": 15,
+        "extractor_args": {
+            "youtube": {"player_client": ["tv_embedded", "web"]},
+        },
+    }
+
+    # Attach cookies for Instagram when available
+    cookies_file = None
+    if is_instagram:
+        cookie_content = INSTAGRAM_COOKIES or COOKIES or ""
+        if cookie_content:
+            try:
+                tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+                tmp.write(cookie_content)
+                tmp.close()
+                cookies_file = tmp.name
+                ydl_opts["cookiefile"] = cookies_file
+            except Exception:
+                pass
+
+    def _extract():
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            return ydl.extract_info(raw, download=False)
+
+    try:
+        info = await asyncio.wait_for(asyncio.to_thread(_extract), timeout=45)
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Request timed out. The profile may be private or YouTube is slow.")
+    except yt_dlp.utils.DownloadError as e:
+        raise HTTPException(status_code=422, detail=_clean_error(str(e)))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=_clean_error(f"Could not fetch profile: {e}"))
+    finally:
+        if cookies_file:
+            try:
+                os.unlink(cookies_file)
+            except Exception:
+                pass
+
+    entries = info.get("entries") or []
+    videos = []
+    for entry in entries[:30]:
+        if not entry:
+            continue
+        vid_id = entry.get("id") or ""
+        thumb = entry.get("thumbnail") or ""
+        if not thumb and not is_instagram and vid_id:
+            thumb = f"https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg"
+        vid_url = entry.get("url") or entry.get("webpage_url") or ""
+        if not vid_url and not is_instagram and vid_id:
+            vid_url = f"https://www.youtube.com/watch?v={vid_id}"
+        videos.append({
+            "id": vid_id,
+            "title": entry.get("title") or "Untitled",
+            "thumbnail": thumb,
+            "url": vid_url,
+            "duration": entry.get("duration"),
+        })
+
+    platform = "Instagram" if is_instagram else "YouTube"
+    return {
+        "platform": platform,
+        "name": info.get("uploader") or info.get("channel") or info.get("title") or "",
+        "thumbnail": info.get("thumbnail") or "",
+        "total": len(videos),
+        "videos": videos,
+    }
+
+
 def _effective_height(f: dict) -> int:
     h = f.get("height")
     if h:
@@ -666,6 +836,98 @@ def _referer_for(url: str) -> str:
     if "snapchat" in url:
         return "https://www.snapchat.com/"
     return "https://www.youtube.com/"
+
+@app.get("/api/download-youtube")
+async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
+    """Download YouTube video server-side via yt-dlp and stream to browser."""
+    safe_filename = re.sub(r'[^\w\-.]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'youtube'
+    tmp_dir = tempfile.mkdtemp()
+
+    if quality == "audio":
+        fmt = "bestaudio[ext=m4a]/bestaudio/best"
+        out_ext = "m4a"
+    elif quality == "sd":
+        fmt = "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best[height<=480]"
+        out_ext = "mp4"
+    else:  # hd
+        fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        out_ext = "mp4"
+
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "format": fmt,
+        "outtmpl": os.path.join(tmp_dir, f"{safe_filename}.%(ext)s"),
+        "merge_output_format": out_ext,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["tv_embedded", "ios", "android", "web"],
+            }
+        },
+    }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
+
+    cookies_file = None
+    if YOUTUBE_COOKIES:
+        try:
+            tmp_c = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+            tmp_c.write(YOUTUBE_COOKIES)
+            tmp_c.close()
+            cookies_file = tmp_c.name
+            ydl_opts["cookiefile"] = cookies_file
+        except Exception:
+            pass
+
+    def _do_download():
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            return ydl.extract_info(url, download=True)
+
+    try:
+        info = await asyncio.to_thread(_do_download)
+        title = info.get("title", "youtube_video")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Download failed: {str(e)}")
+    finally:
+        if cookies_file:
+            try:
+                os.unlink(cookies_file)
+            except Exception:
+                pass
+
+    # Find the actual output file (yt-dlp may adjust extension)
+    candidates = list(Path(tmp_dir).glob(f"*.{out_ext}"))
+    if not candidates:
+        candidates = list(Path(tmp_dir).glob("*.*"))
+    if not candidates:
+        raise HTTPException(status_code=500, detail="Output file not found")
+    actual = str(candidates[0])
+
+    clean_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or safe_filename
+    media_type = "audio/mp4" if quality == "audio" else "video/mp4"
+
+    def iterfile():
+        try:
+            with open(actual, "rb") as f:
+                while chunk := f.read(65536):
+                    yield chunk
+        finally:
+            try:
+                os.unlink(actual)
+                os.rmdir(tmp_dir)
+            except Exception:
+                pass
+
+    file_size = os.path.getsize(actual)
+    return StreamingResponse(
+        iterfile(),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{clean_title}.{out_ext}"',
+            "Content-Length": str(file_size),
+        },
+    )
+
 
 @app.get("/api/download-tiktok")
 async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):

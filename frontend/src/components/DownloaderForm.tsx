@@ -6,6 +6,10 @@ import { useTranslations } from 'next-intl';
 import ImageCompressor from './ImageCompressor';
 import LinkHelpGuide from './LinkHelpGuide';
 import AdSlot from './AdSlot';
+import PlaylistResult, { type PlaylistData } from './PlaylistResult';
+import ProfileResult, { type ProfileData } from './ProfileResult';
+
+type DownloadMode = 'single' | 'profile' | 'playlist';
 
 type DownloadResult = {
   title: string;
@@ -50,9 +54,12 @@ const HISTORY_KEY = 'rg_history';
 
 export default function DownloaderForm({ locale }: { locale: string }) {
   const t = useTranslations();
+  const [mode, setMode] = useState<DownloadMode>('single');
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<DownloadResult | null>(null);
+  const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -187,9 +194,53 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const isValidUrl = (val: string) =>
     /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|threads\.net/.test(val);
 
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+  const switchMode = (m: DownloadMode) => {
+    setMode(m);
+    setUrl('');
+    setStatus('idle');
+    setResult(null);
+    setPlaylistData(null);
+    setProfileData(null);
+  };
+
   async function handleDownload() {
     const trimmed = url.trim();
     if (!trimmed) return;
+
+    if (mode === 'playlist') {
+      setStatus('loading');
+      setPlaylistData(null);
+      try {
+        const res = await fetch(`${apiBase}/api/playlist?url=${encodeURIComponent(trimmed)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Could not fetch playlist');
+        setPlaylistData(data);
+        setStatus('success');
+      } catch (e: unknown) {
+        setStatus('error');
+        setErrorMsg(e instanceof Error ? e.message : 'Could not fetch playlist. Check the URL and try again.');
+      }
+      return;
+    }
+
+    if (mode === 'profile') {
+      setStatus('loading');
+      setProfileData(null);
+      try {
+        const res = await fetch(`${apiBase}/api/profile?url=${encodeURIComponent(trimmed)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Could not fetch profile');
+        setProfileData(data);
+        setStatus('success');
+      } catch (e: unknown) {
+        setStatus('error');
+        setErrorMsg(e instanceof Error ? e.message : 'Could not fetch profile. Make sure it\'s a public account.');
+      }
+      return;
+    }
+
     if (!isValidUrl(trimmed)) {
       setStatus('error');
       setErrorMsg(t('result.invalid_url'));
@@ -234,7 +285,6 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       setTranscript(null);
       setTranscriptStatus('loading');
       setShowTranscript(false);
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       fetch(`${apiBase}/api/transcript?url=${encodeURIComponent(trimmed)}`)
         .then(r => r.json())
         .then(td => {
@@ -293,8 +343,37 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     }
   }
 
+  const modePlaceholder =
+    mode === 'playlist'
+      ? 'Paste a YouTube playlist URL…'
+      : mode === 'profile'
+      ? 'Paste an Instagram or YouTube channel URL…'
+      : t('hero.placeholder');
+
   return (
     <div className="w-full">
+      {/* Mode tabs */}
+      <div className="flex gap-1.5 mb-3 justify-center">
+        {([
+          { id: 'single',   label: '📥 Video',    title: 'Download a single video' },
+          { id: 'profile',  label: '👤 Profile',  title: 'Download recent videos from an Instagram or YouTube profile' },
+          { id: 'playlist', label: '📋 Playlist', title: 'Download videos from a YouTube playlist' },
+        ] as { id: DownloadMode; label: string; title: string }[]).map(m => (
+          <button
+            key={m.id}
+            title={m.title}
+            onClick={() => switchMode(m.id)}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              mode === m.id
+                ? 'bg-white text-slate-800 shadow-md'
+                : 'text-white/60 hover:text-white/90'
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
       {/* Input row */}
       <div className="flex flex-col sm:flex-row gap-2 bg-white rounded-2xl p-2 shadow-xl">
         {/* Input + clear/paste — always on one row */}
@@ -344,7 +423,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               flushSync(() => { setUrl(pasted); setStatus('idle'); });
               resetCursorToStart();
             }}
-            placeholder={t('hero.placeholder')}
+            placeholder={modePlaceholder}
             className="flex-1 px-4 py-3 text-gray-800 outline-none rounded-xl text-[16px] sm:text-sm min-w-0"
             dir="ltr"
           />
@@ -399,6 +478,17 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-medium">▶️ YouTube — public only</span>
       </div>
 
+      {/* Telegram bot hint — only shown in single-video mode */}
+      {mode === 'single' && (
+        <p className="text-center text-white/30 text-xs mt-3">
+          🤖 Also on Telegram:{' '}
+          <a href="https://t.me/ReelGetBot" target="_blank" rel="noopener noreferrer" className="text-cyan-400/70 hover:text-cyan-300 transition">
+            @ReelGetBot
+          </a>
+          {' '}— send any URL, get download links instantly
+        </p>
+      )}
+
       {/* Link help guide */}
       <LinkHelpGuide />
 
@@ -422,6 +512,25 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             Try again
           </button>
         </div>
+      )}
+
+      {/* Playlist result */}
+      {status === 'success' && playlistData && (
+        <PlaylistResult data={playlistData} apiBase={apiBase} />
+      )}
+
+      {/* Profile result */}
+      {status === 'success' && profileData && (
+        <ProfileResult
+          data={profileData}
+          apiBase={apiBase}
+          onSelectVideo={(videoUrl) => {
+            switchMode('single');
+            setUrl(videoUrl);
+            // Small delay lets the mode switch render before download starts
+            setTimeout(handleDownload, 50);
+          }}
+        />
       )}
 
       {status === 'success' && result && (
@@ -451,12 +560,14 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             {/* Video / Image formats row */}
             <div className="flex flex-wrap gap-3">
               {result.formats.filter(f => !f.label.toLowerCase().includes('audio')).map((fmt, i) => {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                 const isTikTok = /tiktok\.com|vm\.tiktok\.com/.test(url);
+                const isYouTube = /youtube\.com|youtu\.be/.test(url);
                 const quality = fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd';
                 const isImg = isImageExt(fmt.ext);
                 const downloadUrl = isTikTok
                   ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${quality}`
+                  : isYouTube
+                  ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(url)}&quality=${quality}`
                   : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
                 return (
                   <a
@@ -476,8 +587,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             </div>
             {/* Audio / MP3 row — distinct style */}
             {result.formats.filter(f => f.label.toLowerCase().includes('audio')).map((fmt, i) => {
-              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-              const proxyUrl = `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
+              const isYouTubeAudio = /youtube\.com|youtu\.be/.test(url);
+              const proxyUrl = isYouTubeAudio
+                ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(url)}&quality=audio`
+                : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
               return (
                 <a
                   key={i}
@@ -539,7 +652,6 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             {(() => {
               const ytId = getYouTubeVideoId(url);
               if (!ytId) return null;
-              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
               const thumbs = [
                 { label: 'HD  1280×720', key: 'maxresdefault' },
                 { label: 'HQ  480×360',  key: 'hqdefault'     },
