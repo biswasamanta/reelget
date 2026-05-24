@@ -933,12 +933,12 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         "--output", stdout_target,
         "--no-part",
         "--geo-bypass",
-        # Use web client only — tv_embedded is unsupported, ios requires GVS PO Token
-        # (would 403), android is SABR-only (URLs missing). web works and deno
-        # (installed via nixpacks) solves its n-challenge on Railway's server IP.
+        # web client only — tv_embedded unsupported, ios needs GVS PO Token, android is SABR-only
         "--extractor-args", "youtube:player_client=web",
-        # No --proxy: the HTTP proxy (port 80) cannot tunnel HTTPS CDN video
-        # streams. Railway's direct IP + deno n-solver handles the download.
+        # Activate the deno-based EJS n-challenge solver (deno installed via nixpacks).
+        # Without this flag yt-dlp won't use the EJS script even if deno is in PATH.
+        # The script is downloaded from GitHub once then cached in ~/.cache/yt-dlp/.
+        "--remote-components", "ejs:github",
     ]
     if cookies_file:
         cmd += ["--cookies", cookies_file]
