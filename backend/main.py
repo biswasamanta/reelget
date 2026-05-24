@@ -634,32 +634,34 @@ def _extract_youtube_id(url: str) -> str:
 
 
 def _make_sticky_proxy(proxy_url: str) -> str:
-    """Convert a rotating Webshare proxy URL to a sticky-session URL.
+    """Convert a Webshare rotating proxy URL to a sticky-session URL.
 
     Webshare rotating format: http://user-rotate:pass@p.webshare.io:80
-    Webshare sticky format:   http://user-session-XXXXXXXX:pass@p.webshare.io:80
+    Webshare sticky format:   http://user-NNNNN:pass@p.webshare.io:80
+                                           ^^^^^
+                              numeric session ID — NOT a string like "session-xxx"
 
-    The -rotate suffix is replaced (not appended to) with -session-ID.
-    All TCP connections with the same session ID share the same egress IP,
-    so the YouTube CDN URL (IP-bound to extraction IP) stays valid for download.
+    The -rotate mode suffix is stripped and replaced with a random integer.
+    All connections sharing the same numeric ID are routed through the same
+    egress residential IP, so the CDN URL (signed to extraction IP) stays valid.
     """
     if not proxy_url:
         return proxy_url
     import random
-    import string
     try:
         from urllib.parse import urlparse, urlunparse
         parsed = urlparse(proxy_url)
-        session_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-        # Strip the -rotate (or -res / -residential) mode suffix before adding -session-ID
+        session_id = random.randint(10000, 99999)
+        # Strip Webshare mode suffixes (-rotate, -res, -residential) then append numeric ID
         base_user = re.sub(r'-(rotate|res|residential)$', '', parsed.username, flags=re.IGNORECASE)
-        sticky_user = f"{base_user}-session-{session_id}"
+        sticky_user = f"{base_user}-{session_id}"
         netloc = f"{sticky_user}:{parsed.password}@{parsed.hostname}:{parsed.port}"
         result = urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
-        print(f"[proxy] sticky user: {sticky_user} → host: {parsed.hostname}:{parsed.port}", flush=True)
+        print(f"[proxy] sticky: {sticky_user} @ {parsed.hostname}:{parsed.port}", flush=True)
         return result
-    except Exception:
-        return proxy_url  # fallback to original if parsing fails
+    except Exception as exc:
+        print(f"[proxy] sticky build failed: {exc}", flush=True)
+        return proxy_url
 
 
 # ─── Playlist endpoint ────────────────────────────────────────────────────────
@@ -896,20 +898,17 @@ def _referer_for(url: str) -> str:
 
 @app.get("/api/download-youtube")
 async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
-    """Stream YouTube video using the yt-dlp Python API writing to a temp file.
+    """Stream YouTube video via yt-dlp subprocess piped to stdout.
 
-    Uses a single YoutubeDL session for both extraction AND CDN download so
-    that urllib's internal connection pool can reuse the same TCP tunnel to the
-    rotating proxy.  Reusing the tunnel keeps the same egress IP for both the
-    YouTube API request (which signs the CDN URL to that IP) and the subsequent
-    CDN download — avoiding the 403 that a subprocess (separate process/pool)
-    caused when it got a different egress IP from the rotating proxy.
+    Uses a sticky-session proxy (Webshare format: username-NNNNN) so that every
+    TCP CONNECT tunnel inside the subprocess — YouTube extraction AND CDN download
+    — exits through the same residential IP.  The CDN URL is IP-bound to the
+    extraction IP, so a matching download IP is required to avoid HTTP 403.
 
-    The download runs in a background thread writing to a temp file.  We start
-    streaming from that file immediately so HTTP response headers land within
-    milliseconds and Railway's 30-second idle timeout is never triggered.
+    Format selector uses progressive (combined A/V) mp4 formats (18=360p, 22=720p)
+    that need no ffmpeg merging and pipe cleanly to stdout.
     """
-    import threading
+    import sys
 
     safe_title = _extract_youtube_id(url)
 
@@ -923,7 +922,6 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         fmt_sel = "22/18"
         out_ext, media_type = "mp4", "video/mp4"
 
-    # Cookies file
     cookies_file = None
     if YOUTUBE_COOKIES:
         try:
@@ -934,95 +932,82 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         except Exception:
             pass
 
-    # Dedicated temp dir so we always know the output path
-    out_dir = tempfile.mkdtemp(prefix="ytdl_")
-    out_path = os.path.join(out_dir, f"video.{out_ext}")
+    # Sticky session: same numeric ID → same Webshare egress IP for all connections
+    sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
 
-    done_event = threading.Event()
-    error_holder: list[str] = []
+    stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
 
-    ydl_opts: dict = {
-        "format": fmt_sel,
-        "outtmpl": out_path,
-        "quiet": True,
-        "no_warnings": True,
-        "noprogress": True,
-        "no_part": True,        # write directly to out_path, no .part rename
-        "check_formats": False,
-        "socket_timeout": 20,
-        "extractor_args": {"youtube": {"player_client": ["web"]}},
-    }
-    if PROXY_URL:
-        ydl_opts["proxy"] = PROXY_URL
-        print(f"[proxy] yt_dlp API via {PROXY_URL.split('@')[-1]}", flush=True)
+    cmd = [
+        sys.executable, "-m", "yt_dlp",
+        "--format", fmt_sel,
+        "--output", stdout_target,
+        "--no-part",
+        "--no-progress",
+        "--socket-timeout", "20",
+        "--extractor-args", "youtube:player_client=web",
+    ]
+    if sticky_proxy:
+        cmd += ["--proxy", sticky_proxy]
     if cookies_file:
-        ydl_opts["cookiefile"] = cookies_file
+        cmd += ["--cookies", cookies_file]
+    cmd.append(url)
+    print(f"[download-youtube] cmd proxy={sticky_proxy.split('@')[-1] if sticky_proxy else 'none'} url={url}", flush=True)
 
-    print(f"[download-youtube] API download start: {url}", flush=True)
-
-    def _run():
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-            print("[download-youtube] yt_dlp finished OK", flush=True)
-        except Exception as exc:
-            msg = _clean_error(str(exc))
-            error_holder.append(msg)
-            print(f"[download-youtube] yt_dlp error: {msg}", flush=True)
-        finally:
-            done_event.set()
-
-    threading.Thread(target=_run, daemon=True).start()
-
-    async def stream_tempfile():
-        loop = asyncio.get_event_loop()
+    async def stream_subprocess():
+        proc = None
         bytes_sent = 0
-
-        # Wait up to 25 s for yt_dlp to start writing bytes
-        deadline = loop.time() + 25
-        while loop.time() < deadline:
-            try:
-                sz = os.path.getsize(out_path)
-            except OSError:
-                sz = 0
-            if sz > 0 or done_event.is_set():
-                break
-            await asyncio.sleep(0.5)
-
-        # Stream from temp file while yt_dlp keeps writing
         try:
-            with open(out_path, "rb") as f:
-                while True:
-                    chunk = await loop.run_in_executor(None, lambda: f.read(65536))
-                    if chunk:
-                        bytes_sent += len(chunk)
-                        yield chunk
-                    elif done_event.is_set():
-                        break
-                    else:
-                        await asyncio.sleep(0.1)
-        except FileNotFoundError:
-            pass  # yt_dlp failed before creating the file
-        finally:
-            print(f"[download-youtube] sent {bytes_sent} bytes for {url}", flush=True)
-            if error_holder:
-                print(f"[download-youtube] last error: {error_holder[-1]}", flush=True)
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
             try:
-                os.unlink(out_path)
-            except Exception:
-                pass
-            try:
-                os.rmdir(out_dir)
-            except Exception:
-                pass
-            if cookies_file:
+                first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=25)
+            except asyncio.TimeoutError:
+                first_chunk = b""
+
+            if not first_chunk:
                 try:
-                    os.unlink(cookies_file)
+                    stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                    stderr_text = stderr_bytes.decode(errors="replace").strip()
+                    if stderr_text:
+                        print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
                 except Exception:
                     pass
+                print(f"[download-youtube] 0 bytes for {url}", flush=True)
+                return
+
+            yield first_chunk
+            bytes_sent += len(first_chunk)
+
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+                bytes_sent += len(chunk)
+                yield chunk
+
+            try:
+                stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                stderr_text = stderr_bytes.decode(errors="replace").strip()
+                if stderr_text:
+                    print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
+            except Exception:
+                pass
+        finally:
+            print(f"[download-youtube] sent {bytes_sent} bytes for {url}", flush=True)
+            if proc:
+                try: proc.kill()
+                except Exception: pass
+                try: await proc.wait()
+                except Exception: pass
+            if cookies_file:
+                try: os.unlink(cookies_file)
+                except Exception: pass
 
     return StreamingResponse(
-        stream_tempfile(),
+        stream_subprocess(),
         media_type=media_type,
         headers={
             "Content-Disposition": f'attachment; filename="{safe_title}.{out_ext}"',
