@@ -636,11 +636,12 @@ def _extract_youtube_id(url: str) -> str:
 def _make_sticky_proxy(proxy_url: str) -> str:
     """Convert a rotating Webshare proxy URL to a sticky-session URL.
 
-    Rotating proxy format:  http://user:pass@p.webshare.io:80
-    Sticky session format:  http://user-session-XXXXXXXX:pass@p.webshare.io:80
+    Webshare rotating format: http://user-rotate:pass@p.webshare.io:80
+    Webshare sticky format:   http://user-session-XXXXXXXX:pass@p.webshare.io:80
 
-    All TCP connections made with the same session ID share the same egress IP,
-    so YouTube CDN URL (which is IP-bound) will be reachable from that same IP.
+    The -rotate suffix is replaced (not appended to) with -session-ID.
+    All TCP connections with the same session ID share the same egress IP,
+    so the YouTube CDN URL (IP-bound to extraction IP) stays valid for download.
     """
     if not proxy_url:
         return proxy_url
@@ -649,10 +650,14 @@ def _make_sticky_proxy(proxy_url: str) -> str:
     try:
         from urllib.parse import urlparse, urlunparse
         parsed = urlparse(proxy_url)
-        session_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
-        sticky_user = f"{parsed.username}-session-{session_id}"
+        session_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        # Strip the -rotate (or -res / -residential) mode suffix before adding -session-ID
+        base_user = re.sub(r'-(rotate|res|residential)$', '', parsed.username, flags=re.IGNORECASE)
+        sticky_user = f"{base_user}-session-{session_id}"
         netloc = f"{sticky_user}:{parsed.password}@{parsed.hostname}:{parsed.port}"
-        return urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+        result = urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+        print(f"[proxy] sticky user: {sticky_user} → host: {parsed.hostname}:{parsed.port}", flush=True)
+        return result
     except Exception:
         return proxy_url  # fallback to original if parsing fails
 
