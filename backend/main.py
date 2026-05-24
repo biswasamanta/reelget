@@ -948,17 +948,20 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         "--format", fmt_sel,
         "--output", stdout_target,
         "--no-part",
-        "--geo-bypass",
+        "--no-progress",           # suppress progress bars going to stdout
+        "--socket-timeout", "15",  # don't hang forever on a bad proxy IP
         # web client only — tv_embedded unsupported, ios needs GVS PO Token, android is SABR-only
         "--extractor-args", "youtube:player_client=web",
-        # Activate the deno-based EJS n-challenge solver (deno installed via nixpacks).
-        "--remote-components", "ejs:github",
+        # NOTE: --remote-components ejs:github removed — it writes init text to stdout
+        # which corrupts the video pipe and creates the 1 KB file.
+        # yt-dlp's built-in jsinterp handles n-challenge natively.
     ]
     if sticky_proxy:
         cmd += ["--proxy", sticky_proxy]
     if cookies_file:
         cmd += ["--cookies", cookies_file]
     cmd.append(url)
+    print(f"[download-youtube] cmd: {' '.join(cmd)}", flush=True)
 
     async def stream_subprocess():
         proc = None
