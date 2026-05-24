@@ -616,6 +616,23 @@ def _clean_error(msg: str) -> str:
     return msg.strip()
 
 
+def _extract_youtube_id(url: str) -> str:
+    """Extract YouTube video ID from various URL formats, or return 'youtube_video'."""
+    # youtu.be/VIDEO_ID
+    m = re.search(r'youtu\.be/([A-Za-z0-9_-]{11})', url)
+    if m:
+        return m.group(1)
+    # youtube.com/watch?v=VIDEO_ID
+    m = re.search(r'[?&]v=([A-Za-z0-9_-]{11})', url)
+    if m:
+        return m.group(1)
+    # youtube.com/shorts/VIDEO_ID
+    m = re.search(r'/shorts/([A-Za-z0-9_-]{11})', url)
+    if m:
+        return m.group(1)
+    return "youtube_video"
+
+
 def _make_sticky_proxy(proxy_url: str) -> str:
     """Convert a rotating Webshare proxy URL to a sticky-session URL.
 
@@ -876,32 +893,19 @@ def _referer_for(url: str) -> str:
 async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
     """Stream YouTube video via yt-dlp subprocess piped to stdout.
 
-    Two-phase approach:
-      1. Fast metadata extraction (Python API, skip_download=True) → title
-      2. yt-dlp subprocess with --output - streams bytes to the client immediately
+    Skips Phase-1 metadata extraction (which timed out through the proxy) and
+    goes straight to the subprocess.  The video ID extracted from the URL is
+    used as the filename — good enough and saves 25 s of proxy latency.
 
-    Phase 2 starts piping within ~2s of yt-dlp start, so response headers
-    are sent well within Railway's 30-second timeout.
-    Format selector uses progressive (combined A/V) mp4 formats (18=360p, 22=720p)
-    that need no ffmpeg merging and pipe cleanly to stdout.
+    Format selector uses progressive (combined A/V) mp4 formats (18=360p,
+    22=720p) that need no ffmpeg merging and pipe cleanly to stdout.
     """
     import sys
 
-    # ── Phase 1: Quick metadata for title ─────────────────────────────────────
-    ydl_opts: dict = {
-        "quiet": True,
-        "no_warnings": True,
-        "skip_download": True,
-        "check_formats": False,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["tv_embedded", "ios", "android", "web"],
-            }
-        },
-    }
-    if PROXY_URL:
-        ydl_opts["proxy"] = PROXY_URL
+    # Derive filename from video ID — no slow Phase-1 extraction needed
+    safe_title = _extract_youtube_id(url)
 
+    # Set up cookies file for subprocess
     cookies_file = None
     if YOUTUBE_COOKIES:
         try:
@@ -909,31 +913,10 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
             tmp_c.write(YOUTUBE_COOKIES)
             tmp_c.close()
             cookies_file = tmp_c.name
-            ydl_opts["cookiefile"] = cookies_file
         except Exception:
             pass
 
-    def _extract():
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            return ydl.extract_info(url, download=False)
-
-    try:
-        info = await asyncio.wait_for(asyncio.to_thread(_extract), timeout=25)
-    except asyncio.TimeoutError:
-        if cookies_file:
-            try: os.unlink(cookies_file)
-            except Exception: pass
-        raise HTTPException(status_code=504, detail="YouTube extraction timed out — please try again.")
-    except Exception as e:
-        if cookies_file:
-            try: os.unlink(cookies_file)
-            except Exception: pass
-        raise HTTPException(status_code=422, detail=f"Could not extract video: {_clean_error(str(e))}")
-
-    title = info.get("title", "youtube_video")
-    safe_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or "youtube_video"
-
-    # ── Phase 2: subprocess yt-dlp --output - ─────────────────────────────────
+    # ── subprocess yt-dlp --output - ──────────────────────────────────────────
     # Use progressive (combined A/V) mp4 formats only — they pipe to stdout
     # without needing ffmpeg to merge separate video/audio streams.
     #   22 = 720p mp4  (progressive, audio+video)
