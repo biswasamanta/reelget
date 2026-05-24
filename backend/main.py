@@ -941,18 +941,52 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
 
     async def stream_subprocess():
         proc = None
+        bytes_sent = 0
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,   # capture for Railway log visibility
             )
+            # Read first chunk with a generous timeout — if nothing arrives in 25s
+            # yt-dlp has already failed (e.g. signature challenge on server IP).
+            try:
+                first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=25)
+            except asyncio.TimeoutError:
+                first_chunk = b""
+
+            if not first_chunk:
+                # Drain stderr before giving up so the log shows the real error
+                try:
+                    stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                    stderr_text = stderr_bytes.decode(errors="replace").strip()
+                    if stderr_text:
+                        print(f"[yt-dlp stderr / 0-byte] {stderr_text[:2000]}", flush=True)
+                except Exception:
+                    pass
+                print(f"[download-youtube] 0 bytes — subprocess produced no output for {url}", flush=True)
+                return   # StreamingResponse will deliver an empty body; client shows error
+
+            yield first_chunk
+            bytes_sent += len(first_chunk)
+
             while True:
                 chunk = await proc.stdout.read(65536)
                 if not chunk:
                     break
+                bytes_sent += len(chunk)
                 yield chunk
+
+            # Log stderr after normal completion
+            try:
+                stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                stderr_text = stderr_bytes.decode(errors="replace").strip()
+                if stderr_text:
+                    print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
+            except Exception:
+                pass
         finally:
+            print(f"[download-youtube] sent {bytes_sent} bytes for {url}", flush=True)
             if proc:
                 try: proc.kill()
                 except Exception: pass
