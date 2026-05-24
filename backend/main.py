@@ -937,6 +937,11 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
 
     stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
 
+    # Log whether deno is available (required for n-challenge solver)
+    import shutil as _shutil
+    deno_path = _shutil.which("deno")
+    print(f"[deno] path={deno_path}", flush=True)
+
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "--format", fmt_sel,
@@ -945,13 +950,19 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         "--no-progress",
         "--socket-timeout", "20",
         "--extractor-args", "youtube:player_client=web",
+        # Download & cache the EJS n-challenge solver via Deno on first run.
+        # This is required since yt-dlp v2025.11.12 — without it, YouTube
+        # throttles/hides video formats → "Only images available" error.
+        "--remote-components", "ejs:github",
     ]
     if sticky_proxy:
         cmd += ["--proxy", sticky_proxy]
+    # Only pass cookies if the env var is set — user must keep these fresh
+    # (YouTube rotates them every ~2 weeks). Expired cookies cause format errors.
     if cookies_file:
         cmd += ["--cookies", cookies_file]
     cmd.append(url)
-    print(f"[download-youtube] cmd proxy={sticky_proxy.split('@')[-1] if sticky_proxy else 'none'} url={url}", flush=True)
+    print(f"[download-youtube] proxy={sticky_proxy.split('@')[-1] if sticky_proxy else 'none'} url={url}", flush=True)
 
     async def stream_subprocess():
         proc = None
