@@ -924,13 +924,15 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         fmt_sel = "22/18"        # 720p mp4 → 360p mp4 fallback
         out_ext, media_type = "mp4", "video/mp4"
 
+    # Use /dev/stdout on Linux (Railway), fall back to - on Windows
+    stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
+
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "--format", fmt_sel,
-        "--output", "-",         # write to stdout
-        "--quiet",
-        "--no-warnings",
+        "--output", stdout_target,
         "--no-part",
+        "--geo-bypass",
         "--extractor-args", "youtube:player_client=tv_embedded,ios,android,web",
     ]
     if PROXY_URL:
