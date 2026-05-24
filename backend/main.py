@@ -934,9 +934,12 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         "--no-part",
         "--geo-bypass",
         "--extractor-args", "youtube:player_client=tv_embedded,ios,android,web",
+        # Intentionally NO --proxy here: the HTTP proxy (port 80) cannot tunnel
+        # HTTPS YouTube CDN streams and causes HTTP 403 on the video download.
+        # Phase 1 already extracted the title via proxy; the subprocess uses
+        # Railway's direct IP for both re-extraction and CDN download so they
+        # share the same IP and the signed URL stays valid.
     ]
-    if PROXY_URL:
-        cmd += ["--proxy", PROXY_URL]
     if cookies_file:
         cmd += ["--cookies", cookies_file]
     cmd.append(url)
