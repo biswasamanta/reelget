@@ -933,12 +933,12 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         "--output", stdout_target,
         "--no-part",
         "--geo-bypass",
-        "--extractor-args", "youtube:player_client=tv_embedded,ios,android,web",
-        # Intentionally NO --proxy here: the HTTP proxy (port 80) cannot tunnel
-        # HTTPS YouTube CDN streams and causes HTTP 403 on the video download.
-        # Phase 1 already extracted the title via proxy; the subprocess uses
-        # Railway's direct IP for both re-extraction and CDN download so they
-        # share the same IP and the signed URL stays valid.
+        # Use web client only — tv_embedded is unsupported, ios requires GVS PO Token
+        # (would 403), android is SABR-only (URLs missing). web works and deno
+        # (installed via nixpacks) solves its n-challenge on Railway's server IP.
+        "--extractor-args", "youtube:player_client=web",
+        # No --proxy: the HTTP proxy (port 80) cannot tunnel HTTPS CDN video
+        # streams. Railway's direct IP + deno n-solver handles the download.
     ]
     if cookies_file:
         cmd += ["--cookies", cookies_file]
