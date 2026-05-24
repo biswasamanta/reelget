@@ -896,21 +896,34 @@ def _referer_for(url: str) -> str:
 
 @app.get("/api/download-youtube")
 async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
-    """Stream YouTube video via yt-dlp subprocess piped to stdout.
+    """Stream YouTube video using the yt-dlp Python API writing to a temp file.
 
-    Skips Phase-1 metadata extraction (which timed out through the proxy) and
-    goes straight to the subprocess.  The video ID extracted from the URL is
-    used as the filename — good enough and saves 25 s of proxy latency.
+    Uses a single YoutubeDL session for both extraction AND CDN download so
+    that urllib's internal connection pool can reuse the same TCP tunnel to the
+    rotating proxy.  Reusing the tunnel keeps the same egress IP for both the
+    YouTube API request (which signs the CDN URL to that IP) and the subsequent
+    CDN download — avoiding the 403 that a subprocess (separate process/pool)
+    caused when it got a different egress IP from the rotating proxy.
 
-    Format selector uses progressive (combined A/V) mp4 formats (18=360p,
-    22=720p) that need no ffmpeg merging and pipe cleanly to stdout.
+    The download runs in a background thread writing to a temp file.  We start
+    streaming from that file immediately so HTTP response headers land within
+    milliseconds and Railway's 30-second idle timeout is never triggered.
     """
-    import sys
+    import threading
 
-    # Derive filename from video ID — no slow Phase-1 extraction needed
     safe_title = _extract_youtube_id(url)
 
-    # Set up cookies file for subprocess
+    if quality == "audio":
+        fmt_sel = "bestaudio[ext=m4a]/bestaudio"
+        out_ext, media_type = "m4a", "audio/mp4"
+    elif quality == "sd":
+        fmt_sel = "18"
+        out_ext, media_type = "mp4", "video/mp4"
+    else:
+        fmt_sel = "22/18"
+        out_ext, media_type = "mp4", "video/mp4"
+
+    # Cookies file
     cookies_file = None
     if YOUTUBE_COOKIES:
         try:
@@ -921,112 +934,95 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         except Exception:
             pass
 
-    # ── subprocess yt-dlp --output - ──────────────────────────────────────────
-    # Use progressive (combined A/V) mp4 formats only — they pipe to stdout
-    # without needing ffmpeg to merge separate video/audio streams.
-    #   22 = 720p mp4  (progressive, audio+video)
-    #   18 = 360p mp4  (progressive, audio+video, universal fallback)
-    if quality == "audio":
-        fmt_sel = "bestaudio[ext=m4a]/bestaudio"
-        out_ext, media_type = "m4a", "audio/mp4"
-    elif quality == "sd":
-        fmt_sel = "18"           # 360p mp4 progressive
-        out_ext, media_type = "mp4", "video/mp4"
-    else:                        # hd (default)
-        fmt_sel = "22/18"        # 720p mp4 → 360p mp4 fallback
-        out_ext, media_type = "mp4", "video/mp4"
+    # Dedicated temp dir so we always know the output path
+    out_dir = tempfile.mkdtemp(prefix="ytdl_")
+    out_path = os.path.join(out_dir, f"video.{out_ext}")
 
-    # Use /dev/stdout on Linux (Railway), fall back to - on Windows
-    stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
+    done_event = threading.Event()
+    error_holder: list[str] = []
 
-    # Build a sticky-session proxy URL so that every TCP connection inside the
-    # subprocess (YouTube extractor + CDN download) shares the same egress IP.
-    # YouTube CDN URLs are IP-bound: if extraction and download use different IPs
-    # (rotating proxy) we get 403.  Without any proxy, Railway's datacenter IP
-    # is blocked by YouTube with "Sign in to confirm you're not a bot".
-    sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
-    if sticky_proxy:
-        print(f"[proxy] subprocess sticky session: {sticky_proxy.split('@')[-1]}", flush=True)
-
-    cmd = [
-        sys.executable, "-m", "yt_dlp",
-        "--format", fmt_sel,
-        "--output", stdout_target,
-        "--no-part",
-        "--no-progress",           # suppress progress bars going to stdout
-        "--socket-timeout", "15",  # don't hang forever on a bad proxy IP
-        # web client only — tv_embedded unsupported, ios needs GVS PO Token, android is SABR-only
-        "--extractor-args", "youtube:player_client=web",
-        # NOTE: --remote-components ejs:github removed — it writes init text to stdout
-        # which corrupts the video pipe and creates the 1 KB file.
-        # yt-dlp's built-in jsinterp handles n-challenge natively.
-    ]
-    if sticky_proxy:
-        cmd += ["--proxy", sticky_proxy]
+    ydl_opts: dict = {
+        "format": fmt_sel,
+        "outtmpl": out_path,
+        "quiet": True,
+        "no_warnings": True,
+        "noprogress": True,
+        "no_part": True,        # write directly to out_path, no .part rename
+        "check_formats": False,
+        "socket_timeout": 20,
+        "extractor_args": {"youtube": {"player_client": ["web"]}},
+    }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
+        print(f"[proxy] yt_dlp API via {PROXY_URL.split('@')[-1]}", flush=True)
     if cookies_file:
-        cmd += ["--cookies", cookies_file]
-    cmd.append(url)
-    print(f"[download-youtube] cmd: {' '.join(cmd)}", flush=True)
+        ydl_opts["cookiefile"] = cookies_file
 
-    async def stream_subprocess():
-        proc = None
-        bytes_sent = 0
+    print(f"[download-youtube] API download start: {url}", flush=True)
+
+    def _run():
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,   # capture for Railway log visibility
-            )
-            # Read first chunk with a generous timeout — if nothing arrives in 25s
-            # yt-dlp has already failed (e.g. signature challenge on server IP).
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+            print("[download-youtube] yt_dlp finished OK", flush=True)
+        except Exception as exc:
+            msg = _clean_error(str(exc))
+            error_holder.append(msg)
+            print(f"[download-youtube] yt_dlp error: {msg}", flush=True)
+        finally:
+            done_event.set()
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    async def stream_tempfile():
+        loop = asyncio.get_event_loop()
+        bytes_sent = 0
+
+        # Wait up to 25 s for yt_dlp to start writing bytes
+        deadline = loop.time() + 25
+        while loop.time() < deadline:
             try:
-                first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=25)
-            except asyncio.TimeoutError:
-                first_chunk = b""
+                sz = os.path.getsize(out_path)
+            except OSError:
+                sz = 0
+            if sz > 0 or done_event.is_set():
+                break
+            await asyncio.sleep(0.5)
 
-            if not first_chunk:
-                # Drain stderr before giving up so the log shows the real error
-                try:
-                    stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
-                    stderr_text = stderr_bytes.decode(errors="replace").strip()
-                    if stderr_text:
-                        print(f"[yt-dlp stderr / 0-byte] {stderr_text[:2000]}", flush=True)
-                except Exception:
-                    pass
-                print(f"[download-youtube] 0 bytes — subprocess produced no output for {url}", flush=True)
-                return   # StreamingResponse will deliver an empty body; client shows error
-
-            yield first_chunk
-            bytes_sent += len(first_chunk)
-
-            while True:
-                chunk = await proc.stdout.read(65536)
-                if not chunk:
-                    break
-                bytes_sent += len(chunk)
-                yield chunk
-
-            # Log stderr after normal completion
-            try:
-                stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
-                stderr_text = stderr_bytes.decode(errors="replace").strip()
-                if stderr_text:
-                    print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
-            except Exception:
-                pass
+        # Stream from temp file while yt_dlp keeps writing
+        try:
+            with open(out_path, "rb") as f:
+                while True:
+                    chunk = await loop.run_in_executor(None, lambda: f.read(65536))
+                    if chunk:
+                        bytes_sent += len(chunk)
+                        yield chunk
+                    elif done_event.is_set():
+                        break
+                    else:
+                        await asyncio.sleep(0.1)
+        except FileNotFoundError:
+            pass  # yt_dlp failed before creating the file
         finally:
             print(f"[download-youtube] sent {bytes_sent} bytes for {url}", flush=True)
-            if proc:
-                try: proc.kill()
-                except Exception: pass
-                try: await proc.wait()
-                except Exception: pass
+            if error_holder:
+                print(f"[download-youtube] last error: {error_holder[-1]}", flush=True)
+            try:
+                os.unlink(out_path)
+            except Exception:
+                pass
+            try:
+                os.rmdir(out_dir)
+            except Exception:
+                pass
             if cookies_file:
-                try: os.unlink(cookies_file)
-                except Exception: pass
+                try:
+                    os.unlink(cookies_file)
+                except Exception:
+                    pass
 
     return StreamingResponse(
-        stream_subprocess(),
+        stream_tempfile(),
         media_type=media_type,
         headers={
             "Content-Disposition": f'attachment; filename="{safe_title}.{out_ext}"',
