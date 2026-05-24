@@ -616,6 +616,30 @@ def _clean_error(msg: str) -> str:
     return msg.strip()
 
 
+def _make_sticky_proxy(proxy_url: str) -> str:
+    """Convert a rotating Webshare proxy URL to a sticky-session URL.
+
+    Rotating proxy format:  http://user:pass@p.webshare.io:80
+    Sticky session format:  http://user-session-XXXXXXXX:pass@p.webshare.io:80
+
+    All TCP connections made with the same session ID share the same egress IP,
+    so YouTube CDN URL (which is IP-bound) will be reachable from that same IP.
+    """
+    if not proxy_url:
+        return proxy_url
+    import random
+    import string
+    try:
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(proxy_url)
+        session_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+        sticky_user = f"{parsed.username}-session-{session_id}"
+        netloc = f"{sticky_user}:{parsed.password}@{parsed.hostname}:{parsed.port}"
+        return urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+    except Exception:
+        return proxy_url  # fallback to original if parsing fails
+
+
 # ─── Playlist endpoint ────────────────────────────────────────────────────────
 
 _PLAYLIST_PATTERN = re.compile(
@@ -927,6 +951,15 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
     # Use /dev/stdout on Linux (Railway), fall back to - on Windows
     stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
 
+    # Build a sticky-session proxy URL so that every TCP connection inside the
+    # subprocess (YouTube extractor + CDN download) shares the same egress IP.
+    # YouTube CDN URLs are IP-bound: if extraction and download use different IPs
+    # (rotating proxy) we get 403.  Without any proxy, Railway's datacenter IP
+    # is blocked by YouTube with "Sign in to confirm you're not a bot".
+    sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
+    if sticky_proxy:
+        print(f"[proxy] subprocess sticky session: {sticky_proxy.split('@')[-1]}", flush=True)
+
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "--format", fmt_sel,
@@ -936,10 +969,10 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
         # web client only — tv_embedded unsupported, ios needs GVS PO Token, android is SABR-only
         "--extractor-args", "youtube:player_client=web",
         # Activate the deno-based EJS n-challenge solver (deno installed via nixpacks).
-        # Without this flag yt-dlp won't use the EJS script even if deno is in PATH.
-        # The script is downloaded from GitHub once then cached in ~/.cache/yt-dlp/.
         "--remote-components", "ejs:github",
     ]
+    if sticky_proxy:
+        cmd += ["--proxy", sticky_proxy]
     if cookies_file:
         cmd += ["--cookies", cookies_file]
     cmd.append(url)
