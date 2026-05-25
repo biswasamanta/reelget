@@ -58,6 +58,9 @@ INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", COOKIES)
 # Outbound proxy for yt-dlp requests (helps bypass datacenter IP blocks).
 # Format: http://user:pass@host:port  — leave unset to use direct connection.
 PROXY_URL = os.environ.get("PROXY_URL", "")
+# Telegram alerting — set both vars to enable cookie-expiry notifications
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
@@ -98,6 +101,14 @@ def _init_db():
                     page VARCHAR(255) PRIMARY KEY,
                     count BIGINT NOT NULL DEFAULT 0,
                     last_seen TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                CREATE TABLE IF NOT EXISTS cookie_alerts (
+                    platform   VARCHAR(50)  PRIMARY KEY,
+                    fail_count INTEGER      NOT NULL DEFAULT 0,
+                    first_seen TIMESTAMPTZ  DEFAULT NOW(),
+                    last_seen  TIMESTAMPTZ  DEFAULT NOW(),
+                    alerted_at TIMESTAMPTZ
                 );
             """, (_COUNTER_BASE,))
         print("[db] tables ready", flush=True)
@@ -360,8 +371,11 @@ async def download(request: Request, req: DownloadRequest):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(req.url, download=False)
     except yt_dlp.utils.DownloadError as e:
-        print(f"[yt-dlp DownloadError] {str(e)}", flush=True)
-        raise HTTPException(status_code=422, detail=str(e))
+        err_str = str(e)
+        print(f"[yt-dlp DownloadError] {err_str}", flush=True)
+        # Fire-and-forget cookie alert check (won't block the error response)
+        asyncio.create_task(_check_and_alert_cookie_error(req.url, err_str))
+        raise HTTPException(status_code=422, detail=err_str)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
     finally:
@@ -602,6 +616,214 @@ async def trending_now(category: str = Query("all")):
     cache_file.write_text(json.dumps(result), encoding="utf-8")
     return result
 
+
+# ── Cookie expiry tracking & Telegram alerts ──────────────────────────────────
+
+# Per-platform cookie error signatures (case-insensitive)
+_COOKIE_ERROR_PATTERNS: dict[str, list[str]] = {
+    "youtube": [
+        r"cookies are no longer valid",
+        r"provided .{0,30} cookies are no longer valid",
+        r"sign in to confirm you.re not a bot",
+        r"please sign in",
+        r"This video is only available to Music Premium",
+        r"HTTP Error 403.*cookie",
+    ],
+    "instagram": [
+        r"login.?required",
+        r"not authenticated",
+        r"checkpoint.?required",
+        r"Please wait a few minutes before",
+        r"401 Unauthorized",
+        r"cookie",
+    ],
+    "facebook": [
+        r"login.?required",
+        r"not authenticated",
+        r"please log in",
+        r"cookie",
+    ],
+    "tiktok": [
+        r"login.?required",
+        r"not authenticated",
+        r"cookie",
+    ],
+    "twitter": [
+        r"Could not authenticate",
+        r"login.?required",
+        r"not authenticated",
+        r"cookie",
+    ],
+}
+
+# Map URL patterns → platform name
+_URL_PLATFORM: list[tuple[str, str]] = [
+    (r"youtube\.com|youtu\.be", "youtube"),
+    (r"instagram\.com",          "instagram"),
+    (r"facebook\.com|fb\.watch", "facebook"),
+    (r"tiktok\.com",             "tiktok"),
+    (r"twitter\.com|x\.com|t\.co", "twitter"),
+]
+
+
+def _detect_cookie_error_platform(url: str, error_text: str) -> str | None:
+    """Return the platform name if error_text looks like an expired-cookie error, else None."""
+    platform: str | None = None
+    for pat, plat in _URL_PLATFORM:
+        if re.search(pat, url, re.IGNORECASE):
+            platform = plat
+            break
+    if not platform:
+        return None
+    for pattern in _COOKIE_ERROR_PATTERNS.get(platform, []):
+        if re.search(pattern, error_text, re.IGNORECASE):
+            return platform
+    return None
+
+
+def _db_record_cookie_failure(platform: str) -> bool:
+    """Upsert failure counter; return True when alert threshold met and cooldown passed."""
+    conn = _get_db_conn()
+    if not conn:
+        return False
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO cookie_alerts (platform, fail_count, first_seen, last_seen, alerted_at)
+                VALUES (%s, 1, NOW(), NOW(), NULL)
+                ON CONFLICT (platform) DO UPDATE
+                    SET fail_count = cookie_alerts.fail_count + 1,
+                        last_seen  = NOW()
+                RETURNING fail_count, alerted_at
+            """, (platform,))
+            row = cur.fetchone()
+            if not row:
+                return False
+            fail_count, alerted_at = row
+            # Require ≥3 failures to suppress transient glitches
+            if fail_count < 3:
+                return False
+            if alerted_at is None:
+                return True
+            import datetime
+            now = datetime.datetime.now(tz=datetime.timezone.utc)
+            if alerted_at.tzinfo is None:
+                alerted_at = alerted_at.replace(tzinfo=datetime.timezone.utc)
+            return (now - alerted_at).total_seconds() > 6 * 3600
+    except Exception as ex:
+        print(f"[db] cookie_alerts upsert failed: {ex}", flush=True)
+        return False
+    finally:
+        conn.close()
+
+
+def _db_mark_cookie_alerted(platform: str) -> None:
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                "UPDATE cookie_alerts SET alerted_at = NOW() WHERE platform = %s",
+                (platform,),
+            )
+    except Exception as ex:
+        print(f"[db] mark_alerted failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+def _db_get_cookie_status() -> list[dict]:
+    conn = _get_db_conn()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT platform, fail_count, first_seen, last_seen, alerted_at
+                FROM cookie_alerts
+                ORDER BY last_seen DESC
+            """)
+            rows = []
+            for r in cur.fetchall():
+                rows.append({
+                    "platform":   r[0],
+                    "fail_count": r[1],
+                    "first_seen": r[2].isoformat() if r[2] else None,
+                    "last_seen":  r[3].isoformat() if r[3] else None,
+                    "alerted_at": r[4].isoformat() if r[4] else None,
+                })
+            return rows
+    except Exception as ex:
+        print(f"[db] cookie_status query failed: {ex}", flush=True)
+        return []
+    finally:
+        conn.close()
+
+
+def _db_reset_cookie_alerts(platform: str) -> None:
+    """Reset the alert counter for a platform after cookies are refreshed."""
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM cookie_alerts WHERE platform = %s",
+                (platform,),
+            )
+    except Exception as ex:
+        print(f"[db] reset_cookie_alerts failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+async def _send_telegram_alert(message: str) -> None:
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print(f"[alert] Telegram not configured — {message[:120]}", flush=True)
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id":    TELEGRAM_CHAT_ID,
+                    "text":       message,
+                    "parse_mode": "HTML",
+                },
+            )
+        if resp.status_code == 200:
+            print("[alert] Telegram message sent", flush=True)
+        else:
+            print(f"[alert] Telegram error {resp.status_code}: {resp.text[:200]}", flush=True)
+    except Exception as ex:
+        print(f"[alert] Telegram send failed: {ex}", flush=True)
+
+
+async def _check_and_alert_cookie_error(url: str, error_text: str) -> None:
+    """Detect a cookie-expiry error, persist it, and fire a Telegram alert if needed."""
+    platform = _detect_cookie_error_platform(url, error_text)
+    if not platform:
+        return
+    print(f"[cookie-alert] {platform} cookie error detected", flush=True)
+    should_alert = _db_record_cookie_failure(platform)
+    if not should_alert:
+        return
+    env_var = f"{platform.upper()}_COOKIES"
+    msg = (
+        f"🍪 <b>Cookie Alert — {platform.title()}</b>\n\n"
+        f"Cookies for <b>{platform.title()}</b> appear to be expired or invalid.\n\n"
+        f"<b>Action required:</b>\n"
+        f"1. Open your browser and log in to {platform.title()}\n"
+        f"2. Export cookies (use a browser extension like EditThisCookie or Cookie-Editor)\n"
+        f"3. Update the <code>{env_var}</code> environment variable on Railway\n\n"
+        f"<i>Error snippet:</i>\n<code>{error_text[:400]}</code>"
+    )
+    await _send_telegram_alert(msg)
+    _db_mark_cookie_alerted(platform)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
@@ -984,6 +1206,7 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
                     stderr_text = stderr_bytes.decode(errors="replace").strip()
                     if stderr_text:
                         print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
+                        asyncio.create_task(_check_and_alert_cookie_error(url, stderr_text))
                 except Exception:
                     pass
                 print(f"[download-youtube] 0 bytes for {url}", flush=True)
@@ -1004,6 +1227,7 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
                 stderr_text = stderr_bytes.decode(errors="replace").strip()
                 if stderr_text:
                     print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
+                    asyncio.create_task(_check_and_alert_cookie_error(url, stderr_text))
             except Exception:
                 pass
         finally:
@@ -1163,6 +1387,28 @@ def get_analytics():
         return {"error": str(ex), "rows": []}
     finally:
         conn.close()
+
+
+@app.get("/api/cookie-status")
+def get_cookie_status():
+    """Return per-platform cookie failure stats and alert history."""
+    rows = _db_get_cookie_status()
+    return {
+        "platforms": rows,
+        "telegram_configured": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID),
+    }
+
+
+@app.post("/api/cookie-reset")
+async def reset_cookie_alerts(platform: str = Query(...)):
+    """Reset failure counter for a platform after you've updated the cookies."""
+    platform = platform.lower().strip()
+    known = {"youtube", "instagram", "facebook", "tiktok", "twitter"}
+    if platform not in known:
+        raise HTTPException(status_code=400, detail=f"Unknown platform. Valid: {', '.join(sorted(known))}")
+    _db_reset_cookie_alerts(platform)
+    print(f"[cookie-alert] Reset alerts for {platform}", flush=True)
+    return {"ok": True, "platform": platform}
 
 
 @app.get("/api/transcript")
