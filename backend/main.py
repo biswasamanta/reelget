@@ -577,11 +577,11 @@ async def download(request: Request, req: DownloadRequest):
             ),
             "Accept-Language": "en-US,en;q=0.9",
         },
-        # Use tv_embedded first — works on data-centre IPs without cookies.
-        # Fall back through ios → android → web.
+        # Use web first so VEVO / music videos (which block tv_embedded) work.
+        # tv_embedded is kept as a last-ditch fallback for bare data-centre IPs.
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv_embedded", "ios", "android", "web"],
+                "player_client": ["web", "ios", "android", "tv_embedded"],
             }
         },
     }
