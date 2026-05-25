@@ -1561,6 +1561,244 @@ async def download_youtube(
     )
 
 
+# ── Async job queue (YouTube downloads that survive client disconnects) ────────
+
+import uuid as _uuid
+import shutil as _shutil2
+
+_JOBS: dict[str, dict] = {}          # job_id → job state dict
+_JOB_DIR = Path(tempfile.gettempdir()) / "rg_jobs"
+_JOB_TTL = 3600  # seconds before completed jobs are cleaned up
+
+
+def _job_path(job_id: str, ext: str) -> Path:
+    _JOB_DIR.mkdir(exist_ok=True)
+    return _JOB_DIR / f"{job_id}.{ext}"
+
+
+def _prune_old_jobs() -> None:
+    now = time.time()
+    dead = [jid for jid, j in _JOBS.items()
+            if now - j.get("created_at", 0) > _JOB_TTL]
+    for jid in dead:
+        fp = _JOBS[jid].get("file_path")
+        if fp:
+            try: Path(fp).unlink(missing_ok=True)
+            except Exception: pass
+        del _JOBS[jid]
+
+
+async def _run_youtube_job(job_id: str, url: str, quality: str,
+                           start: str, end: str) -> None:
+    """Background task: run yt-dlp, write output to disk, update job state."""
+    import sys as _sys
+
+    job = _JOBS[job_id]
+    job["status"] = "processing"
+
+    safe_title = _extract_youtube_id(url)
+    out_ext = "m4a" if quality == "audio" else "mp4"
+    out_file = _job_path(job_id, out_ext)
+    job["file_path"] = str(out_file)
+    job["ext"] = out_ext
+    job["filename"] = f"{safe_title}.{out_ext}"
+
+    if quality == "audio":
+        fmt_sel = "bestaudio[ext=m4a]/bestaudio"
+    elif quality == "sd":
+        fmt_sel = "18"
+    else:
+        fmt_sel = "22/18"
+
+    cookies_file: str | None = None
+    if YOUTUBE_COOKIES:
+        try:
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+            tmp.write(YOUTUBE_COOKIES); tmp.close()
+            cookies_file = tmp.name
+        except Exception:
+            pass
+
+    sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
+    if sticky_proxy and not await _check_proxy_health(sticky_proxy):
+        backup = os.environ.get("PROXY_URL_2", "")
+        sticky_proxy = _make_sticky_proxy(backup) if backup else None
+
+    import shutil as _sh
+    deno_path = _sh.which("deno")
+
+    trim_section: str | None = None
+    if start or end:
+        trim_section = f"*{start or '0'}-{end or 'inf'}"
+
+    cmd = [
+        _sys.executable, "-m", "yt_dlp",
+        "--format", fmt_sel,
+        "--output", str(out_file),
+        "--no-part", "--no-progress",
+        "--socket-timeout", "20",
+        "--extractor-args", "youtube:player_client=web",
+        "--remote-components", "ejs:github",
+        "--print", "after_move:filepath",        # print final path after download
+    ]
+    if trim_section:
+        cmd += ["--download-sections", trim_section, "--force-keyframes-at-cuts"]
+    if sticky_proxy:
+        cmd += ["--proxy", sticky_proxy]
+    if cookies_file:
+        cmd += ["--cookies", cookies_file]
+    cmd.append(url)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(
+            proc.communicate(), timeout=300
+        )
+        stderr_text = stderr_bytes.decode(errors="replace").strip()
+        if stderr_text:
+            print(f"[job {job_id}] stderr: {stderr_text[:1000]}", flush=True)
+            asyncio.create_task(_check_and_alert_cookie_error(url, stderr_text))
+
+        if proc.returncode != 0 or not out_file.exists() or out_file.stat().st_size < 1000:
+            job["status"] = "error"
+            job["error"] = _clean_error(stderr_text) or "Download failed"
+        else:
+            job["status"] = "done"
+            job["file_size"] = out_file.stat().st_size
+            print(f"[job {job_id}] done — {job['file_size']} bytes", flush=True)
+
+    except asyncio.TimeoutError:
+        job["status"] = "error"
+        job["error"] = "Download timed out (5 min limit)"
+    except Exception as ex:
+        job["status"] = "error"
+        job["error"] = str(ex)
+    finally:
+        if cookies_file:
+            try: os.unlink(cookies_file)
+            except Exception: pass
+
+
+@app.post("/api/job")
+@limiter.limit("10/minute")
+async def create_job(
+    request: Request,
+    url:     str = Query(...),
+    quality: str = Query("hd"),
+    start:   str = Query(""),
+    end:     str = Query(""),
+):
+    """Queue a YouTube download as a background job. Returns a job_id to poll."""
+    if not re.search(r"youtube\.com|youtu\.be", url):
+        raise HTTPException(status_code=400, detail="Job queue is for YouTube URLs only.")
+    _prune_old_jobs()
+    job_id = _uuid.uuid4().hex[:10]
+    _JOBS[job_id] = {
+        "status":     "pending",
+        "created_at": time.time(),
+        "url":        url,
+        "quality":    quality,
+        "file_path":  None,
+        "file_size":  None,
+        "ext":        None,
+        "filename":   None,
+        "error":      None,
+    }
+    asyncio.create_task(_run_youtube_job(job_id, url, quality, start, end))
+    return {"job_id": job_id, "status": "pending"}
+
+
+@app.get("/api/job/{job_id}")
+async def get_job(job_id: str):
+    """Poll job status. Returns status, file_size when done, error when failed."""
+    job = _JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
+    return {
+        "job_id":    job_id,
+        "status":    job["status"],       # pending | processing | done | error
+        "file_size": job.get("file_size"),
+        "filename":  job.get("filename"),
+        "ext":       job.get("ext"),
+        "error":     job.get("error"),
+        "age":       int(time.time() - job["created_at"]),
+    }
+
+
+@app.get("/api/job/{job_id}/stream")
+async def stream_job_file(job_id: str):
+    """Download the completed job file. Deletes it from disk after streaming."""
+    job = _JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
+    if job["status"] != "done":
+        raise HTTPException(status_code=409, detail=f"Job not ready (status: {job['status']}).")
+    fp = Path(job["file_path"])
+    if not fp.exists():
+        raise HTTPException(status_code=410, detail="File has already been downloaded or expired.")
+
+    ext      = job.get("ext", "mp4")
+    filename = job.get("filename", f"{job_id}.{ext}")
+    media_type = "audio/mp4" if ext == "m4a" else "video/mp4"
+    file_size  = fp.stat().st_size
+
+    def iterfile():
+        try:
+            with open(fp, "rb") as f:
+                while chunk := f.read(65536):
+                    yield chunk
+        finally:
+            try: fp.unlink(missing_ok=True)
+            except Exception: pass
+
+    return StreamingResponse(
+        iterfile(),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(file_size),
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.get("/api/job/{job_id}/events")
+async def job_events(job_id: str):
+    """SSE stream — pushes status updates every second until the job finishes."""
+    job = _JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    async def event_stream():
+        while True:
+            j = _JOBS.get(job_id)
+            if not j:
+                yield f"data: {json.dumps({'status': 'expired'})}\n\n"
+                return
+            payload = {
+                "status":    j["status"],
+                "file_size": j.get("file_size"),
+                "error":     j.get("error"),
+            }
+            yield f"data: {json.dumps(payload)}\n\n"
+            if j["status"] in ("done", "error"):
+                return
+            await asyncio.sleep(1)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @app.get("/api/download-tiktok")
 async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
     """Download TikTok video server-side via yt-dlp and stream to browser."""

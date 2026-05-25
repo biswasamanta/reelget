@@ -8,6 +8,7 @@ import LinkHelpGuide from './LinkHelpGuide';
 import AdSlot from './AdSlot';
 import PlaylistResult, { type PlaylistData } from './PlaylistResult';
 import ProfileResult, { type ProfileData } from './ProfileResult';
+import YouTubeJobDownloader from './YouTubeJobDownloader';
 
 type DownloadMode = 'single' | 'profile' | 'playlist';
 type YouTubeQuality = 'hd' | 'sd' | 'audio';
@@ -697,6 +698,17 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               >
                 🎵 Download Audio (M4A)
               </a>
+            )}
+
+            {/* Background job downloader — YouTube only, for when direct streaming is slow */}
+            {/youtube\.com|youtu\.be/.test(url) && (
+              <YouTubeJobDownloader
+                videoUrl={url}
+                quality={ytQuality}
+                trimStart={trimStart}
+                trimEnd={trimEnd}
+                apiBase={apiBase}
+              />
             )}
             {/* Image compressor — shown only when result contains image formats */}
             {(() => {
