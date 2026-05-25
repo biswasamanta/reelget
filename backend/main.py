@@ -1544,7 +1544,7 @@ async def download_youtube(
     # Sticky session: same numeric ID → same Webshare egress IP for all connections
     sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
 
-    stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
+    stdout_target = "-"  # yt-dlp's built-in stdout flag — Railway /dev/stdout is not writable
 
     # Log whether deno is available (required for n-challenge solver)
     import shutil as _shutil
