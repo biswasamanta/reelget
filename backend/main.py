@@ -1937,6 +1937,89 @@ def get_analytics():
         conn.close()
 
 
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+
+def _require_admin(request: Request) -> None:
+    """Raise 401 if the request doesn't supply the correct admin password."""
+    if not ADMIN_PASSWORD:
+        return  # no password configured → open access (Railway private network)
+    auth = request.headers.get("Authorization", "")
+    token = auth.removeprefix("Bearer ").strip()
+    if token != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+@app.get("/api/admin/stats")
+async def admin_stats(request: Request):
+    """Admin-only: aggregate stats for dashboard."""
+    _require_admin(request)
+    conn = _get_db_conn()
+    rows: list[dict] = []
+    total_count = _COUNTER_BASE + _counter_session
+    platform_counts: list[dict] = []
+    top_ips: list[dict] = []
+    cookie_status: list[dict] = []
+
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Total downloads
+                cur.execute("SELECT count FROM counter WHERE id=1")
+                r = cur.fetchone()
+                if r:
+                    total_count = r[0]
+
+                # Per-platform breakdown
+                cur.execute("""
+                    SELECT page, count, last_seen FROM page_stats
+                    WHERE page LIKE 'download:%'
+                    ORDER BY count DESC
+                """)
+                platform_counts = [
+                    {"platform": r[0].replace("download:", ""), "count": r[1],
+                     "last_seen": r[2].isoformat() if r[2] else None}
+                    for r in cur.fetchall()
+                ]
+
+                # Top IPs by today's quota usage
+                cur.execute("""
+                    SELECT ip, count FROM ip_quota
+                    WHERE date = CURRENT_DATE
+                    ORDER BY count DESC LIMIT 20
+                """)
+                top_ips = [{"ip": r[0], "today": r[1]} for r in cur.fetchall()]
+
+                # Cookie alert status
+                cur.execute("""
+                    SELECT platform, fail_count, last_seen, alerted_at
+                    FROM cookie_alerts ORDER BY last_seen DESC
+                """)
+                cookie_status = [
+                    {"platform": r[0], "fail_count": r[1],
+                     "last_seen": r[2].isoformat() if r[2] else None,
+                     "alerted_at": r[3].isoformat() if r[3] else None}
+                    for r in cur.fetchall()
+                ]
+        except Exception as ex:
+            print(f"[admin] stats query failed: {ex}", flush=True)
+        finally:
+            conn.close()
+
+    active_jobs = {jid: j["status"] for jid, j in _JOBS.items()}
+
+    return {
+        "total_downloads":  total_count,
+        "platform_counts":  platform_counts,
+        "top_ips_today":    top_ips,
+        "cookie_alerts":    cookie_status,
+        "proxy_configured": bool(PROXY_URL),
+        "telegram_configured": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID),
+        "active_jobs":      active_jobs,
+        "job_queue_size":   len(_JOBS),
+    }
+
+
 @app.get("/api/cookie-status")
 def get_cookie_status():
     """Return per-platform cookie failure stats and alert history."""
