@@ -110,6 +110,18 @@ def _init_db():
                     last_seen  TIMESTAMPTZ  DEFAULT NOW(),
                     alerted_at TIMESTAMPTZ
                 );
+
+                CREATE TABLE IF NOT EXISTS app_config (
+                    key   VARCHAR(100) PRIMARY KEY,
+                    value TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS ip_quota (
+                    ip   VARCHAR(50) NOT NULL,
+                    date DATE        NOT NULL,
+                    count INTEGER    NOT NULL DEFAULT 0,
+                    PRIMARY KEY (ip, date)
+                );
             """, (_COUNTER_BASE,))
         print("[db] tables ready", flush=True)
     except Exception as ex:
@@ -169,6 +181,97 @@ def _db_get_count() -> int | None:
         conn.close()
 
 _init_db()
+
+
+def _db_get_config(key: str) -> str | None:
+    conn = _get_db_conn()
+    if not conn:
+        return None
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT value FROM app_config WHERE key = %s", (key,))
+            row = cur.fetchone()
+            return row[0] if row else None
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
+def _db_set_config(key: str, value: str) -> None:
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO app_config (key, value) VALUES (%s, %s)
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+            """, (key, value))
+    except Exception as ex:
+        print(f"[db] set_config failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+_MAX_DOWNLOADS_PER_IP_PER_DAY = int(os.environ.get("IP_QUOTA_DAILY", "30"))
+
+
+def _db_check_and_increment_quota(ip: str) -> bool:
+    """Increment daily counter for ip. Return True if under quota, False if exceeded."""
+    conn = _get_db_conn()
+    if not conn:
+        return True  # fail open — don't block if DB is down
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO ip_quota (ip, date, count)
+                VALUES (%s, CURRENT_DATE, 1)
+                ON CONFLICT (ip, date) DO UPDATE
+                    SET count = ip_quota.count + 1
+                RETURNING count
+            """, (ip[:50],))
+            row = cur.fetchone()
+            return (row[0] if row else 1) <= _MAX_DOWNLOADS_PER_IP_PER_DAY
+    except Exception as ex:
+        print(f"[quota] check failed: {ex}", flush=True)
+        return True
+    finally:
+        conn.close()
+
+
+async def _cookie_reminder_loop() -> None:
+    """Background task: check every hour, send a Telegram reminder every 14 days."""
+    INTERVAL_DAYS = 14
+    INTERVAL_SEC  = INTERVAL_DAYS * 24 * 3600
+    CHECK_SEC     = 3600  # check hourly
+
+    while True:
+        await asyncio.sleep(CHECK_SEC)
+        try:
+            last_str = _db_get_config("cookie_reminder_sent_at")
+            last_ts  = float(last_str) if last_str else 0.0
+            if time.time() - last_ts >= INTERVAL_SEC:
+                msg = (
+                    f"⏰ <b>Cookie Refresh Reminder</b>\n\n"
+                    f"It has been {INTERVAL_DAYS} days — platform cookies may be expiring.\n\n"
+                    f"<b>Please export fresh cookies</b> from your browser and update:\n"
+                    f"• <code>YOUTUBE_COOKIES</code>\n"
+                    f"• <code>INSTAGRAM_COOKIES</code>\n"
+                    f"• <code>COOKIES</code> (Facebook, TikTok, Twitter, etc.)\n\n"
+                    f"<i>Scheduled reminder — not an error.</i>"
+                )
+                await _send_telegram_alert(msg)
+                _db_set_config("cookie_reminder_sent_at", str(time.time()))
+        except Exception as ex:
+            print(f"[reminder] loop error: {ex}", flush=True)
+
+
+@app.on_event("startup")
+async def _startup():
+    asyncio.create_task(_cookie_reminder_loop())
+    print("[startup] cookie reminder loop started", flush=True)
+
 
 # In-memory result cache — avoids repeated yt-dlp calls for the same URL
 _CACHE: dict[str, tuple[float, dict]] = {}  # url -> (timestamp, data)
@@ -303,6 +406,15 @@ class DownloadResponse(BaseModel):
 async def download(request: Request, req: DownloadRequest):
     if not SUPPORTED_PATTERN.search(req.url):
         raise HTTPException(status_code=400, detail="Unsupported platform")
+
+    # Per-IP daily quota (configurable via IP_QUOTA_DAILY env var, default 30)
+    client_ip = request.client.host if request.client else "unknown"
+    if not _db_check_and_increment_quota(client_ip):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily download limit reached ({_MAX_DOWNLOADS_PER_IP_PER_DAY}/day). "
+                   "Please try again tomorrow.",
+        )
 
     # Return cached result if fresh
     cached = _cache_get(req.url)
@@ -800,6 +912,17 @@ async def _send_telegram_alert(message: str) -> None:
         print(f"[alert] Telegram send failed: {ex}", flush=True)
 
 
+async def _check_proxy_health(proxy_url: str) -> bool:
+    """Return True if the proxy can reach the internet within 6 seconds."""
+    try:
+        async with httpx.AsyncClient(proxy=proxy_url, timeout=6) as client:
+            await client.get("http://www.google.com")
+        return True
+    except Exception as ex:
+        print(f"[proxy] health check failed: {ex}", flush=True)
+        return False
+
+
 async def _check_and_alert_cookie_error(url: str, error_text: str) -> None:
     """Detect a cookie-expiry error, persist it, and fire a Telegram alert if needed."""
     platform = _detect_cookie_error_platform(url, error_text)
@@ -1157,85 +1280,139 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
     # Sticky session: same numeric ID → same Webshare egress IP for all connections
     sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
 
+    # Proxy health check — if primary proxy is unreachable, try PROXY_URL_2 or go direct
+    if sticky_proxy:
+        if not await _check_proxy_health(sticky_proxy):
+            proxy_backup = os.environ.get("PROXY_URL_2", "")
+            if proxy_backup:
+                sticky_proxy = _make_sticky_proxy(proxy_backup)
+                print("[proxy] switched to PROXY_URL_2", flush=True)
+            else:
+                sticky_proxy = None
+                print("[proxy] no backup — using direct connection", flush=True)
+
     stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
 
     # Log whether deno is available (required for n-challenge solver)
     import shutil as _shutil
     deno_path = _shutil.which("deno")
     print(f"[deno] path={deno_path}", flush=True)
-
-    cmd = [
-        sys.executable, "-m", "yt_dlp",
-        "--format", fmt_sel,
-        "--output", stdout_target,
-        "--no-part",
-        "--no-progress",
-        "--socket-timeout", "20",
-        "--extractor-args", "youtube:player_client=web",
-        # Download & cache the EJS n-challenge solver via Deno on first run.
-        # This is required since yt-dlp v2025.11.12 — without it, YouTube
-        # throttles/hides video formats → "Only images available" error.
-        "--remote-components", "ejs:github",
-    ]
-    if sticky_proxy:
-        cmd += ["--proxy", sticky_proxy]
-    # Only pass cookies if the env var is set — user must keep these fresh
-    # (YouTube rotates them every ~2 weeks). Expired cookies cause format errors.
-    if cookies_file:
-        cmd += ["--cookies", cookies_file]
-    cmd.append(url)
     print(f"[download-youtube] proxy={sticky_proxy.split('@')[-1] if sticky_proxy else 'none'} url={url}", flush=True)
 
-    async def stream_subprocess():
-        proc = None
-        bytes_sent = 0
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            try:
-                first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=25)
-            except asyncio.TimeoutError:
-                first_chunk = b""
+    # Retry ladder: try progressively more compatible (fmt, player_client) pairs.
+    # yt-dlp's "22/18" selector already falls back internally; the outer ladder
+    # retries when the entire subprocess produces 0 bytes (extractor error, etc.).
+    _BASE_FORMATS = {
+        "hd":    [("22/18", "web"), ("18", "tv_embedded,ios")],
+        "sd":    [("18",    "web"), ("18", "tv_embedded,ios")],
+        "audio": [(fmt_sel, "web"), (fmt_sel, "tv_embedded,ios")],
+    }
+    _attempts = _BASE_FORMATS.get(quality, _BASE_FORMATS["hd"])
 
-            if not first_chunk:
+    def _build_cmd(fmt: str, client: str) -> list[str]:
+        c = [
+            sys.executable, "-m", "yt_dlp",
+            "--format", fmt,
+            "--output", stdout_target,
+            "--no-part", "--no-progress",
+            "--socket-timeout", "20",
+            "--extractor-args", f"youtube:player_client={client}",
+            "--remote-components", "ejs:github",
+        ]
+        if sticky_proxy: c += ["--proxy", sticky_proxy]
+        if cookies_file: c += ["--cookies", cookies_file]
+        c.append(url)
+        return c
+
+    async def stream_subprocess():
+        bytes_sent = 0
+        all_procs: list[asyncio.subprocess.Process] = []
+
+        try:
+            for attempt_num, (fmt, client) in enumerate(_attempts):
+                print(f"[download-youtube] attempt {attempt_num+1}/{len(_attempts)} "
+                      f"fmt={fmt} client={client}", flush=True)
+
+                proc = await asyncio.create_subprocess_exec(
+                    *_build_cmd(fmt, client),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                all_procs.append(proc)
+
                 try:
-                    stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                    first_chunk = await asyncio.wait_for(
+                        proc.stdout.read(65536), timeout=25
+                    )
+                except asyncio.TimeoutError:
+                    first_chunk = b""
+
+                if not first_chunk:
+                    # Read stderr, log it, check cookie alert, then try next attempt
+                    try:
+                        stderr_bytes = await asyncio.wait_for(
+                            proc.stderr.read(), timeout=5
+                        )
+                        stderr_text = stderr_bytes.decode(errors="replace").strip()
+                        if stderr_text:
+                            print(f"[attempt {attempt_num+1} stderr] "
+                                  f"{stderr_text[:500]}", flush=True)
+                            asyncio.create_task(
+                                _check_and_alert_cookie_error(url, stderr_text)
+                            )
+                    except Exception:
+                        pass
+                    try: proc.kill()
+                    except Exception: pass
+                    try: await proc.wait()
+                    except Exception: pass
+                    all_procs.remove(proc)
+
+                    if attempt_num < len(_attempts) - 1:
+                        print(f"[download-youtube] retrying…", flush=True)
+                        continue
+                    else:
+                        print(f"[download-youtube] all attempts failed for {url}",
+                              flush=True)
+                        return
+
+                # ── We have data — stream it ──────────────────────────────
+                _MAX_BYTES = 500 * 1024 * 1024  # 500 MB hard cap (abuse prevention)
+                yield first_chunk
+                bytes_sent += len(first_chunk)
+
+                while True:
+                    chunk = await proc.stdout.read(65536)
+                    if not chunk:
+                        break
+                    bytes_sent += len(chunk)
+                    if bytes_sent > _MAX_BYTES:
+                        print(f"[download-youtube] 500 MB cap reached — aborting {url}",
+                              flush=True)
+                        break
+                    yield chunk
+
+                # Drain stderr after successful stream
+                try:
+                    stderr_bytes = await asyncio.wait_for(
+                        proc.stderr.read(), timeout=5
+                    )
                     stderr_text = stderr_bytes.decode(errors="replace").strip()
                     if stderr_text:
                         print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
-                        asyncio.create_task(_check_and_alert_cookie_error(url, stderr_text))
+                        asyncio.create_task(
+                            _check_and_alert_cookie_error(url, stderr_text)
+                        )
                 except Exception:
                     pass
-                print(f"[download-youtube] 0 bytes for {url}", flush=True)
-                return
+                break  # success — no more attempts needed
 
-            yield first_chunk
-            bytes_sent += len(first_chunk)
-
-            while True:
-                chunk = await proc.stdout.read(65536)
-                if not chunk:
-                    break
-                bytes_sent += len(chunk)
-                yield chunk
-
-            try:
-                stderr_bytes = await asyncio.wait_for(proc.stderr.read(), timeout=5)
-                stderr_text = stderr_bytes.decode(errors="replace").strip()
-                if stderr_text:
-                    print(f"[yt-dlp stderr] {stderr_text[:2000]}", flush=True)
-                    asyncio.create_task(_check_and_alert_cookie_error(url, stderr_text))
-            except Exception:
-                pass
         finally:
             print(f"[download-youtube] sent {bytes_sent} bytes for {url}", flush=True)
-            if proc:
-                try: proc.kill()
+            for p in all_procs:
+                try: p.kill()
                 except Exception: pass
-                try: await proc.wait()
+                try: await p.wait()
                 except Exception: pass
             if cookies_file:
                 try: os.unlink(cookies_file)
