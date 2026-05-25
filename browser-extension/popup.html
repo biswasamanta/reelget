@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ReelGet</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    header {
+      background: linear-gradient(135deg, #14b8a6, #06b6d4);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+    header span { font-size: 20px; }
+    .body { padding: 16px; space-y: 12px; }
+    label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 5px; font-weight: 600; }
+    input[type=text] {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: 12px;
+      padding: 9px 12px;
+      outline: none;
+      margin-bottom: 10px;
+    }
+    input[type=text]:focus { border-color: #06b6d4; }
+    .quality-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .quality-btn {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 7px 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quality-btn.active {
+      background: #0e7490;
+      border-color: #06b6d4;
+      color: #fff;
+    }
+    .dl-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #14b8a6, #06b6d4);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 11px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-bottom: 8px;
+    }
+    .dl-btn:hover { opacity: 0.88; }
+    .dl-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .open-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .open-btn:hover { border-color: #06b6d4; color: #06b6d4; }
+    #status {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      min-height: 16px;
+      margin-top: 8px;
+    }
+    #status.err { color: #f87171; }
+  </style>
+</head>
+<body>
+  <header>
+    <span>⬇</span>
+    <h1>ReelGet Downloader</h1>
+  </header>
+  <div class="body" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+    <div>
+      <label for="url-input">Video URL</label>
+      <input id="url-input" type="text" placeholder="Paste or auto-detected…" />
+    </div>
+    <div>
+      <label>Quality</label>
+      <div class="quality-row">
+        <button class="quality-btn active" data-q="hd">🎬 HD 720p</button>
+        <button class="quality-btn"        data-q="sd">📱 SD 360p</button>
+        <button class="quality-btn"        data-q="audio">🎵 Audio</button>
+      </div>
+    </div>
+    <button class="dl-btn" id="dl-btn">⬇ Download</button>
+    <button class="open-btn" id="open-btn">Open in ReelGet ↗</button>
+    <div id="status"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+/* ReelGet floating download button */
+#reelget-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #14b8a6, #06b6d4);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: opacity 0.2s, transform 0.2s;
+  user-select: none;
+  border: none;
+  outline: none;
+  text-decoration: none;
+}
+
+#reelget-btn:hover {
+  opacity: 0.92;
+  transform: scale(1.05);
+}
+
+.rg-icon { font-size: 15px; line-height: 1; }
+.rg-label { white-space: nowrap; }
+
+/* YouTube-specific: nudge up to avoid native controls */
+.ytd-page-manager #reelget-btn,
+ytd-watch-flexy #reelget-btn {
+  bottom: 100px;
+}
