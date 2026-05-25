@@ -569,6 +569,16 @@ async def download(request: Request, req: DownloadRequest):
         "logger": _SilentLogger(),
         # Don't validate format URLs during extraction — just get the list
         "check_formats": False,
+        # Maximally permissive cascade so we never get "format not available"
+        # during metadata extraction.  We only need the info dict (title,
+        # thumbnail, formats[]), not a downloadable file.
+        "format": (
+            "bestvideo*+bestaudio"
+            "/best"
+            "/bestvideo+bestaudio"
+            "/bestvideo"
+            "/bestaudio"
+        ),
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
