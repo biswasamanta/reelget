@@ -10,6 +10,7 @@ import PlaylistResult, { type PlaylistData } from './PlaylistResult';
 import ProfileResult, { type ProfileData } from './ProfileResult';
 
 type DownloadMode = 'single' | 'profile' | 'playlist';
+type YouTubeQuality = 'hd' | 'sd' | 'audio';
 
 type DownloadResult = {
   title: string;
@@ -70,6 +71,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [showTranscript, setShowTranscript] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [dlToast, setDlToast] = useState<{ isYT: boolean } | null>(null);
+  const [ytQuality, setYtQuality] = useState<YouTubeQuality>('hd');
+  const [trimStart, setTrimStart] = useState('');
+  const [trimEnd,   setTrimEnd]   = useState('');
   const dlToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /** Show the download-in-progress toast.
@@ -207,6 +211,14 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|threads\.net/.test(val);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+  /** Build the /api/download-youtube URL including quality and optional trim params */
+  function ytDownloadUrl(quality: YouTubeQuality, videoUrl: string): string {
+    const p = new URLSearchParams({ url: videoUrl, quality });
+    if (trimStart.trim()) p.set('start', trimStart.trim());
+    if (trimEnd.trim())   p.set('end',   trimEnd.trim());
+    return `${apiBase}/api/download-youtube?${p.toString()}`;
+  }
 
   const switchMode = (m: DownloadMode) => {
     setMode(m);
@@ -569,18 +581,74 @@ export default function DownloaderForm({ locale }: { locale: string }) {
           )}
 
           <div className="p-4 space-y-3">
+            {/* YouTube quality picker + trim */}
+            {/youtube\.com|youtu\.be/.test(url) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-gray-500">Quality:</span>
+                  {([
+                    { id: 'hd',    label: '🎬 HD 720p' },
+                    { id: 'sd',    label: '📱 SD 360p' },
+                    { id: 'audio', label: '🎵 Audio'   },
+                  ] as { id: YouTubeQuality; label: string }[]).map(q => (
+                    <button
+                      key={q.id}
+                      onClick={() => setYtQuality(q.id)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${
+                        ytQuality === q.id
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400'
+                      }`}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Trim controls — only shown for video qualities */}
+                {ytQuality !== 'audio' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-500 shrink-0">✂️ Trim:</span>
+                    <input
+                      type="text"
+                      placeholder="Start (e.g. 1:30)"
+                      value={trimStart}
+                      onChange={e => setTrimStart(e.target.value)}
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 outline-none focus:border-teal-400"
+                    />
+                    <span className="text-gray-400 text-xs">→</span>
+                    <input
+                      type="text"
+                      placeholder="End (e.g. 3:00)"
+                      value={trimEnd}
+                      onChange={e => setTrimEnd(e.target.value)}
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 outline-none focus:border-teal-400"
+                    />
+                    {(trimStart || trimEnd) && (
+                      <button
+                        onClick={() => { setTrimStart(''); setTrimEnd(''); }}
+                        className="text-gray-400 hover:text-gray-600 text-xs"
+                        title="Clear trim"
+                      >✕</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Video / Image formats row */}
             <div className="flex flex-wrap gap-3">
               {result.formats.filter(f => !f.label.toLowerCase().includes('audio')).map((fmt, i) => {
                 const isTikTok = /tiktok\.com|vm\.tiktok\.com/.test(url);
                 const isYouTube = /youtube\.com|youtu\.be/.test(url);
-                const quality = fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd';
                 const isImg = isImageExt(fmt.ext);
                 const downloadUrl = isTikTok
-                  ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${quality}`
+                  ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd'}`
                   : isYouTube
-                  ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(url)}&quality=${quality}`
+                  ? ytDownloadUrl(ytQuality === 'audio' ? 'hd' : ytQuality, url)
                   : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
+                const btnLabel = isYouTube && !isImg
+                  ? (ytQuality === 'hd' ? '⬇ Download HD 720p' : ytQuality === 'sd' ? '⬇ Download SD 360p' : '⬇ Download Video')
+                  : `${isImg ? '🖼' : '⬇'} ${fmt.label}`;
                 return (
                   <a
                     key={i}
@@ -593,7 +661,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                         : 'bg-gradient-to-r from-teal-500 to-cyan-500'
                     }`}
                   >
-                    {isImg ? '🖼' : '⬇'} {fmt.label}
+                    {btnLabel}
                   </a>
                 );
               })}
@@ -604,6 +672,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               const proxyUrl = isYouTubeAudio
                 ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(url)}&quality=audio`
                 : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
+              // If user selected audio quality from picker, clicking the video button already handles it.
+              // This row shows for non-YouTube audio formats only; for YT, picker handles it.
+              if (isYouTubeAudio && ytQuality === 'audio') return null;
               return (
                 <a
                   key={i}
@@ -616,6 +687,17 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 </a>
               );
             })}
+            {/* YouTube audio download — shown when audio quality is selected */}
+            {/youtube\.com|youtu\.be/.test(url) && ytQuality === 'audio' && (
+              <a
+                href={ytDownloadUrl('audio', url)}
+                download
+                onClick={() => showDlToast(true)}
+                className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30 cursor-pointer"
+              >
+                🎵 Download Audio (M4A)
+              </a>
+            )}
             {/* Image compressor — shown only when result contains image formats */}
             {(() => {
               const imgFmts = result.formats.filter(f => isImageExt(f.ext));

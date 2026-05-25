@@ -1015,6 +1015,122 @@ _PLAYLIST_PATTERN = re.compile(
     r"youtube\.com/(playlist|watch)\?.*list=|youtu\.be/.*\?.*list="
 )
 
+@app.get("/api/formats")
+@limiter.limit("30/minute")
+async def get_formats(request: Request, url: str = Query(...)):
+    """Return available download formats for a URL without downloading.
+
+    YouTube: returns the progressive (combined A/V) formats available plus
+    an audio-only option.  Other platforms: mirrors /api/download format list.
+    """
+    if not SUPPORTED_PATTERN.search(url):
+        raise HTTPException(status_code=400, detail="Unsupported platform")
+
+    cached = _cache_get(url)
+
+    class _SilentLogger:
+        def debug(self, msg): pass
+        def warning(self, msg): pass
+        def error(self, msg): pass
+
+    ydl_opts: dict = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "extract_flat": False,
+        "check_formats": False,
+        "logger": _SilentLogger(),
+        "extractor_args": {
+            "youtube": {"player_client": ["tv_embedded", "ios", "web"]},
+        },
+    }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
+
+    # Attach cookies for the relevant platform
+    cookie_content: str | None = None
+    if re.search(r"youtube\.com|youtu\.be", url):
+        cookie_content = YOUTUBE_COOKIES or None
+    elif re.search(r"instagram\.com", url):
+        cookie_content = INSTAGRAM_COOKIES or None
+    else:
+        cookie_content = COOKIES or None
+
+    cookies_file: str | None = None
+    if cookie_content:
+        try:
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+            tmp.write(cookie_content); tmp.close()
+            cookies_file = tmp.name
+            ydl_opts["cookiefile"] = cookies_file
+        except Exception:
+            pass
+
+    try:
+        if cached:
+            info = None  # use cached data below
+        else:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+    except yt_dlp.utils.DownloadError as e:
+        raise HTTPException(status_code=422, detail=_clean_error(str(e)))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+    finally:
+        if cookies_file:
+            try: os.unlink(cookies_file)
+            except Exception: pass
+
+    # For YouTube, build a quality menu from the progressive formats
+    is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url))
+    if is_youtube:
+        raw_fmts = (info or {}).get("formats", []) if info else []
+
+        def _yt_progressive(fid: str) -> dict | None:
+            return next((f for f in raw_fmts if f.get("format_id") == fid
+                         and f.get("url")), None)
+
+        options: list[dict] = []
+        for fid, label, height in [("22", "HD 720p", 720), ("18", "SD 360p", 360)]:
+            f = _yt_progressive(fid)
+            options.append({
+                "quality":   fid == "22" and "hd" or "sd",
+                "label":     label,
+                "ext":       "mp4",
+                "height":    height,
+                "filesize":  f.get("filesize") or f.get("filesize_approx") if f else None,
+                "available": f is not None,
+            })
+        # Audio-only option
+        options.append({
+            "quality":   "audio",
+            "label":     "Audio only (M4A)",
+            "ext":       "m4a",
+            "height":    None,
+            "filesize":  None,
+            "available": True,
+        })
+        title = (info or {}).get("title", "YouTube Video") if info else cached.get("title", "")
+        thumb = (info or {}).get("thumbnail") if info else cached.get("thumbnail")
+        return {"platform": "youtube", "title": title, "thumbnail": thumb, "options": options}
+
+    # Non-YouTube: return same format list as /api/download
+    if cached:
+        return {"platform": "other", "cached": True, **cached}
+    if not info:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return {
+        "platform": "other",
+        "title": info.get("title", "Video"),
+        "thumbnail": info.get("thumbnail"),
+        "formats": [
+            {"label": "HD Video", "url": f.get("url", ""), "ext": f.get("ext", "mp4")}
+            for f in (info.get("formats") or [])
+            if f.get("url") and f.get("vcodec") != "none"
+        ][-3:],  # top 3 video formats
+    }
+
+
 @app.get("/api/playlist")
 async def get_playlist(url: str = Query(...)):
     """Return metadata + up to 50 video stubs for a YouTube playlist."""
@@ -1242,7 +1358,12 @@ def _referer_for(url: str) -> str:
     return "https://www.youtube.com/"
 
 @app.get("/api/download-youtube")
-async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
+async def download_youtube(
+    url: str = Query(...),
+    quality: str = Query("hd"),
+    start: str = Query("", description="Start time, e.g. '00:01:30' or '90'"),
+    end:   str = Query("", description="End time,   e.g. '00:03:00' or '180'"),
+):
     """Stream YouTube video via yt-dlp subprocess piped to stdout.
 
     Uses a sticky-session proxy (Webshare format: username-NNNNN) so that every
@@ -1309,6 +1430,15 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
     }
     _attempts = _BASE_FORMATS.get(quality, _BASE_FORMATS["hd"])
 
+    # Build trim section string if start/end supplied
+    _trim_start = start.strip()
+    _trim_end   = end.strip()
+    _trim_section: str | None = None
+    if _trim_start or _trim_end:
+        _s = _trim_start or "0"
+        _e = _trim_end   or "inf"
+        _trim_section = f"*{_s}-{_e}"
+
     def _build_cmd(fmt: str, client: str) -> list[str]:
         c = [
             sys.executable, "-m", "yt_dlp",
@@ -1319,6 +1449,9 @@ async def download_youtube(url: str = Query(...), quality: str = Query("hd")):
             "--extractor-args", f"youtube:player_client={client}",
             "--remote-components", "ejs:github",
         ]
+        if _trim_section:
+            c += ["--download-sections", _trim_section,
+                  "--force-keyframes-at-cuts"]
         if sticky_proxy: c += ["--proxy", sticky_proxy]
         if cookies_file: c += ["--cookies", cookies_file]
         c.append(url)
