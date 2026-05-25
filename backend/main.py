@@ -1544,17 +1544,6 @@ async def download_youtube(
     # Sticky session: same numeric ID → same Webshare egress IP for all connections
     sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
 
-    # Proxy health check — if primary proxy is unreachable, try PROXY_URL_2 or go direct
-    if sticky_proxy:
-        if not await _check_proxy_health(sticky_proxy):
-            proxy_backup = os.environ.get("PROXY_URL_2", "")
-            if proxy_backup:
-                sticky_proxy = _make_sticky_proxy(proxy_backup)
-                print("[proxy] switched to PROXY_URL_2", flush=True)
-            else:
-                sticky_proxy = None
-                print("[proxy] no backup — using direct connection", flush=True)
-
     stdout_target = "/dev/stdout" if os.path.exists("/dev/stdout") else "-"
 
     # Log whether deno is available (required for n-challenge solver)
@@ -1763,9 +1752,6 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
             pass
 
     sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
-    if sticky_proxy and not await _check_proxy_health(sticky_proxy):
-        backup = os.environ.get("PROXY_URL_2", "")
-        sticky_proxy = _make_sticky_proxy(backup) if backup else None
 
     import shutil as _sh
     deno_path = _sh.which("deno")
