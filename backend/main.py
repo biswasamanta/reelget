@@ -1553,11 +1553,25 @@ async def download_youtube(
     print(f"[download-youtube] proxy={sticky_proxy.split('@')[-1] if sticky_proxy else 'none'} url={url}", flush=True)
 
     # Retry ladder: try progressively more compatible (fmt, player_client) pairs.
-    # yt-dlp's "22/18" selector already falls back internally; the outer ladder
-    # retries when the entire subprocess produces 0 bytes (extractor error, etc.).
+    #
+    # Tier 1 — progressive (pre-muxed mp4, no ffmpeg, pipes cleanly to stdout)
+    # Tier 2 — progressive fallback with different player client
+    # Tier 3 — DASH (separate video+audio merged by ffmpeg → fragmented mp4)
+    #           Required for VEVO / official music videos that have no format 18/22.
+    #           yt-dlp uses frag_keyframe+empty_moov so piping to stdout works.
+    _DASH_HD = (
+        "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
+        "/bestvideo[height<=720]+bestaudio"
+        "/best[height<=720]"
+    )
+    _DASH_SD = (
+        "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
+        "/bestvideo[height<=480]+bestaudio"
+        "/best[height<=480]"
+    )
     _BASE_FORMATS = {
-        "hd":    [("22/18", "web"), ("18", "tv_embedded,ios")],
-        "sd":    [("18",    "web"), ("18", "tv_embedded,ios")],
+        "hd":    [("22/18", "web"), ("18", "tv_embedded,ios"), (_DASH_HD, "web")],
+        "sd":    [("18",    "web"), ("18", "tv_embedded,ios"), (_DASH_SD, "web")],
         "audio": [(fmt_sel, "web"), (fmt_sel, "tv_embedded,ios")],
     }
     _attempts = _BASE_FORMATS.get(quality, _BASE_FORMATS["hd"])
@@ -1738,9 +1752,21 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
     if quality == "audio":
         fmt_sel = "bestaudio[ext=m4a]/bestaudio"
     elif quality == "sd":
-        fmt_sel = "18"
+        # 18 = progressive 360p; fall back to DASH if not available (e.g. VEVO)
+        fmt_sel = (
+            "18"
+            "/bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=480]+bestaudio"
+            "/best[height<=480]"
+        )
     else:
-        fmt_sel = "22/18"
+        # 22 = progressive 720p, 18 = 360p; fall back to DASH if not available (e.g. VEVO)
+        fmt_sel = (
+            "22/18"
+            "/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=720]+bestaudio"
+            "/best[height<=720]"
+        )
 
     cookies_file: str | None = None
     if YOUTUBE_COOKIES:
@@ -1763,6 +1789,7 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
     cmd = [
         _sys.executable, "-m", "yt_dlp",
         "--format", fmt_sel,
+        "--merge-output-format", "mp4",          # keep mp4 when DASH tracks are merged
         "--output", str(out_file),
         "--no-part", "--no-progress",
         "--socket-timeout", "20",
