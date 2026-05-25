@@ -73,6 +73,38 @@ _counter_session = 0
 # ── PostgreSQL counter ────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
+# ── Cloudflare R2 video cache ─────────────────────────────────────────────────
+R2_ACCOUNT_ID  = os.environ.get("R2_ACCOUNT_ID",  "")
+R2_ACCESS_KEY  = os.environ.get("R2_ACCESS_KEY",  "")
+R2_SECRET_KEY  = os.environ.get("R2_SECRET_KEY",  "")
+R2_BUCKET      = os.environ.get("R2_BUCKET",      "")
+R2_PUBLIC_BASE = os.environ.get("R2_PUBLIC_BASE", "")   # e.g. https://cdn.reelget.com
+R2_CACHE_THRESHOLD = int(os.environ.get("R2_CACHE_THRESHOLD", "3"))  # requests before caching
+
+_r2_client = None
+
+def _get_r2():
+    """Lazy-init boto3 S3 client pointed at Cloudflare R2."""
+    global _r2_client
+    if _r2_client is not None:
+        return _r2_client
+    if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET]):
+        return None
+    try:
+        import boto3
+        _r2_client = boto3.client(
+            "s3",
+            endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+            aws_access_key_id=R2_ACCESS_KEY,
+            aws_secret_access_key=R2_SECRET_KEY,
+            region_name="auto",
+        )
+        print("[r2] client initialised", flush=True)
+        return _r2_client
+    except Exception as ex:
+        print(f"[r2] init failed: {ex}", flush=True)
+        return None
+
 def _get_db_conn():
     if not _PG_AVAILABLE or not DATABASE_URL:
         return None
@@ -121,6 +153,15 @@ def _init_db():
                     date DATE        NOT NULL,
                     count INTEGER    NOT NULL DEFAULT 0,
                     PRIMARY KEY (ip, date)
+                );
+
+                CREATE TABLE IF NOT EXISTS url_request_count (
+                    url_hash  VARCHAR(64) PRIMARY KEY,
+                    url       TEXT        NOT NULL,
+                    count     INTEGER     NOT NULL DEFAULT 0,
+                    r2_key    TEXT,
+                    r2_cached BOOLEAN     NOT NULL DEFAULT FALSE,
+                    last_seen TIMESTAMPTZ DEFAULT NOW()
                 );
             """, (_COUNTER_BASE,))
         print("[db] tables ready", flush=True)
@@ -212,6 +253,99 @@ def _db_set_config(key: str, value: str) -> None:
         print(f"[db] set_config failed: {ex}", flush=True)
     finally:
         conn.close()
+
+
+import hashlib as _hashlib
+
+
+def _url_hash(url: str) -> str:
+    return _hashlib.sha256(url.encode()).hexdigest()[:32]
+
+
+def _db_increment_url_count(url: str) -> tuple[int, str | None]:
+    """Increment request count for url. Returns (new_count, r2_key_if_cached)."""
+    conn = _get_db_conn()
+    if not conn:
+        return 1, None
+    h = _url_hash(url)
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO url_request_count (url_hash, url, count, last_seen)
+                VALUES (%s, %s, 1, NOW())
+                ON CONFLICT (url_hash) DO UPDATE
+                    SET count     = url_request_count.count + 1,
+                        last_seen = NOW()
+                RETURNING count, r2_key, r2_cached
+            """, (h, url[:2000]))
+            row = cur.fetchone()
+            if row:
+                return row[0], row[1] if row[2] else None
+        return 1, None
+    except Exception as ex:
+        print(f"[r2] db count failed: {ex}", flush=True)
+        return 1, None
+    finally:
+        conn.close()
+
+
+def _db_set_r2_cached(url: str, r2_key: str) -> None:
+    conn = _get_db_conn()
+    if not conn:
+        return
+    h = _url_hash(url)
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""
+                UPDATE url_request_count
+                SET r2_key = %s, r2_cached = TRUE
+                WHERE url_hash = %s
+            """, (r2_key, h))
+    except Exception as ex:
+        print(f"[r2] db set_cached failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+async def _r2_upload_file(local_path: str, r2_key: str, content_type: str) -> bool:
+    """Upload a local file to R2. Returns True on success."""
+    r2 = _get_r2()
+    if not r2:
+        return False
+    try:
+        await asyncio.to_thread(
+            r2.upload_file,
+            local_path,
+            R2_BUCKET,
+            r2_key,
+            ExtraArgs={"ContentType": content_type},
+        )
+        print(f"[r2] uploaded {r2_key}", flush=True)
+        return True
+    except Exception as ex:
+        print(f"[r2] upload failed: {ex}", flush=True)
+        return False
+
+
+def _r2_public_url(r2_key: str) -> str | None:
+    if R2_PUBLIC_BASE:
+        return f"{R2_PUBLIC_BASE.rstrip('/')}/{r2_key}"
+    return None
+
+
+async def _maybe_cache_to_r2(url: str, local_path: str, ext: str) -> None:
+    """After a successful job download, upload to R2 if threshold met."""
+    count, _ = _db_increment_url_count(url)
+    print(f"[r2] url request count={count} threshold={R2_CACHE_THRESHOLD}", flush=True)
+    if count < R2_CACHE_THRESHOLD:
+        return
+    r2 = _get_r2()
+    if not r2:
+        return
+    r2_key = f"videos/{_url_hash(url)}.{ext}"
+    content_type = "audio/mp4" if ext == "m4a" else "video/mp4"
+    if await _r2_upload_file(local_path, r2_key, content_type):
+        _db_set_r2_cached(url, r2_key)
 
 
 _MAX_DOWNLOADS_PER_IP_PER_DAY = int(os.environ.get("IP_QUOTA_DAILY", "30"))
@@ -1398,6 +1532,15 @@ async def download_youtube(
         except Exception:
             pass
 
+    # Check R2 cache first — if this URL was previously cached, redirect to CDN
+    _r2_count, _r2_cached_key = _db_increment_url_count(url)
+    if _r2_cached_key:
+        cdn_url = _r2_public_url(_r2_cached_key)
+        if cdn_url:
+            print(f"[r2] serving from CDN: {cdn_url}", flush=True)
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=cdn_url, status_code=302)
+
     # Sticky session: same numeric ID → same Webshare egress IP for all connections
     sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
 
@@ -1670,6 +1813,8 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
             job["status"] = "done"
             job["file_size"] = out_file.stat().st_size
             print(f"[job {job_id}] done — {job['file_size']} bytes", flush=True)
+            # Fire-and-forget: cache to R2 if threshold met
+            asyncio.create_task(_maybe_cache_to_r2(url, str(out_file), out_ext))
 
     except asyncio.TimeoutError:
         job["status"] = "error"
@@ -1681,6 +1826,17 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
         if cookies_file:
             try: os.unlink(cookies_file)
             except Exception: pass
+
+
+@app.get("/api/cached-url")
+async def check_cached_url(url: str = Query(...)):
+    """Return R2 CDN URL if this URL has been cached, else null."""
+    _, r2_key = _db_increment_url_count(url)
+    if r2_key:
+        cdn = _r2_public_url(r2_key)
+        if cdn:
+            return {"cached": True, "url": cdn}
+    return {"cached": False, "url": None}
 
 
 @app.post("/api/job")
