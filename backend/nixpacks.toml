@@ -1,2 +1,10 @@
 [phases.setup]
 nixPkgs = ["python312", "ffmpeg", "deno"]
+
+[phases.build]
+cmds = [
+  # Make yt-dlp find our config file automatically (both CLI and Python API).
+  # yt-dlp checks $XDG_CONFIG_HOME/yt-dlp/config at startup.
+  "mkdir -p /root/.config/yt-dlp",
+  "cp yt-dlp.conf /root/.config/yt-dlp/config",
+]
