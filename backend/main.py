@@ -634,16 +634,27 @@ async def download(request: Request, req: DownloadRequest):
         asyncio.create_task(_check_and_alert_cookie_error(req.url, err_str))
         # ── YouTube oEmbed fallback ──────────────────────────────────────────
         # When yt-dlp fails for a YouTube URL (bot-detection, VEVO region block,
-        # etc.), silently call YouTube's public oEmbed endpoint which always works
-        # for any public video regardless of IP or auth. The result card will show
-        # correctly; the download buttons already call /api/download-youtube directly
-        # so they are unaffected by yt-dlp failing here.
+        # Shorts bot-check, etc.), silently call YouTube's public oEmbed endpoint
+        # which always works for any public video regardless of IP or auth.
+        # The result card will show correctly; the download buttons already call
+        # /api/download-youtube directly so they are unaffected by yt-dlp failing here.
         if re.search(r"youtube\.com|youtu\.be", req.url):
             try:
                 import urllib.parse as _up
+                # Normalise the URL for oEmbed: Shorts and youtu.be links are
+                # converted to the standard watch URL, which oEmbed always accepts.
+                # oEmbed does NOT reliably handle /shorts/, /live/, ?si= etc.
+                _vid_m = re.search(
+                    r"(?:shorts/|watch\?v=|youtu\.be/|embed/|v/)([A-Za-z0-9_-]{11})",
+                    req.url,
+                )
+                _oembed_target = (
+                    f"https://www.youtube.com/watch?v={_vid_m.group(1)}"
+                    if _vid_m else req.url
+                )
                 _oembed_url = (
                     "https://www.youtube.com/oembed"
-                    f"?url={_up.quote(req.url, safe='')}&format=json"
+                    f"?url={_up.quote(_oembed_target, safe='')}&format=json"
                 )
                 async with httpx.AsyncClient(timeout=6.0) as _hc:
                     _r = await _hc.get(_oembed_url)

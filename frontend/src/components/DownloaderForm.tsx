@@ -288,7 +288,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         const trimmed = cleaned.replace(/\s*Use --cookies[\s\S]*$/i, '').trim();
         // Map known patterns to friendly messages
         let friendly = trimmed;
-        if (/sign in|bot|confirm/i.test(trimmed)) {
+        if (/sign in|bot|confirm/i.test(detail)) {
+          // Catches cases where the whole message is "Use --cookies..." after stripping
+          // the yt-dlp prefix, leaving trimmed empty. Check the raw detail instead.
           friendly = 'This video requires sign-in to access. Please try a different video.';
         } else if (/unavailable|not available/i.test(trimmed)) {
           friendly = 'This video is unavailable or restricted in this region.';
@@ -296,6 +298,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
           friendly = 'This video is private and cannot be downloaded.';
         } else if (/age/i.test(trimmed)) {
           friendly = 'This video is age-restricted and cannot be downloaded without sign-in.';
+        } else if (!trimmed && /use --cookies/i.test(detail)) {
+          // Error was entirely a cookie/auth instruction — means bot-check triggered
+          friendly = 'This video requires sign-in to access. Please try a different video.';
         }
         setStatus('error');
         setErrorMsg(friendly || t('result.error'));
