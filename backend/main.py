@@ -587,11 +587,12 @@ async def download(request: Request, req: DownloadRequest):
             ),
             "Accept-Language": "en-US,en;q=0.9",
         },
-        # Use web first so VEVO / music videos (which block tv_embedded) work.
-        # tv_embedded is kept as a last-ditch fallback for bare data-centre IPs.
+        # tv_embedded was removed in yt-dlp Jan 2026.
+        # tv_downgraded avoids SABR-only/DRM formats; web_embedded skips
+        # po_token requirement; web_safari + ios round out compatibility.
         "extractor_args": {
             "youtube": {
-                "player_client": ["web", "ios", "android", "tv_embedded"],
+                "player_client": ["tv_downgraded", "web_embedded", "web_safari", "ios"],
             }
         },
     }
@@ -1216,7 +1217,7 @@ async def get_formats(request: Request, url: str = Query(...)):
         "check_formats": False,
         "logger": _SilentLogger(),
         "extractor_args": {
-            "youtube": {"player_client": ["tv_embedded", "ios", "web"]},
+            "youtube": {"player_client": ["tv_downgraded", "web_embedded", "ios"]},
         },
     }
     if PROXY_URL:
@@ -1319,7 +1320,7 @@ async def get_playlist(url: str = Query(...)):
         "playlistend": 50,
         "socket_timeout": 15,
         "extractor_args": {
-            "youtube": {"player_client": ["tv_embedded", "web"]},
+            "youtube": {"player_client": ["tv_downgraded", "web_embedded", "web"]},
         },
     }
 
@@ -1394,7 +1395,7 @@ async def get_profile(url: str = Query(...)):
         "playlistend": 30,
         "socket_timeout": 15,
         "extractor_args": {
-            "youtube": {"player_client": ["tv_embedded", "web"]},
+            "youtube": {"player_client": ["tv_downgraded", "web_embedded", "web"]},
         },
     }
 
@@ -1611,9 +1612,9 @@ async def download_youtube(
         "/best[height<=480]"
     )
     _BASE_FORMATS = {
-        "hd":    [("22/18", "web"), ("18", "tv_embedded,ios"), (_DASH_HD, "web")],
-        "sd":    [("18",    "web"), ("18", "tv_embedded,ios"), (_DASH_SD, "web")],
-        "audio": [(fmt_sel, "web"), (fmt_sel, "tv_embedded,ios")],
+        "hd":    [("22/18", "web"), ("18", "tv_downgraded,web_embedded,ios"), (_DASH_HD, "tv_downgraded,web_embedded")],
+        "sd":    [("18",    "web"), ("18", "tv_downgraded,web_embedded,ios"), (_DASH_SD, "tv_downgraded,web_embedded")],
+        "audio": [(fmt_sel, "web"), (fmt_sel, "tv_downgraded,web_embedded,ios")],
     }
     _attempts = _BASE_FORMATS.get(quality, _BASE_FORMATS["hd"])
 
@@ -2291,7 +2292,7 @@ async def get_transcript(request: Request, url: str = Query(...)):
         },
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv_embedded", "ios", "android", "web"],
+                "player_client": ["tv_downgraded", "web_embedded", "web_safari", "ios"],
             }
         },
     }
