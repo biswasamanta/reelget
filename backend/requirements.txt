@@ -8,3 +8,4 @@ slowapi>=0.1.9
 psycopg2-binary>=2.9.9
 python-telegram-bot>=21.0
 boto3>=1.34.0
+bgutil-ytdlp-pot-provider>=1.0.0
