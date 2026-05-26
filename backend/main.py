@@ -631,6 +631,37 @@ async def download(request: Request, req: DownloadRequest):
         print(f"[yt-dlp DownloadError] {err_str}", flush=True)
         # Fire-and-forget cookie alert check (won't block the error response)
         asyncio.create_task(_check_and_alert_cookie_error(req.url, err_str))
+        # ── YouTube oEmbed fallback ──────────────────────────────────────────
+        # When yt-dlp fails for a YouTube URL (bot-detection, VEVO region block,
+        # etc.), silently call YouTube's public oEmbed endpoint which always works
+        # for any public video regardless of IP or auth. The result card will show
+        # correctly; the download buttons already call /api/download-youtube directly
+        # so they are unaffected by yt-dlp failing here.
+        if re.search(r"youtube\.com|youtu\.be", req.url):
+            try:
+                import urllib.parse as _up
+                _oembed_url = (
+                    "https://www.youtube.com/oembed"
+                    f"?url={_up.quote(req.url, safe='')}&format=json"
+                )
+                async with httpx.AsyncClient(timeout=6.0) as _hc:
+                    _r = await _hc.get(_oembed_url)
+                if _r.status_code == 200:
+                    _d = _r.json()
+                    _title = _d.get("title") or "YouTube Video"
+                    _thumb = _d.get("thumbnail_url")
+                    print(f"[oembed] fallback OK → {_title!r}", flush=True)
+                    # Return a stub result — the real download goes via /api/download-youtube
+                    return DownloadResponse(
+                        title=_title,
+                        thumbnail=_thumb,
+                        formats=[FormatInfo(label="Video", url="", ext="mp4")],
+                    )
+                else:
+                    print(f"[oembed] fallback HTTP {_r.status_code}", flush=True)
+            except Exception as _oe:
+                print(f"[oembed] fallback error: {_oe}", flush=True)
+        # ── non-YouTube (or oEmbed also failed): surface the original error ──
         raise HTTPException(status_code=422, detail=err_str)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
