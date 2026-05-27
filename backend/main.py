@@ -537,9 +537,34 @@ class DownloadResponse(BaseModel):
     error_code: str | None = None     # structured error code for frontend mapping
 
 
+def _normalize_url(url: str) -> str:
+    """Strip tracking/share tokens that can confuse extractors.
+
+    Removes:
+      - Instagram: igsh=, utm_source=, utm_medium=, utm_campaign=
+      - TikTok: _r=, _t=
+      - Generic: utm_* parameters
+    """
+    from urllib.parse import urlparse, urlencode, parse_qsl, urlunparse
+    _STRIP_PARAMS = {
+        "igsh", "utm_source", "utm_medium", "utm_campaign",
+        "utm_content", "utm_term", "_r", "_t", "si",
+    }
+    try:
+        parsed = urlparse(url)
+        qs = [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
+        cleaned = urlunparse(parsed._replace(query=urlencode(qs)))
+        if cleaned != url:
+            print(f"[normalize] {url[:80]} → {cleaned[:80]}", flush=True)
+        return cleaned
+    except Exception:
+        return url
+
+
 @app.post("/api/download", response_model=DownloadResponse)
 @limiter.limit("20/minute")
 async def download(request: Request, req: DownloadRequest):
+    req = req.model_copy(update={"url": _normalize_url(req.url)})
     if not SUPPORTED_PATTERN.search(req.url):
         raise HTTPException(status_code=400, detail="Unsupported platform")
 
