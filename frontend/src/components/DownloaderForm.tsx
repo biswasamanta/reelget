@@ -83,6 +83,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [dlToast, setDlToast] = useState<{ isYT: boolean } | null>(null);
   const [ytQuality, setYtQuality] = useState<YouTubeQuality>('hd');
+  // Stores the URL of the currently displayed result — url state is cleared after
+  // a successful download to reset the input, but we still need the original URL
+  // for YouTube quality picker, download hrefs, thumbnail section, etc.
+  const [downloadedUrl, setDownloadedUrl] = useState('');
 
   // Batch mode state
   type BatchItem = { url: string; status: 'pending' | 'loading' | 'success' | 'error'; result?: DownloadResult; error?: string };
@@ -281,6 +285,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     setUrl('');
     setStatus('idle');
     setResult(null);
+    setDownloadedUrl('');
     setPlaylistData(null);
     setProfileData(null);
   };
@@ -409,6 +414,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         return;
       }
       const data = await res.json();
+      setDownloadedUrl(trimmed);
       setResult(data);
       setStatus('success');
       setUrl('');
@@ -786,7 +792,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
 
           <div className="p-4 space-y-3">
             {/* YouTube quality picker + trim */}
-            {/youtube\.com|youtu\.be/.test(url) && (
+            {/youtube\.com|youtu\.be/.test(downloadedUrl) && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-semibold text-gray-500">Quality:</span>
@@ -842,13 +848,13 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             {/* Video / Image formats row */}
             <div className="flex flex-wrap gap-3">
               {result.formats.filter(f => !f.label.toLowerCase().includes('audio')).map((fmt, i) => {
-                const isTikTok = /tiktok\.com|vm\.tiktok\.com/.test(url);
-                const isYouTube = /youtube\.com|youtu\.be/.test(url);
+                const isTikTok = /tiktok\.com|vm\.tiktok\.com/.test(downloadedUrl);
+                const isYouTube = /youtube\.com|youtu\.be/.test(downloadedUrl);
                 const isImg = isImageExt(fmt.ext);
                 const downloadUrl = isTikTok
-                  ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd'}`
+                  ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(downloadedUrl)}&quality=${fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd'}`
                   : isYouTube
-                  ? ytDownloadUrl(ytQuality === 'audio' ? 'hd' : ytQuality, url)
+                  ? ytDownloadUrl(ytQuality === 'audio' ? 'hd' : ytQuality, downloadedUrl)
                   : fmt.url.startsWith('/api/')
                   ? `${apiBase}${fmt.url}`
                   : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
@@ -874,9 +880,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             </div>
             {/* Audio / MP3 row — distinct style */}
             {result.formats.filter(f => f.label.toLowerCase().includes('audio')).map((fmt, i) => {
-              const isYouTubeAudio = /youtube\.com|youtu\.be/.test(url);
+              const isYouTubeAudio = /youtube\.com|youtu\.be/.test(downloadedUrl);
               const proxyUrl = isYouTubeAudio
-                ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(url)}&quality=audio`
+                ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(downloadedUrl)}&quality=audio`
                 : fmt.url.startsWith('/api/')
                 ? `${apiBase}${fmt.url}`
                 : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
@@ -896,9 +902,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               );
             })}
             {/* YouTube audio download — shown when audio quality is selected */}
-            {/youtube\.com|youtu\.be/.test(url) && ytQuality === 'audio' && (
+            {/youtube\.com|youtu\.be/.test(downloadedUrl) && ytQuality === 'audio' && (
               <a
-                href={ytDownloadUrl('audio', url)}
+                href={ytDownloadUrl('audio', downloadedUrl)}
                 download
                 onClick={() => showDlToast(true)}
                 className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl text-sm hover:opacity-90 transition border border-violet-400/30 cursor-pointer"
@@ -908,9 +914,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             )}
 
             {/* Background job downloader — YouTube only, for when direct streaming is slow */}
-            {/youtube\.com|youtu\.be/.test(url) && (
+            {/youtube\.com|youtu\.be/.test(downloadedUrl) && (
               <YouTubeJobDownloader
-                videoUrl={url}
+                videoUrl={downloadedUrl}
                 quality={ytQuality}
                 trimStart={trimStart}
                 trimEnd={trimEnd}
@@ -965,7 +971,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
 
             {/* YouTube thumbnail downloader — shown for any YouTube URL */}
             {(() => {
-              const ytId = getYouTubeVideoId(url);
+              const ytId = getYouTubeVideoId(downloadedUrl);
               if (!ytId) return null;
               const thumbs = [
                 { label: 'HD  1280×720', key: 'maxresdefault' },

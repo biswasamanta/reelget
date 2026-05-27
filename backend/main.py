@@ -606,6 +606,13 @@ async def download(request: Request, req: DownloadRequest):
         ydl_opts["proxy"] = PROXY_URL
         print(f"[proxy] Using proxy: {PROXY_URL.split('@')[-1]}", flush=True)  # log host only, hide creds
 
+    # Instagram & Facebook: impersonate Chrome via curl_cffi so yt-dlp's HTTP
+    # requests pass TLS fingerprint + header checks that block datacenter agents.
+    # curl_cffi is already installed (requirements.txt), so this is always safe.
+    if re.search(r"instagram\.com|facebook\.com|fb\.watch", req.url):
+        ydl_opts["impersonate"] = "chrome"
+        print(f"[impersonate] chrome for {req.url[:50]}", flush=True)
+
     # Pick cookie jar: platform-specific override → universal COOKIES → none
     if re.search(r"instagram\.com", req.url):
         cookie_content = INSTAGRAM_COOKIES or None
