@@ -1713,6 +1713,27 @@ async def download_youtube(
     }
     _attempts = _BASE_FORMATS.get(quality, _BASE_FORMATS["hd"])
 
+    # YouTube Shorts never have progressive formats (18 / 22) — only DASH streams.
+    # Skip the two guaranteed-to-fail progressive tiers and go straight to DASH,
+    # saving up to 50 s of 25-second timeouts on a video that would otherwise
+    # always end up on the third attempt anyway.
+    if "/shorts/" in url:
+        print(f"[download-youtube] Shorts detected — using DASH format directly", flush=True)
+        if quality == "audio":
+            _attempts = [(fmt_sel, "tv_downgraded,web_embedded,ios"), (fmt_sel, "web")]
+        elif quality == "sd":
+            _attempts = [
+                (_DASH_SD, "tv_downgraded,web_embedded"),
+                (_DASH_SD, "web"),
+                ("best[height<=480]", "web"),
+            ]
+        else:
+            _attempts = [
+                (_DASH_HD, "tv_downgraded,web_embedded"),
+                (_DASH_HD, "web"),
+                ("best[height<=720]", "web"),
+            ]
+
     # Build trim section string if start/end supplied
     _trim_start = start.strip()
     _trim_end   = end.strip()
@@ -1727,6 +1748,10 @@ async def download_youtube(
             sys.executable, "-m", "yt_dlp",
             "--format", fmt,
             "--output", stdout_target,
+            # Ensure DASH-merged output is always MP4.  When writing to stdout
+            # yt-dlp adds movflags=frag_keyframe+empty_moov so the file is
+            # streamable without a complete moov atom up front.
+            "--merge-output-format", "mp4",
             "--no-part", "--no-progress",
             "--socket-timeout", "20",
             "--extractor-args", f"youtube:player_client={client}",
@@ -1886,19 +1911,27 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
     job["ext"] = out_ext
     job["filename"] = f"{safe_title}.{out_ext}"
 
+    # Shorts never have progressive formats — use DASH directly to skip failures
+    _is_shorts_job = "/shorts/" in url
     if quality == "audio":
         fmt_sel = "bestaudio[ext=m4a]/bestaudio"
     elif quality == "sd":
-        # 18 = progressive 360p; fall back to DASH if not available (e.g. VEVO)
         fmt_sel = (
+            "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=480]+bestaudio"
+            "/best[height<=480]"
+        ) if _is_shorts_job else (
             "18"
             "/bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
             "/bestvideo[height<=480]+bestaudio"
             "/best[height<=480]"
         )
     else:
-        # 22 = progressive 720p, 18 = 360p; fall back to DASH if not available (e.g. VEVO)
         fmt_sel = (
+            "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=720]+bestaudio"
+            "/best[height<=720]"
+        ) if _is_shorts_job else (
             "22/18"
             "/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
             "/bestvideo[height<=720]+bestaudio"
