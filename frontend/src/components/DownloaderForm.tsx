@@ -93,6 +93,14 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [trimEnd,   setTrimEnd]   = useState('');
   const dlToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /** Mark that the user explicitly cleared the input.
+   *  Prevents the clipboard auto-detect from immediately refilling it. */
+  const markUserCleared = () => {
+    userClearedRef.current = true;
+    if (userClearedTimerRef.current) clearTimeout(userClearedTimerRef.current);
+    userClearedTimerRef.current = setTimeout(() => { userClearedRef.current = false; }, 10_000);
+  };
+
   /** Show the download-in-progress toast.
    *  YouTube needs ~10-30 s to prepare → keep for 40 s.
    *  Everything else starts immediately → dismiss after 6 s. */
@@ -106,6 +114,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const resetRafRef = useRef<number | null>(null);
   // Set to true in paste handlers to prevent onFocus from overriding cursor placement.
   const skipFocusSelectRef = useRef(false);
+  // Set to true when the user explicitly clears the input (✕ button or Escape).
+  // Blocks the clipboard auto-detect from immediately refilling the field.
+  const userClearedRef = useRef(false);
+  const userClearedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -133,8 +145,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   // this tab, pre-fill the input automatically so they can tap Download right away.
   useEffect(() => {
     const tryClipboard = async () => {
-      // Only pre-fill if the input is currently empty and idle
-      if (url.trim() || status !== 'idle') return;
+      // Only pre-fill if the input is currently empty, idle, and the user
+      // hasn't just explicitly cleared it (to avoid immediately refilling).
+      if (url.trim() || status !== 'idle' || userClearedRef.current) return;
       try {
         const text = await navigator.clipboard.readText();
         const trimmed = text?.trim();
@@ -525,7 +538,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleDownload();
-              if (e.key === 'Escape') { setUrl(''); setStatus('idle'); setResult(null); }
+              if (e.key === 'Escape') { markUserCleared(); setUrl(''); setStatus('idle'); setResult(null); }
             }}
             onFocus={(e) => {
               // Skip select-all if a paste just happened — cursor is already at 0.
@@ -550,7 +563,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
           />
           {url ? (
             <button
-              onClick={() => { setUrl(''); setStatus('idle'); setResult(null); }}
+              onClick={() => { markUserCleared(); setUrl(''); setStatus('idle'); setResult(null); }}
               className="px-3 py-3 text-gray-400 hover:text-gray-600 text-sm font-medium flex-shrink-0"
             >
               ✕
