@@ -533,6 +533,8 @@ class DownloadResponse(BaseModel):
     title: str
     thumbnail: str | None
     formats: list[FormatInfo]
+    duration: int | None = None       # seconds
+    error_code: str | None = None     # structured error code for frontend mapping
 
 
 @app.post("/api/download", response_model=DownloadResponse)
@@ -673,8 +675,22 @@ async def download(request: Request, req: DownloadRequest):
                     print(f"[oembed] fallback HTTP {_r.status_code}", flush=True)
             except Exception as _oe:
                 print(f"[oembed] fallback error: {_oe}", flush=True)
-        # ── non-YouTube (or oEmbed also failed): surface the original error ──
-        raise HTTPException(status_code=422, detail=err_str)
+        # ── non-YouTube (or oEmbed also failed): surface structured error ──
+        _code = "unknown"
+        _s = err_str.lower()
+        if any(k in _s for k in ("sign in", "bot", "confirm you're not", "use --cookies")):
+            _code = "sign_in_required"
+        elif any(k in _s for k in ("unavailable", "not available", "video unavailable")):
+            _code = "unavailable"
+        elif "private" in _s:
+            _code = "private"
+        elif "age" in _s:
+            _code = "age_restricted"
+        elif any(k in _s for k in ("not found", "no video", "404")):
+            _code = "not_found"
+        elif "region" in _s or "country" in _s:
+            _code = "geo_blocked"
+        raise HTTPException(status_code=422, detail={"message": err_str, "code": _code})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
     finally:
@@ -685,7 +701,7 @@ async def download(request: Request, req: DownloadRequest):
                 pass
 
     if not info:
-        raise HTTPException(status_code=404, detail="Video not found")
+        raise HTTPException(status_code=404, detail={"message": "Video not found", "code": "not_found"})
 
     formats: list[FormatInfo] = []
 
@@ -756,7 +772,7 @@ async def download(request: Request, req: DownloadRequest):
                 ))
 
     if not formats:
-        raise HTTPException(status_code=404, detail="No downloadable formats found")
+        raise HTTPException(status_code=404, detail={"message": "No downloadable formats found", "code": "no_formats"})
 
     global _counter_session
     _counter_session += 1
@@ -785,6 +801,7 @@ async def download(request: Request, req: DownloadRequest):
         "title": info.get("title", "Video"),
         "thumbnail": info.get("thumbnail"),
         "formats": formats,
+        "duration": info.get("duration"),  # seconds (int) or None
     }
     _cache_set(req.url, response_data)
 

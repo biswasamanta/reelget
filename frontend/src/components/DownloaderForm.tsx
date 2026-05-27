@@ -17,7 +17,17 @@ type DownloadResult = {
   title: string;
   thumbnail?: string;
   formats: { label: string; url: string; ext: string }[];
+  duration?: number;   // seconds
 };
+
+/** Format seconds → M:SS or H:MM:SS */
+function fmtDuration(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = Math.floor(secs % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 type HistoryItem = {
   url: string;
@@ -112,6 +122,32 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       inputRef.current.scrollLeft = 0;
     }
   }, []);
+
+  // Clipboard auto-detect: when the user copies a URL then switches back to
+  // this tab, pre-fill the input automatically so they can tap Download right away.
+  useEffect(() => {
+    const tryClipboard = async () => {
+      // Only pre-fill if the input is currently empty and idle
+      if (url.trim() || status !== 'idle') return;
+      try {
+        const text = await navigator.clipboard.readText();
+        const trimmed = text?.trim();
+        if (trimmed && isValidUrl(trimmed)) {
+          flushSync(() => { setUrl(trimmed); });
+          if (inputRef.current) {
+            inputRef.current.setSelectionRange(0, 0);
+            inputRef.current.scrollLeft = 0;
+          }
+        }
+      } catch { /* clipboard permission denied — silently ignore */ }
+    };
+    const onVisibility = () => { if (document.visibilityState === 'visible') tryClipboard(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    // Also try once on first mount (e.g. user opened a new tab with URL already copied)
+    tryClipboard();
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, status]);
 
   // ─── Anti-shift scroll reset ─────────────────────────────────────────────
   // Android Chrome's native input pipeline can render a shifted scroll BEFORE
@@ -281,26 +317,38 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        const detail: string = errData.detail || '';
-        // Strip yt-dlp noise like "ERROR: [youtube] abc123: "
-        const cleaned = detail.replace(/^ERROR:\s*\[[^\]]+\]\s*[\w-]+:\s*/i, '').trim();
-        // Strip everything from "Use --cookies" onwards (technical yt-dlp instructions)
-        const trimmed = cleaned.replace(/\s*Use --cookies[\s\S]*$/i, '').trim();
-        // Map known patterns to friendly messages
-        let friendly = trimmed;
-        if (/sign in|bot|confirm/i.test(detail)) {
-          // Catches cases where the whole message is "Use --cookies..." after stripping
-          // the yt-dlp prefix, leaving trimmed empty. Check the raw detail instead.
-          friendly = 'This video requires sign-in to access. Please try a different video.';
-        } else if (/unavailable|not available/i.test(trimmed)) {
-          friendly = 'This video is unavailable or restricted in this region.';
-        } else if (/private/i.test(trimmed)) {
-          friendly = 'This video is private and cannot be downloaded.';
-        } else if (/age/i.test(trimmed)) {
-          friendly = 'This video is age-restricted and cannot be downloaded without sign-in.';
-        } else if (!trimmed && /use --cookies/i.test(detail)) {
-          // Error was entirely a cookie/auth instruction — means bot-check triggered
-          friendly = 'This video requires sign-in to access. Please try a different video.';
+        // Backend sends either {code, message} or plain string in detail
+        const detail = errData.detail || {};
+        const errorCode: string = (typeof detail === 'object' ? detail.code : null) || '';
+        const rawMsg: string = (typeof detail === 'object' ? detail.message : detail) || '';
+
+        // Prefer structured error codes from backend; fall back to regex on raw message
+        const ERROR_MESSAGES: Record<string, string> = {
+          sign_in_required: 'This video requires sign-in to access. Please try a different video.',
+          unavailable:      'This video is unavailable or restricted in this region.',
+          private:          'This video is private and cannot be downloaded.',
+          age_restricted:   'This video is age-restricted and cannot be downloaded without sign-in.',
+          geo_blocked:      'This video is not available in your region.',
+          not_found:        'Video not found. Please check the link and try again.',
+          no_formats:       'No downloadable formats were found for this video.',
+        };
+        let friendly = ERROR_MESSAGES[errorCode] || '';
+
+        if (!friendly) {
+          // Legacy fallback: regex on raw message for old-format errors
+          const cleaned = rawMsg.replace(/^ERROR:\s*\[[^\]]+\]\s*[\w-]+:\s*/i, '').trim();
+          const trimmed = cleaned.replace(/\s*Use --cookies[\s\S]*$/i, '').trim();
+          if (/sign in|bot|confirm/i.test(rawMsg) || /use --cookies/i.test(rawMsg)) {
+            friendly = ERROR_MESSAGES.sign_in_required;
+          } else if (/unavailable|not available/i.test(trimmed)) {
+            friendly = ERROR_MESSAGES.unavailable;
+          } else if (/private/i.test(trimmed)) {
+            friendly = ERROR_MESSAGES.private;
+          } else if (/age/i.test(trimmed)) {
+            friendly = ERROR_MESSAGES.age_restricted;
+          } else {
+            friendly = trimmed;
+          }
         }
         setStatus('error');
         setErrorMsg(friendly || t('result.error'));
@@ -575,6 +623,12 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 onError={(e) => { (e.target as HTMLImageElement).closest('div')!.style.display = 'none'; }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+              {/* Duration badge */}
+              {result.duration && result.duration > 0 && (
+                <span className="absolute top-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-0.5 rounded-md">
+                  {fmtDuration(result.duration)}
+                </span>
+              )}
               <p className="absolute bottom-0 left-0 right-0 px-4 py-3 text-white font-semibold text-sm line-clamp-2 drop-shadow">
                 {result.title}
               </p>
@@ -593,9 +647,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-semibold text-gray-500">Quality:</span>
                   {([
-                    { id: 'hd',    label: '🎬 HD 720p' },
-                    { id: 'sd',    label: '📱 SD 360p' },
-                    { id: 'audio', label: '🎵 Audio'   },
+                    { id: 'hd',    label: '🎬 HD (up to 1080p)' },
+                    { id: 'sd',    label: '📱 SD 480p' },
+                    { id: 'audio', label: '🎵 Audio Only' },
                   ] as { id: YouTubeQuality; label: string }[]).map(q => (
                     <button
                       key={q.id}
@@ -653,7 +707,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                   ? ytDownloadUrl(ytQuality === 'audio' ? 'hd' : ytQuality, url)
                   : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
                 const btnLabel = isYouTube && !isImg
-                  ? (ytQuality === 'hd' ? '⬇ Download HD 720p' : ytQuality === 'sd' ? '⬇ Download SD 360p' : '⬇ Download Video')
+                  ? (ytQuality === 'hd' ? '⬇ Download HD' : ytQuality === 'sd' ? '⬇ Download SD' : '⬇ Download Video')
                   : `${isImg ? '🖼' : '⬇'} ${fmt.label}`;
                 return (
                   <a
@@ -928,6 +982,12 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             <div className="h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full w-2/5 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full animate-dl-progress" />
             </div>
+            {/* iOS tip — file goes to Files app, not Photos */}
+            {/iphone|ipad|ipod/i.test(typeof navigator !== 'undefined' ? navigator.userAgent : '') && (
+              <p className="text-slate-400 text-xs leading-snug border-t border-slate-700 pt-2">
+                📱 <span className="text-slate-300 font-medium">iPhone tip:</span> File saves to the <span className="text-white">Files app</span>. To move it to Photos, open Files → tap the video → Share → Save to Photos.
+              </p>
+            )}
           </div>
         </div>
       )}
