@@ -1004,6 +1004,17 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               );
             })()}
 
+            {/* Tip: hard-refresh hint */}
+            <p className="text-center text-[11px] text-gray-400 pt-1">
+              💡 Download not starting? Press{' '}
+              <kbd className="bg-gray-100 text-gray-500 font-mono px-1 py-0.5 rounded text-[10px]">Ctrl</kbd>
+              {' + '}
+              <kbd className="bg-gray-100 text-gray-500 font-mono px-1 py-0.5 rounded text-[10px]">Shift</kbd>
+              {' + '}
+              <kbd className="bg-gray-100 text-gray-500 font-mono px-1 py-0.5 rounded text-[10px]">R</kbd>
+              {' '}to refresh and try again.
+            </p>
+
             {/* Transcript panel — shown when captions are available or loading */}
             {transcriptStatus !== 'idle' && transcriptStatus !== 'unavailable' && (
               <div className="border-t border-gray-100 pt-3">
