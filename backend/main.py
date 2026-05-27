@@ -1678,8 +1678,11 @@ async def download_youtube(
             from fastapi.responses import RedirectResponse
             return RedirectResponse(url=cdn_url, status_code=302)
 
-    # Sticky session: same numeric ID → same Webshare egress IP for all connections
-    sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
+    # YouTube's CDN (googlevideo.com) is reachable from Railway datacenters directly.
+    # Do NOT route YouTube through the residential proxy — it would burn gigabytes of
+    # proxy bandwidth downloading video payloads, exhausting the monthly allowance fast.
+    # The proxy is only needed for social-media extraction (Instagram / Facebook / X).
+    sticky_proxy = None
 
     stdout_target = "-"  # yt-dlp's built-in stdout flag — Railway /dev/stdout is not writable
 
@@ -1947,7 +1950,8 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
         except Exception:
             pass
 
-    sticky_proxy = _make_sticky_proxy(PROXY_URL) if PROXY_URL else None
+    # YouTube CDN is accessible from Railway directly — skip the proxy here too.
+    sticky_proxy = None
 
     import shutil as _sh
     deno_path = _sh.which("deno")
