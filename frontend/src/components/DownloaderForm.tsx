@@ -318,6 +318,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         if (!res.ok) throw new Error(data.detail || 'Could not fetch playlist');
         setPlaylistData(data);
         setStatus('success');
+        setUrl('');
       } catch (e: unknown) {
         setStatus('error');
         setErrorMsg(e instanceof Error ? e.message : 'Could not fetch playlist. Check the URL and try again.');
@@ -334,6 +335,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         if (!res.ok) throw new Error(data.detail || 'Could not fetch profile');
         setProfileData(data);
         setStatus('success');
+        setUrl('');
       } catch (e: unknown) {
         setStatus('error');
         setErrorMsg(e instanceof Error ? e.message : 'Could not fetch profile. Make sure it\'s a public account.');
@@ -396,6 +398,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       const data = await res.json();
       setResult(data);
       setStatus('success');
+      setUrl('');
       saveToHistory(trimmed, data);
 
       // Kick off transcript fetch in the background (non-blocking)
