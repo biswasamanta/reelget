@@ -145,8 +145,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     }
   }, []);
 
-  // Clipboard auto-detect: when the user copies a URL then switches back to
-  // this tab, pre-fill the input automatically so they can tap Download right away.
+  // Clipboard auto-detect: when the user copies a URL and then switches BACK
+  // to this tab, pre-fill the input so they can tap Download right away.
+  // Intentionally NOT run on first mount — that caused whatever URL happened
+  // to be in the clipboard (unrelated copy) to appear on page load.
   useEffect(() => {
     const tryClipboard = async () => {
       // Only pre-fill if the input is currently empty, idle, and the user
@@ -166,8 +168,6 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     };
     const onVisibility = () => { if (document.visibilityState === 'visible') tryClipboard(); };
     document.addEventListener('visibilitychange', onVisibility);
-    // Also try once on first mount (e.g. user opened a new tab with URL already copied)
-    tryClipboard();
     return () => document.removeEventListener('visibilitychange', onVisibility);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, status]);
