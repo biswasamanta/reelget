@@ -98,11 +98,15 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const dlToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /** Mark that the user explicitly cleared the input.
-   *  Prevents the clipboard auto-detect from immediately refilling it. */
+   *  Blocks clipboard auto-detect for the rest of the session (until a
+   *  successful download resets the flag). No timer — the 10-second
+   *  window was too short and caused the URL to reappear after a tab switch. */
   const markUserCleared = () => {
     userClearedRef.current = true;
-    if (userClearedTimerRef.current) clearTimeout(userClearedTimerRef.current);
-    userClearedTimerRef.current = setTimeout(() => { userClearedRef.current = false; }, 10_000);
+    if (userClearedTimerRef.current) {
+      clearTimeout(userClearedTimerRef.current);
+      userClearedTimerRef.current = null;
+    }
   };
 
   /** Show the download-in-progress toast.
@@ -147,22 +151,19 @@ export default function DownloaderForm({ locale }: { locale: string }) {
 
   // Clipboard auto-detect: when the user copies a URL and then switches BACK
   // to this tab, pre-fill the input so they can tap Download right away.
-  // Intentionally NOT run on first mount — that caused whatever URL happened
-  // to be in the clipboard (unrelated copy) to appear on page load.
+  // NOT run on first mount — that filled the box with unrelated clipboard content.
+  // NOT run if the user explicitly cleared with X/Escape (userClearedRef stays true
+  // until a download succeeds, so repeated tab-switches won't re-fill the box).
   useEffect(() => {
     const tryClipboard = async () => {
-      // Only pre-fill if the input is currently empty, idle, and the user
-      // hasn't just explicitly cleared it (to avoid immediately refilling).
       if (url.trim() || status !== 'idle' || userClearedRef.current) return;
       try {
         const text = await navigator.clipboard.readText();
         const trimmed = text?.trim();
         if (trimmed && isValidUrl(trimmed)) {
+          skipFocusSelectRef.current = true;
           flushSync(() => { setUrl(trimmed); });
-          if (inputRef.current) {
-            inputRef.current.setSelectionRange(0, 0);
-            inputRef.current.scrollLeft = 0;
-          }
+          resetCursorToStart(); // cursor at position 0, no horizontal scroll
         }
       } catch { /* clipboard permission denied — silently ignore */ }
     };
@@ -422,6 +423,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       setResult(data);
       setStatus('success');
       setYtQuality('hd');   // reset quality picker for each new video
+      userClearedRef.current = false; // allow clipboard auto-detect for next URL
       setUrl('');
       saveToHistory(trimmed, data);
 
