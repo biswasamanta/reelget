@@ -724,68 +724,72 @@ async def download(request: Request, req: DownloadRequest):
         if _is_hls(fmt_dict):
             from urllib.parse import quote
             return f"/api/download-hls?url={quote(original_url, safe='')}&label={height_label}"
-        return fmt_dict["url"]
+        return fmt_dict.get("url", "")
 
-    if entries:
-        # ── Carousel / album (Instagram multi-photo post, etc.) ──────────────
-        for i, entry in enumerate(entries[:12], 1):
-            if not entry:
-                continue
-            e_url = entry.get("url")
-            e_ext = (entry.get("ext") or "jpg").lower()
-            e_fmts = entry.get("formats") or []
-            if not e_url and e_fmts:
-                best_e = e_fmts[-1]
-                e_url = best_e.get("url")
-                e_ext = (best_e.get("ext") or e_ext).lower()
-            if not e_url:
-                continue
-            is_img = e_ext in IMAGE_EXTS
-            label = f"{'Image' if is_img else 'Video'} {i}"
-            formats.append(FormatInfo(label=label, url=e_url, ext=e_ext))
-    else:
-        # ── Single item: video/audio first ───────────────────────────────────
-        best = (
-            _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4")
-            or _pick_format(raw_formats, vcodec=True, acodec=True)
-            or _pick_format(raw_formats, vcodec=True, acodec=False)
-        )
-        if best:
-            ext = "mp4" if _is_hls(best) else (best.get("ext") or "mp4")
-            formats.append(FormatInfo(label="HD Video (MP4)", url=_fmt_url(best, req.url, "hd"), ext=ext))
+    try:
+        if entries:
+            # ── Carousel / album (Instagram multi-photo post, etc.) ──────────────
+            for i, entry in enumerate(entries[:12], 1):
+                if not entry:
+                    continue
+                e_url = entry.get("url")
+                e_ext = (entry.get("ext") or "jpg").lower()
+                e_fmts = entry.get("formats") or []
+                if not e_url and e_fmts:
+                    best_e = e_fmts[-1]
+                    e_url = best_e.get("url")
+                    e_ext = (best_e.get("ext") or e_ext).lower()
+                if not e_url:
+                    continue
+                is_img = e_ext in IMAGE_EXTS
+                label = f"{'Image' if is_img else 'Video'} {i}"
+                formats.append(FormatInfo(label=label, url=e_url, ext=e_ext))
+        else:
+            # ── Single item: video/audio first ───────────────────────────────────
+            best = (
+                _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4")
+                or _pick_format(raw_formats, vcodec=True, acodec=True)
+                or _pick_format(raw_formats, vcodec=True, acodec=False)
+            )
+            if best:
+                ext = "mp4" if _is_hls(best) else (best.get("ext") or "mp4")
+                formats.append(FormatInfo(label="HD Video (MP4)", url=_fmt_url(best, req.url, "hd"), ext=ext))
 
-        # SD fallback: same cascade, max 480p
-        sd = (
-            _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4", max_height=480)
-            or _pick_format(raw_formats, vcodec=True, acodec=True, max_height=480)
-            or _pick_format(raw_formats, vcodec=True, acodec=False, max_height=480)
-        )
-        if sd and sd.get("url") != (best or {}).get("url"):
-            ext = "mp4" if _is_hls(sd) else (sd.get("ext") or "mp4")
-            formats.append(FormatInfo(label="SD Video (MP4)", url=_fmt_url(sd, req.url, "sd"), ext=ext))
+            # SD fallback: same cascade, max 480p
+            sd = (
+                _pick_format(raw_formats, vcodec=True, acodec=True, ext="mp4", max_height=480)
+                or _pick_format(raw_formats, vcodec=True, acodec=True, max_height=480)
+                or _pick_format(raw_formats, vcodec=True, acodec=False, max_height=480)
+            )
+            if sd and sd.get("url") != (best or {}).get("url"):
+                ext = "mp4" if _is_hls(sd) else (sd.get("ext") or "mp4")
+                formats.append(FormatInfo(label="SD Video (MP4)", url=_fmt_url(sd, req.url, "sd"), ext=ext))
 
-        audio = _pick_format(raw_formats, vcodec=False, acodec=True)
-        if audio:
-            formats.append(FormatInfo(label="Audio Only (M4A)", url=audio["url"], ext="m4a"))
+            audio = _pick_format(raw_formats, vcodec=False, acodec=True)
+            if audio:
+                formats.append(FormatInfo(label="Audio Only (M4A)", url=audio.get("url", ""), ext="m4a"))
 
-        # ── Image fallback (Pinterest pin, Instagram photo, etc.) ─────────────
-        if not formats:
-            for f in raw_formats:
-                if f.get("url") and (f.get("ext") or "").lower() in IMAGE_EXTS:
+            # ── Image fallback (Pinterest pin, Instagram photo, etc.) ─────────────
+            if not formats:
+                for f in raw_formats:
+                    if f.get("url") and (f.get("ext") or "").lower() in IMAGE_EXTS:
+                        formats.append(FormatInfo(
+                            label="Download Image",
+                            url=f["url"],
+                            ext=(f.get("ext") or "jpg").lower(),
+                        ))
+                        break
+                # Last resort: info["url"] (yt-dlp direct URL for simple extractors)
+                if not formats and info.get("url"):
+                    raw_ext = (info.get("ext") or "jpg").lower()
                     formats.append(FormatInfo(
-                        label="Download Image",
-                        url=f["url"],
-                        ext=(f.get("ext") or "jpg").lower(),
+                        label="Download Image" if raw_ext in IMAGE_EXTS else "Download",
+                        url=info["url"],
+                        ext=raw_ext,
                     ))
-                    break
-            # Last resort: info["url"] (yt-dlp direct URL for simple extractors)
-            if not formats and info.get("url"):
-                raw_ext = (info.get("ext") or "jpg").lower()
-                formats.append(FormatInfo(
-                    label="Download Image" if raw_ext in IMAGE_EXTS else "Download",
-                    url=info["url"],
-                    ext=raw_ext,
-                ))
+    except Exception as _fmt_err:
+        print(f"[format-build] unexpected error for {req.url}: {_fmt_err}", flush=True)
+        raise HTTPException(status_code=500, detail=f"Format extraction failed: {str(_fmt_err)[:200]}")
 
     if not formats:
         raise HTTPException(status_code=404, detail={"message": "No downloadable formats found", "code": "no_formats"})
@@ -2214,6 +2218,14 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Referer": _referer_for(url),
     }
+    # Facebook CDN (fbcdn.net / scontent.*.fbcdn.net) rejects browser UAs — use the
+    # crawler UA that Facebook itself documents for link previews.
+    if "fbcdn.net" in url or "facebook.com" in url:
+        headers["User-Agent"] = "facebookexternalhit/1.1"
+        headers["Accept"] = (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        )
+        headers["Sec-Fetch-Mode"] = "navigate"
     safe_filename = re.sub(r'[^\w\-.]', '_', filename, flags=re.ASCII).strip('_')[:80] or 'video'
     _CT = {
         "jpg": "image/jpeg", "jpeg": "image/jpeg",
