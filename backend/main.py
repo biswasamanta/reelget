@@ -606,12 +606,14 @@ async def download(request: Request, req: DownloadRequest):
         ydl_opts["proxy"] = PROXY_URL
         print(f"[proxy] Using proxy: {PROXY_URL.split('@')[-1]}", flush=True)  # log host only, hide creds
 
-    # Instagram & Facebook: impersonate Chrome via curl_cffi so yt-dlp's HTTP
-    # requests pass TLS fingerprint + header checks that block datacenter agents.
-    # curl_cffi is already installed (requirements.txt), so this is always safe.
-    if re.search(r"instagram\.com|facebook\.com|fb\.watch", req.url):
+    # Social-media platforms apply TLS fingerprinting + header analysis to block
+    # datacenter scrapers.  impersonate="chrome" makes curl_cffi present a real
+    # Chrome TLS handshake and browser headers, dramatically improving success
+    # rates for public content on Instagram, Facebook, Twitter/X, and Reddit.
+    # curl_cffi is already installed (requirements.txt), always safe to use.
+    if re.search(r"instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|t\.co|reddit\.com|redd\.it", req.url):
         ydl_opts["impersonate"] = "chrome"
-        print(f"[impersonate] chrome for {req.url[:50]}", flush=True)
+        print(f"[impersonate] chrome for {req.url[:60]}", flush=True)
 
     # Pick cookie jar: platform-specific override → universal COOKIES → none
     if re.search(r"instagram\.com", req.url):
@@ -689,8 +691,16 @@ async def download(request: Request, req: DownloadRequest):
         # ── non-YouTube (or oEmbed also failed): surface structured error ──
         _code = "unknown"
         _s = err_str.lower()
-        if any(k in _s for k in ("sign in", "bot", "confirm you're not", "use --cookies")):
-            _code = "sign_in_required"
+        if any(k in _s for k in ("sign in", "bot", "confirm you're not", "use --cookies",
+                                   "login required", "not authenticated", "checkpoint")):
+            # Attach platform hint so the frontend can give a more specific message
+            _plat = (
+                "instagram" if re.search(r"instagram\.com", req.url) else
+                "facebook"  if re.search(r"facebook\.com|fb\.watch", req.url) else
+                "twitter"   if re.search(r"twitter\.com|x\.com|t\.co", req.url) else
+                None
+            )
+            _code = f"sign_in_required:{_plat}" if _plat else "sign_in_required"
         elif any(k in _s for k in ("unavailable", "not available", "video unavailable")):
             _code = "unavailable"
         elif "private" in _s:

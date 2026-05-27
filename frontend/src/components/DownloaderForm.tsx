@@ -286,6 +286,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     setStatus('idle');
     setResult(null);
     setDownloadedUrl('');
+    setYtQuality('hd');
     setPlaylistData(null);
     setProfileData(null);
   };
@@ -383,7 +384,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
 
         // Prefer structured error codes from backend; fall back to regex on raw message
         const ERROR_MESSAGES: Record<string, string> = {
-          sign_in_required: 'This video requires sign-in to access. Please try a different video.',
+          sign_in_required:           'This video requires sign-in. Try a different video or check if it\'s public.',
+          'sign_in_required:instagram':'This Instagram video couldn\'t be accessed. Make sure the account is public and try again.',
+          'sign_in_required:facebook': 'This Facebook video couldn\'t be accessed. Make sure it\'s a public post.',
+          'sign_in_required:twitter':  'This Twitter/X video couldn\'t be accessed. Make sure it\'s a public tweet.',
           unavailable:      'This video is unavailable or restricted in this region.',
           private:          'This video is private and cannot be downloaded.',
           age_restricted:   'This video is age-restricted and cannot be downloaded without sign-in.',
@@ -417,6 +421,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       setDownloadedUrl(trimmed);
       setResult(data);
       setStatus('success');
+      setYtQuality('hd');   // reset quality picker for each new video
       setUrl('');
       saveToHistory(trimmed, data);
 
