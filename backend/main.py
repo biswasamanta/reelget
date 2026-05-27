@@ -714,6 +714,18 @@ async def download(request: Request, req: DownloadRequest):
 
     IMAGE_EXTS = {"jpg", "jpeg", "webp", "png", "gif", "avif"}
 
+    def _is_hls(fmt_dict: dict) -> bool:
+        """Return True if this format is an HLS/DASH stream (not a direct MP4 CDN URL)."""
+        proto = (fmt_dict.get("protocol") or "").lower()
+        return "m3u8" in proto or "dash" in proto or proto == "http_dash_segments"
+
+    def _fmt_url(fmt_dict: dict, original_url: str, height_label: str) -> str:
+        """Return the download URL: direct CDN URL for plain formats, /api/download-hls for streams."""
+        if _is_hls(fmt_dict):
+            from urllib.parse import quote
+            return f"/api/download-hls?url={quote(original_url, safe='')}&label={height_label}"
+        return fmt_dict["url"]
+
     if entries:
         # ── Carousel / album (Instagram multi-photo post, etc.) ──────────────
         for i, entry in enumerate(entries[:12], 1):
@@ -739,8 +751,8 @@ async def download(request: Request, req: DownloadRequest):
             or _pick_format(raw_formats, vcodec=True, acodec=False)
         )
         if best:
-            ext = best.get("ext") or "mp4"
-            formats.append(FormatInfo(label="HD Video (MP4)", url=best["url"], ext=ext))
+            ext = "mp4" if _is_hls(best) else (best.get("ext") or "mp4")
+            formats.append(FormatInfo(label="HD Video (MP4)", url=_fmt_url(best, req.url, "hd"), ext=ext))
 
         # SD fallback: same cascade, max 480p
         sd = (
@@ -749,8 +761,8 @@ async def download(request: Request, req: DownloadRequest):
             or _pick_format(raw_formats, vcodec=True, acodec=False, max_height=480)
         )
         if sd and sd.get("url") != (best or {}).get("url"):
-            ext = sd.get("ext") or "mp4"
-            formats.append(FormatInfo(label="SD Video (MP4)", url=sd["url"], ext=ext))
+            ext = "mp4" if _is_hls(sd) else (sd.get("ext") or "mp4")
+            formats.append(FormatInfo(label="SD Video (MP4)", url=_fmt_url(sd, req.url, "sd"), ext=ext))
 
         audio = _pick_format(raw_formats, vcodec=False, acodec=True)
         if audio:
@@ -2112,6 +2124,86 @@ async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
         headers={
             "Content-Disposition": f'attachment; filename="{clean_title}.mp4"',
             "Content-Length": str(file_size),
+        },
+    )
+
+
+@app.get("/api/download-hls")
+async def download_hls(url: str = Query(...), label: str = Query("hd")):
+    """Download an HLS/DASH stream via yt-dlp+ffmpeg and stream the merged MP4 back.
+    Used for platforms like Dailymotion that only expose m3u8 URLs."""
+    tmp_dir = tempfile.mkdtemp()
+    safe = re.sub(r'[^\w\-]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'video'
+    out_path = os.path.join(tmp_dir, f"{safe}.mp4")
+
+    fmt = (
+        "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+        if label == "hd"
+        else "worstvideo+worstaudio/worst[height<=480]/worst"
+    )
+
+    ydl_opts: dict = {
+        "quiet": True,
+        "no_warnings": True,
+        "format": fmt,
+        "outtmpl": out_path,
+        "merge_output_format": "mp4",
+        "extractor_retries": 5,
+        "fragment_retries": 10,
+        "concurrent_fragments": 4,
+        "socket_timeout": 60,
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+        },
+    }
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
+
+    try:
+        def _run():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(url, download=True)
+        info = await asyncio.wait_for(asyncio.to_thread(_run), timeout=300)
+        title = info.get("title", "video") if info else "video"
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Download timed out (>5 min)")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"HLS download failed: {str(e)[:200]}")
+
+    # yt-dlp may alter the extension; find the actual output file
+    actual = out_path
+    if not os.path.exists(actual):
+        candidates = list(Path(tmp_dir).glob("*.mp4")) + list(Path(tmp_dir).glob("*.mkv"))
+        if not candidates:
+            raise HTTPException(status_code=500, detail="Output file not found after download")
+        actual = str(candidates[0])
+
+    clean_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or safe
+    file_size = os.path.getsize(actual)
+
+    def iterfile():
+        try:
+            with open(actual, "rb") as f:
+                while chunk := f.read(65536):
+                    yield chunk
+        finally:
+            try:
+                os.unlink(actual)
+                os.rmdir(tmp_dir)
+            except Exception:
+                pass
+
+    return StreamingResponse(
+        iterfile(),
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": f'attachment; filename="{clean_title}.mp4"',
+            "Content-Length": str(file_size),
+            "Cache-Control": "no-store",
         },
     )
 

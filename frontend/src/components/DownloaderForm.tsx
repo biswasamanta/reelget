@@ -664,7 +664,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                             {item.result.formats.slice(0, 2).map((fmt, fi) => (
                               <a
                                 key={fi}
-                                href={`${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(item.result!.title)}&ext=${fmt.ext}`}
+                                href={fmt.url.startsWith('/api/') ? `${apiBase}${fmt.url}` : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(item.result!.title)}&ext=${fmt.ext}`}
                                 download
                                 className="text-[10px] font-semibold bg-teal-500 text-white px-2 py-1 rounded-lg hover:bg-teal-400 transition"
                               >
@@ -849,6 +849,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                   ? `${apiBase}/api/download-tiktok?url=${encodeURIComponent(url)}&quality=${fmt.label.toLowerCase().includes('sd') ? 'sd' : 'hd'}`
                   : isYouTube
                   ? ytDownloadUrl(ytQuality === 'audio' ? 'hd' : ytQuality, url)
+                  : fmt.url.startsWith('/api/')
+                  ? `${apiBase}${fmt.url}`
                   : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
                 const btnLabel = isYouTube && !isImg
                   ? (ytQuality === 'hd' ? '⬇ Download HD' : ytQuality === 'sd' ? '⬇ Download SD' : '⬇ Download Video')
@@ -875,6 +877,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               const isYouTubeAudio = /youtube\.com|youtu\.be/.test(url);
               const proxyUrl = isYouTubeAudio
                 ? `${apiBase}/api/download-youtube?url=${encodeURIComponent(url)}&quality=audio`
+                : fmt.url.startsWith('/api/')
+                ? `${apiBase}${fmt.url}`
                 : `${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(result.title)}&ext=${fmt.ext}`;
               // If user selected audio quality from picker, clicking the video button already handles it.
               // This row shows for non-YouTube audio formats only; for YT, picker handles it.
