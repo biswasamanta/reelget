@@ -597,6 +597,10 @@ async def download(request: Request, req: DownloadRequest):
                 "player_client": ["tv_downgraded", "web_embedded", "web_safari", "ios"],
             }
         },
+        # Reliability: retry on transient network/extractor failures
+        "extractor_retries": 5,
+        "fragment_retries": 10,
+        "socket_timeout": 30,
     }
     if PROXY_URL:
         ydl_opts["proxy"] = PROXY_URL
@@ -684,7 +688,7 @@ async def download(request: Request, req: DownloadRequest):
             _code = "unavailable"
         elif "private" in _s:
             _code = "private"
-        elif "age" in _s:
+        elif any(k in _s for k in ("age-restricted", "age restricted", "age_restricted", "age gate", "confirm your age")):
             _code = "age_restricted"
         elif any(k in _s for k in ("not found", "no video", "404")):
             _code = "not_found"
@@ -1247,6 +1251,9 @@ async def get_formats(request: Request, url: str = Query(...)):
         "extractor_args": {
             "youtube": {"player_client": ["tv_downgraded", "web_embedded", "ios"]},
         },
+        "extractor_retries": 5,
+        "fragment_retries": 10,
+        "socket_timeout": 30,
     }
     if PROXY_URL:
         ydl_opts["proxy"] = PROXY_URL
@@ -1346,7 +1353,8 @@ async def get_playlist(url: str = Query(...)):
         "no_warnings": True,
         "extract_flat": True,
         "playlistend": 50,
-        "socket_timeout": 15,
+        "socket_timeout": 30,
+        "extractor_retries": 5,
         "extractor_args": {
             "youtube": {"player_client": ["tv_downgraded", "web_embedded", "web"]},
         },
@@ -1421,7 +1429,8 @@ async def get_profile(url: str = Query(...)):
         "no_warnings": True,
         "extract_flat": True,
         "playlistend": 30,
-        "socket_timeout": 15,
+        "socket_timeout": 30,
+        "extractor_retries": 5,
         "extractor_args": {
             "youtube": {"player_client": ["tv_downgraded", "web_embedded", "web"]},
         },
@@ -2059,6 +2068,10 @@ async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "Referer": "https://www.tiktok.com/",
         },
+        "extractor_retries": 5,
+        "fragment_retries": 10,
+        "concurrent_fragments": 4,
+        "socket_timeout": 60,
     }
     if PROXY_URL:
         ydl_opts["proxy"] = PROXY_URL
@@ -2323,6 +2336,8 @@ async def get_transcript(request: Request, url: str = Query(...)):
                 "player_client": ["tv_downgraded", "web_embedded", "web_safari", "ios"],
             }
         },
+        "extractor_retries": 5,
+        "socket_timeout": 30,
     }
     if PROXY_URL:
         ydl_opts["proxy"] = PROXY_URL
