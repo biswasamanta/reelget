@@ -8,7 +8,9 @@ cmds = [
   "cp yt-dlp.conf /root/.config/yt-dlp/config",
   # Clone and build bgutil PO token server (TypeScript → Node.js).
   # This provides YouTube BotGuard attestation tokens to bypass bot detection.
-  "git clone --depth 1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /bgutil",
+  # Pinned to a35763a2 (Jan 23 2026): last commit that uses jsdom@^26 (CJS-safe).
+  # bgutil's jsdom ≥27 pulls in encoding-lite (ESM-only) which crashes via require().
+  "git clone --depth 50 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /bgutil && git -C /bgutil checkout a35763a2",
   "cd /bgutil/server && npm ci && npx tsc",
   # Ensure startup script is executable.
   "chmod +x start.sh",
