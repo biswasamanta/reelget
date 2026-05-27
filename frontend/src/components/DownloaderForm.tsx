@@ -10,7 +10,7 @@ import PlaylistResult, { type PlaylistData } from './PlaylistResult';
 import ProfileResult, { type ProfileData } from './ProfileResult';
 import YouTubeJobDownloader from './YouTubeJobDownloader';
 
-type DownloadMode = 'single' | 'profile' | 'playlist';
+type DownloadMode = 'single' | 'profile' | 'playlist' | 'batch';
 type YouTubeQuality = 'hd' | 'sd' | 'audio';
 
 type DownloadResult = {
@@ -83,6 +83,12 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [dlToast, setDlToast] = useState<{ isYT: boolean } | null>(null);
   const [ytQuality, setYtQuality] = useState<YouTubeQuality>('hd');
+
+  // Batch mode state
+  type BatchItem = { url: string; status: 'pending' | 'loading' | 'success' | 'error'; result?: DownloadResult; error?: string };
+  const [batchUrls, setBatchUrls] = useState('');
+  const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
   const [trimStart, setTrimStart] = useState('');
   const [trimEnd,   setTrimEnd]   = useState('');
   const dlToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -266,6 +272,39 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     setProfileData(null);
   };
 
+  async function handleBatch() {
+    const lines = batchUrls.split('\n').map(l => l.trim()).filter(l => isValidUrl(l));
+    const limited = lines.slice(0, 5); // cap at 5
+    if (!limited.length) return;
+    const initial: BatchItem[] = limited.map(u => ({ url: u, status: 'pending' }));
+    setBatchItems(initial);
+    setBatchRunning(true);
+
+    await Promise.allSettled(
+      limited.map(async (u, idx) => {
+        setBatchItems(prev => prev.map((it, i) => i === idx ? { ...it, status: 'loading' } : it));
+        try {
+          const res = await fetch(`${apiBase}/api/download`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: u }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            const detail = data.detail || {};
+            const msg = (typeof detail === 'object' ? detail.message : detail) || 'Failed';
+            setBatchItems(prev => prev.map((it, i) => i === idx ? { ...it, status: 'error', error: msg } : it));
+          } else {
+            setBatchItems(prev => prev.map((it, i) => i === idx ? { ...it, status: 'success', result: data } : it));
+          }
+        } catch {
+          setBatchItems(prev => prev.map((it, i) => i === idx ? { ...it, status: 'error', error: 'Network error' } : it));
+        }
+      })
+    );
+    setBatchRunning(false);
+  }
+
   async function handleDownload() {
     const trimmed = url.trim();
     if (!trimmed) return;
@@ -436,6 +475,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
           { id: 'single',   label: '📥 Video',    title: 'Download a single video' },
           { id: 'profile',  label: '👤 Profile',  title: 'Download recent videos from an Instagram or YouTube profile' },
           { id: 'playlist', label: '📋 Playlist', title: 'Download videos from a YouTube playlist' },
+          { id: 'batch',    label: '📦 Batch',    title: 'Download up to 5 videos at once — paste one URL per line' },
         ] as { id: DownloadMode; label: string; title: string }[]).map(m => (
           <button
             key={m.id}
@@ -452,8 +492,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         ))}
       </div>
 
-      {/* Input row */}
-      <div className="flex flex-col sm:flex-row gap-2 bg-white rounded-2xl p-2 shadow-xl">
+      {/* Input row — hidden in batch mode */}
+      {mode !== 'batch' && <div className="flex flex-col sm:flex-row gap-2 bg-white rounded-2xl p-2 shadow-xl">
         {/* Input + clear/paste — always on one row */}
         <div className="flex flex-1 items-center">
           <input
@@ -537,7 +577,95 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         >
           {status === 'loading' ? '...' : t('hero.button')}
         </button>
-      </div>
+      </div>}
+
+      {/* Batch mode input + results */}
+      {mode === 'batch' && (
+        <div className="mt-2 space-y-3">
+          <textarea
+            value={batchUrls}
+            onChange={e => setBatchUrls(e.target.value)}
+            placeholder={"Paste up to 5 video URLs, one per line…\nhttps://youtube.com/watch?v=...\nhttps://instagram.com/p/...\nhttps://tiktok.com/@user/video/..."}
+            rows={5}
+            className="w-full bg-white/10 border border-white/20 rounded-2xl p-4 text-white text-sm placeholder-white/30 outline-none focus:border-white/40 resize-none leading-relaxed"
+          />
+          <button
+            onClick={handleBatch}
+            disabled={batchRunning || !batchUrls.trim()}
+            className="btn-shimmer w-full text-white font-black px-7 py-3 rounded-xl transition disabled:opacity-60 text-sm animate-glow tracking-wide cursor-pointer"
+          >
+            {batchRunning ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                Downloading…
+              </span>
+            ) : '⬇ Download All (up to 5)'}
+          </button>
+          {/* Batch results list */}
+          {batchItems.length > 0 && (
+            <div className="space-y-2">
+              {batchItems.map((item, idx) => (
+                <div key={idx} className="bg-white/10 rounded-2xl p-3 flex items-start gap-3">
+                  {/* Status indicator */}
+                  <div className="shrink-0 mt-0.5 w-5 flex items-center justify-center">
+                    {item.status === 'pending' && <span className="text-white/30 text-base">·</span>}
+                    {item.status === 'loading' && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {item.status === 'success' && <span className="text-green-400">✓</span>}
+                    {item.status === 'error'   && <span className="text-red-400">✕</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {(item.status === 'pending' || item.status === 'loading') && (
+                      <p className="text-white/50 text-xs truncate">{item.url}</p>
+                    )}
+                    {item.status === 'error' && (
+                      <div>
+                        <p className="text-white/40 text-[10px] truncate mb-0.5">{item.url}</p>
+                        <p className="text-red-300 text-xs">{item.error}</p>
+                      </div>
+                    )}
+                    {item.status === 'success' && item.result && (
+                      <div className="flex items-center gap-3">
+                        {item.result.thumbnail && (
+                          <div className="relative shrink-0">
+                            <img
+                              src={item.result.thumbnail}
+                              alt=""
+                              className="w-16 h-10 rounded-lg object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).closest('div')!.style.display = 'none'; }}
+                            />
+                            {item.result.duration && item.result.duration > 0 && (
+                              <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-semibold px-1 rounded leading-tight">
+                                {fmtDuration(item.result.duration)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-xs font-medium line-clamp-2 leading-snug">{item.result.title}</p>
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {item.result.formats.slice(0, 2).map((fmt, fi) => (
+                              <a
+                                key={fi}
+                                href={`${apiBase}/api/proxy?url=${encodeURIComponent(fmt.url)}&filename=${encodeURIComponent(item.result!.title)}&ext=${fmt.ext}`}
+                                download
+                                className="text-[10px] font-semibold bg-teal-500 text-white px-2 py-1 rounded-lg hover:bg-teal-400 transition"
+                              >
+                                ⬇ {fmt.label}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Note */}
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">

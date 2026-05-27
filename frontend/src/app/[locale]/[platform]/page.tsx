@@ -1412,12 +1412,21 @@ function buildSchema(
         description,
       },
       {
+        // HowTo schema — enables numbered step rich results in Google SERP.
+        // Required fields per Google's spec: name, step[].name, step[].text.
         '@type': 'HowTo',
-        name: `How to use ReelGet: ${name}`,
+        name: `How to download ${name} videos with ReelGet`,
+        description,
+        url: pageUrl,
+        totalTime: 'PT1M',
+        tool: { '@type': 'HowToTool', name: 'ReelGet (reelget.com)', url: 'https://reelget.com' },
         step: tips.map((text, i) => ({
           '@type': 'HowToStep',
           position: i + 1,
+          // `name` is required for Google's rich result eligibility — use the first sentence.
+          name: text.split(/[.!?]/)[0].trim().slice(0, 80),
           text,
+          url: pageUrl,
         })),
       },
       {

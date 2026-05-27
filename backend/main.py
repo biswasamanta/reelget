@@ -2417,6 +2417,11 @@ async def get_transcript(request: Request, url: str = Query(...)):
     return result
 
 
+@app.get("/api/healthz")
+def healthz():
+    """Lightweight keep-warm endpoint — ping every 4 min via UptimeRobot to prevent cold starts."""
+    return {"status": "ok"}
+
 @app.get("/health")
 def health():
     db_ok = False
