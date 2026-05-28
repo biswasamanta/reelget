@@ -583,17 +583,25 @@ async def download(request: Request, req: DownloadRequest):
         print(f"[cache] HIT for {req.url[:60]}", flush=True)
         return DownloadResponse(**cached)
 
-    class _SilentLogger:
+    # Capture logger so that yt-dlp error messages (which are routed through
+    # the logger AND used to construct DownloadError) are available even when
+    # DownloadError.msg is empty (a yt-dlp quirk for some extractors).
+    class _CapturingLogger:
+        def __init__(self): self.last_error = ""
         def debug(self, msg): pass
         def warning(self, msg): pass
-        def error(self, msg): pass
+        def error(self, msg):
+            print(f"[yt-dlp error] {msg}", flush=True)
+            self.last_error = msg
+
+    _logger = _CapturingLogger()
 
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "extract_flat": False,
-        "logger": _SilentLogger(),
+        "logger": _logger,
         # Don't validate format URLs during extraction — just get the list
         "check_formats": False,
         # Maximally permissive cascade so we never get "format not available"
@@ -668,7 +676,7 @@ async def download(request: Request, req: DownloadRequest):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(req.url, download=False)
     except yt_dlp.utils.DownloadError as e:
-        err_str = str(e)
+        err_str = str(e) or _logger.last_error or repr(e)
         print(f"[yt-dlp DownloadError] {err_str}", flush=True)
         # Fire-and-forget cookie alert check (won't block the error response)
         asyncio.create_task(_check_and_alert_cookie_error(req.url, err_str))
@@ -738,7 +746,10 @@ async def download(request: Request, req: DownloadRequest):
             _code = "geo_blocked"
         raise HTTPException(status_code=422, detail={"message": err_str, "code": _code})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+        import traceback
+        err_msg = str(e) or _logger.last_error or repr(e)
+        print(f"[extract] unexpected {type(e).__name__}: {err_msg}\n{traceback.format_exc()}", flush=True)
+        raise HTTPException(status_code=422, detail={"message": err_msg or type(e).__name__, "code": "unknown"})
     finally:
         if cookies_file:
             try:
