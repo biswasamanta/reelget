@@ -7,7 +7,7 @@ import { routing } from '@/../i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://reelget.com';
 const LOCALES = ['en', 'hi', 'bn', 'id', 'ur', 'pt', 'ta', 'te', 'ar', 'vi', 'or', 'fr', 'sw', 'tl', 'ha', 'am', 'es', 'ru', 'tr', 'th', 'ko'];
-const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat', 'linkedin', 'reddit', 'vimeo', 'dailymotion', 'twitch'] as const;
+const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'twitter', 'pinterest', 'snapchat', 'linkedin', 'reddit', 'vimeo', 'dailymotion', 'twitch', 'threads'] as const;
 type Platform = (typeof PLATFORMS)[number];
 
 // ─── Locale-specific body content for key platform+language combos ────────────
@@ -69,6 +69,52 @@ const LOCALIZED_PLATFORM_BODY: Record<string, Record<string, string[]>> = {
       'TikTok video indir konusunda ReelGet\'in en büyük avantajı, sınırsız indirme hakkı sunması ve tamamen ücretsiz olmasıdır. TikTok indir ücretsiz seçeneğiyle her tür içeriği kolayca indirebilirsiniz. Şimdi deneyin ve farkı kendiniz görün!',
     ],
   },
+  // ── /id/instagram, /pt/instagram, /hi/instagram, /tr/instagram ──────────────
+  instagram: {
+    id: [
+      'Ingin download video Instagram tanpa watermark dengan mudah dan cepat? ReelGet adalah solusi terbaik untuk download Reels Instagram, video post, dan Stories dari akun publik — langsung dari browser tanpa perlu instal aplikasi tambahan. Cukup salin link video Instagram, tempelkan di kolom ReelGet, lalu klik tombol unduh.',
+      'ReelGet mendukung semua format URL Instagram: link /reel/, link /p/ untuk postingan video, dan link /stories/ dari akun publik. Hasil unduhan berupa file MP4 berkualitas HD tanpa watermark, siap diputar di semua perangkat atau diedit di CapCut dan aplikasi video lainnya.',
+      'Cara download Instagram di ReelGet sangat mudah: tidak perlu daftar akun, tidak perlu bayar, dan tidak ada batasan jumlah unduhan. Kompatibel dengan semua perangkat — smartphone Android, iPhone, laptop, maupun PC. Mulai download video Instagram sekarang di ReelGet!',
+    ],
+    pt: [
+      'Quer baixar vídeo do Instagram sem marca d\'água de forma rápida e gratuita? O ReelGet é a ferramenta ideal para baixar Reels, vídeos e Stories do Instagram diretamente no navegador, sem precisar instalar nenhum aplicativo. Basta copiar o link do vídeo, colar no campo do ReelGet e clicar em baixar.',
+      'O ReelGet suporta todos os formatos de URL do Instagram: links /reel/, links /p/ para posts de vídeo e links /stories/ de contas públicas. Os downloads são salvos como arquivos MP4 em alta definição sem marca d\'água, prontos para assistir offline ou editar em qualquer editor de vídeo.',
+      'Baixar vídeos do Instagram nunca foi tão simples. Sem cadastro, sem pagamento e sem limite de downloads — o ReelGet funciona em todos os dispositivos, incluindo Android, iPhone e computador. Experimente agora e salve seus conteúdos favoritos do Instagram!',
+    ],
+    hi: [
+      'Instagram video download karna ab ReelGet ke saath bahut aasaan ho gaya hai. Reels, video posts aur public Stories ko apne device mein save karne ke liye bas link copy karein, ReelGet ke search box mein paste karein aur Download button dabayein — koi app install karne ki zaroorat nahi, koi sign up nahi, bilkul muft.',
+      'ReelGet saare Instagram URL formats support karta hai: /reel/ links, /p/ video posts aur /stories/ links. Downloaded file ek clean HD MP4 hoti hai jisme koi watermark nahi hota — aap isse offline dekh sakte hain, edit kar sakte hain ya WhatsApp par share kar sakte hain.',
+      'ReelGet Android, iPhone aur computer sabhi par kaam karta hai. Instagram video download kaise kare — is sawaal ka sabse aasaan jawab hai ReelGet. Abhi try karein aur apne pasandeeda Instagram videos ko offline save karein!',
+    ],
+    tr: [
+      'Instagram video indirme işlemini uygulama yüklemeden yapmak mı istiyorsunuz? ReelGet ile Instagram Reels, video gönderileri ve genel hikayelerini (Stories) doğrudan tarayıcınızdan ücretsiz indirebilirsiniz. Sadece Instagram bağlantısını kopyalayın, ReelGet\'e yapıştırın ve indirme butonuna tıklayın.',
+      'ReelGet tüm Instagram URL formatlarını destekler: /reel/ linkleri, /p/ video gönderileri ve /stories/ linkleri. İndirilen dosyalar filigransız HD MP4 formatında kaydedilir — tüm cihazlarda oynatılabilir veya herhangi bir video düzenleyicide kullanılabilir.',
+      'Instagram indir işlemi ReelGet ile çok kolaydır: hesap açmanıza ya da ödeme yapmanıza gerek yoktur. Android, iPhone ve bilgisayar dahil tüm cihazlarla uyumludur. Şimdi deneyin ve favori Instagram içeriklerinizi offline olarak saklayın!',
+    ],
+  },
+  // ── /id/facebook, /pt/facebook, /hi/facebook, /tr/facebook ──────────────────
+  facebook: {
+    id: [
+      'Ingin download video Facebook tanpa login? ReelGet memungkinkan kamu mengunduh video Facebook, Facebook Reels, dan video dari Facebook Watch secara gratis langsung dari browser — tanpa perlu akun Facebook, tanpa ekstensi, dan tanpa aplikasi tambahan. Cukup salin link video, tempelkan di ReelGet, dan klik unduh.',
+      'ReelGet mendukung semua format URL Facebook: link facebook.com panjang maupun link pendek fb.watch. Semua unduhan diproses di server ReelGet dan hasilnya dikirim langsung ke browser kamu sebagai file MP4 berkualitas tinggi — cocok untuk ditonton offline atau dibagikan ke WhatsApp dan Telegram.',
+      'Download video Facebook di ReelGet mudah dan cepat. Tidak perlu daftar, tidak ada biaya, dan tidak ada batasan unduhan. Kompatibel dengan Android, iPhone, dan komputer. Coba sekarang dan nikmati video Facebook favoritmu kapan saja!',
+    ],
+    pt: [
+      'Quer baixar vídeo do Facebook sem precisar fazer login? O ReelGet permite baixar vídeos do Facebook, Reels e vídeos do Facebook Watch gratuitamente, direto pelo navegador — sem conta, sem extensão e sem instalar nada. Basta copiar o link do vídeo, colar no ReelGet e clicar em baixar.',
+      'O ReelGet aceita todos os formatos de URL do Facebook: links completos do facebook.com e links curtos do fb.watch. Os downloads são processados nos servidores do ReelGet e entregues como arquivos MP4 em alta qualidade — perfeitos para assistir offline ou compartilhar no WhatsApp e Telegram.',
+      'Baixar vídeos do Facebook nunca foi tão fácil. Sem cadastro, sem custo e sem limite de downloads — compatível com Android, iPhone e computador. Experimente agora e salve seus vídeos favoritos do Facebook!',
+    ],
+    hi: [
+      'Facebook video download karna ab ReelGet ke saath bilkul aasaan hai — bina login ke, bina kisi app ke. Facebook videos, Facebook Reels aur Facebook Watch ke videos ko apne device mein save karne ke liye bas link copy karein aur ReelGet mein paste karein.',
+      'ReelGet facebook.com ke poore links aur fb.watch ke short links dono support karta hai. Downloads HD MP4 format mein hote hain jo kisi bhi device par play ho sakti hai. Aap ise offline dekh sakte hain ya WhatsApp aur Telegram par share kar sakte hain.',
+      'Facebook video download kaise kare — ReelGet is sawaal ka sabse aasaan jawab hai. Koi account nahi, koi charge nahi, koi limit nahi. Android, iPhone aur computer sabhi par kaam karta hai. Abhi try karein!',
+    ],
+    tr: [
+      'Facebook videosu indirme işlemini giriş yapmadan yapmak mı istiyorsunuz? ReelGet ile Facebook videolarını, Facebook Reels içeriklerini ve Facebook Watch videolarını ücretsiz olarak doğrudan tarayıcınızdan indirebilirsiniz — hesap, uzantı veya uygulama gerekmez.',
+      'ReelGet hem tam facebook.com bağlantılarını hem de kısa fb.watch bağlantılarını destekler. İndirmeler ReelGet sunucularında işlenir ve yüksek kaliteli MP4 dosyası olarak doğrudan tarayıcınıza iletilir — çevrimdışı izlemek veya WhatsApp ve Telegram\'da paylaşmak için idealdir.',
+      'Facebook video indir işlemi ReelGet ile çok kolaydır: hesap açmanıza, ödeme yapmanıza ya da herhangi bir şey yüklemenize gerek yoktur. Android, iPhone ve bilgisayar dahil tüm cihazlarla uyumludur. Şimdi deneyin!',
+    ],
+  },
 };
 
 // ─── Landing page slugs (English-only targeted keyword pages) ─────────────────
@@ -97,6 +143,14 @@ const LANDING_SLUGS = [
   'download-twitter-video-online',
   'pinterest-video-downloader-free',
   'snapchat-story-saver',
+  'download-reels-from-instagram',
+  'tiktok-mp3-downloader',
+  'youtube-hd-downloader',
+  'facebook-watch-downloader',
+  'threads-video-downloader',
+  'youtube-audio-downloader',
+  'twitter-gif-downloader',
+  'reddit-gif-downloader',
 ] as const;
 type LandingSlug = (typeof LANDING_SLUGS)[number];
 
@@ -517,6 +571,36 @@ const PLATFORM_META: Record<Platform, {
       'Copy the URL from your browser\'s address bar (clips.twitch.tv/... or twitch.tv/.../clip/...).',
       'Paste the URL into ReelGet and click Download.',
       'Live streams cannot be saved — only Clips and public VODs.',
+    ],
+  },
+  threads: {
+    emoji: '🧵',
+    gradient: 'from-slate-700 to-slate-900',
+    types: 'Videos & Posts',
+    body: [
+      'Threads is Meta\'s fast-growing text-and-video platform built on the ActivityPub protocol. As Threads adds more video content from creators across Instagram\'s ecosystem, ReelGet lets you save any public Threads video post as an MP4 file — no Threads account, no Meta login, and no browser extension required.',
+      'Simply copy the URL of any public Threads post containing a video and paste it into ReelGet. The downloader fetches the video from Meta\'s CDN at the best available quality and streams it directly to your browser or device.',
+      'Threads is growing rapidly in markets where Twitter/X has lost ground. Downloaded Threads videos are saved as standard MP4 files you can watch offline, share on WhatsApp or Telegram, or import into any video editor.',
+    ],
+    faq: [
+      { q: 'Can I download Threads videos without a Threads account?', a: 'Yes — ReelGet only needs the public Threads post URL. No Meta login or Threads account is required.' },
+      { q: 'What types of Threads content are supported?', a: 'Public Threads posts containing video are supported. Text-only posts and image posts without video cannot be downloaded.' },
+      { q: 'What quality are the downloads?', a: 'ReelGet fetches the original video quality as uploaded on Meta\'s CDN.' },
+      { q: 'Do I need to install anything?', a: 'No — ReelGet is a web app that works entirely in your browser on any device.' },
+      { q: 'Is downloading Threads videos free?', a: 'Yes — completely free with no download limits or account required.' },
+    ],
+    features: [
+      'Download Threads video posts as MP4',
+      'No Threads account or Meta login required',
+      'Fetches original quality from Meta\'s CDN',
+      'Works on iPhone, Android, PC, and Mac',
+      'No browser extension or app installation needed',
+    ],
+    tips: [
+      'Open the Threads post containing the video.',
+      'Tap the three-dot menu (⋯) and select "Copy link."',
+      'Paste the link into ReelGet\'s input box and click Download.',
+      'The video saves as MP4 to your device.',
     ],
   },
 };
@@ -1389,6 +1473,294 @@ const LANDING_META: Record<LandingSlug, LandingMeta> = {
       { q: 'What format are saved Snapchat Stories in?', a: 'Snapchat videos are saved as MP4 files, which play on all devices and can be shared via WhatsApp, Telegram, or any platform.' },
     ],
   },
+
+  'download-reels-from-instagram': {
+    platform: 'instagram',
+    emoji: '🎬',
+    gradient: 'from-pink-500 to-purple-600',
+    h1colored: 'Download Reels',
+    h1white: 'from Instagram',
+    titleTag: 'Download Reels from Instagram — Free HD, No Watermark | ReelGet',
+    metaDesc: 'Download Instagram Reels for free in HD — no watermark, no login, no app needed. Paste any Reel link and save it to your device instantly.',
+    subtitle: 'Save any Instagram Reel in HD — no watermark, no login, works on every device.',
+    body: [
+      'Instagram Reels are the platform\'s short-form video format — and while you can bookmark them inside Instagram, there\'s no built-in way to download them to your device. ReelGet solves this by fetching Reels directly from Instagram\'s CDN, giving you a clean HD MP4 with no watermark and no quality loss.',
+      'Getting the link is quick: open the Reel on Instagram, tap the three-dot menu (⋯), select "Copy link," and paste it into ReelGet. The process works on every device — iPhone, Android, Windows, Mac — without installing any app, extension, or software.',
+      'Downloaded Reels are standard MP4 files you can watch offline, import into CapCut or iMovie, share via WhatsApp or Telegram, or use in your own content. No ReelGet branding is added — just the original clean video.',
+    ],
+    features: [
+      'Download Instagram Reels in original HD quality without watermark',
+      'Works on iPhone, Android, Windows, and Mac — no app needed',
+      'Supports all Reel URL formats including short share links',
+      'Saves as clean MP4 — no ReelGet branding added',
+      'No Instagram account or login required',
+    ],
+    tips: [
+      'Open the Instagram Reel and tap the three-dot menu (⋯), then select "Copy link."',
+      'Open reelget.com in any browser and paste the link into the input box.',
+      'Click Download and wait 2–3 seconds for the Reel to be fetched from Instagram\'s servers.',
+      'The clean HD MP4 saves directly to your device — no watermark, no quality loss.',
+    ],
+    faq: [
+      { q: 'How do I get the Instagram Reel link?', a: 'Open the Reel on Instagram, tap the three-dot menu (⋯) or the Share icon, and select "Copy link." You can then paste this into ReelGet.' },
+      { q: 'Does the downloaded Reel have a watermark?', a: 'No — ReelGet downloads from Instagram\'s CDN source. No watermark is added by us, and the source file has no Instagram watermark.' },
+      { q: 'Can I download Reels from private accounts?', a: 'No — only Reels from public Instagram accounts can be downloaded. Private account content is not accessible without following them.' },
+      { q: 'Is there a limit to how many Reels I can download?', a: 'No — ReelGet is completely free with no download limits or daily caps.' },
+      { q: 'Does it work on iPhone?', a: 'Yes — open reelget.com in Safari on iPhone, paste the Reel link, tap Download, and save to your Photos app.' },
+    ],
+  },
+
+  'tiktok-mp3-downloader': {
+    platform: 'tiktok',
+    emoji: '🎵',
+    gradient: 'from-pink-500 to-violet-600',
+    h1colored: 'TikTok MP3',
+    h1white: 'Downloader',
+    titleTag: 'TikTok MP3 Downloader — Extract Audio from TikTok Free | ReelGet',
+    metaDesc: 'Extract audio from TikTok videos as MP3 / M4A for free — no watermark, no login, no app. Save TikTok audio to your phone or PC instantly with ReelGet.',
+    subtitle: 'Extract audio from any TikTok video as MP3 — free, no watermark, works on all devices.',
+    body: [
+      'TikTok is full of music, sound bites, voiceovers, and original audio that you might want to save as an audio file. ReelGet\'s TikTok audio downloader lets you extract the audio track from any public TikTok video and save it as an M4A (AAC) file — perfect for setting a ringtone, listening offline, or using in your own creative projects.',
+      'The audio extraction happens server-side: paste the TikTok URL, click Download, and select the audio option. ReelGet fetches the original audio stream from TikTok\'s CDN — the same high-quality track that plays in the app — without re-encoding, so you get the best available quality.',
+      'No TikTok account, no app installation, and no browser extension is needed. Both full tiktok.com URLs and short vm.tiktok.com share links work identically. The extracted audio file is clean with no TikTok watermark audio overlay.',
+    ],
+    features: [
+      'Extract audio from TikTok videos as M4A (AAC) format',
+      'Original quality — no re-encoding or additional compression',
+      'Supports full tiktok.com and short vm.tiktok.com links',
+      'No TikTok account or app required',
+      'Works on iPhone, Android, Windows, and Mac',
+    ],
+    tips: [
+      'Open the TikTok video and tap the Share button, then "Copy link."',
+      'Paste the link into ReelGet\'s input box at the top of this page.',
+      'Click Download — when the result appears, select the Audio option.',
+      'The M4A audio file saves to your device, ready for any audio player.',
+    ],
+    faq: [
+      { q: 'What format is the TikTok audio saved in?', a: 'Audio is saved as M4A (AAC), which plays on all modern devices and apps including iPhone, Android, and desktop.' },
+      { q: 'Is the audio quality good?', a: 'ReelGet extracts the original audio stream from TikTok\'s CDN without re-encoding, so quality matches the in-app playback.' },
+      { q: 'Can I use the extracted audio as a ringtone?', a: 'Yes — M4A files can be imported into GarageBand on iPhone or any ringtone maker app on Android.' },
+      { q: 'Does it work for TikTok sounds and original audio?', a: 'Yes — any audio track in a public TikTok video, including original sounds and licensed music clips, can be extracted.' },
+      { q: 'Is there a watermark on the audio?', a: 'No — the extracted audio is the clean source track with no TikTok audio watermark.' },
+    ],
+  },
+
+  'youtube-hd-downloader': {
+    platform: 'youtube',
+    emoji: '🎬',
+    gradient: 'from-red-600 to-red-700',
+    h1colored: 'YouTube HD',
+    h1white: 'Downloader',
+    titleTag: 'YouTube HD Downloader — Download YouTube Videos in 1080p Free | ReelGet',
+    metaDesc: 'Download YouTube videos in HD 1080p for free — no login, no software, no watermark. Save any public YouTube video in full HD to your phone or PC with ReelGet.',
+    subtitle: 'Save YouTube videos in full HD 1080p — free, no YouTube Premium, no software needed.',
+    body: [
+      'YouTube Premium lets you download videos for offline viewing inside the app, but you can\'t export those files or watch them outside YouTube. ReelGet\'s YouTube HD downloader gives you a true HD MP4 file saved to your device — no subscription, no expiry date, and no lock-in to the YouTube app.',
+      'HD downloads are available up to 1080p Full HD for most public videos. ReelGet selects the best available quality automatically: 1080p where available, falling back to 720p HD or 480p SD. The video is delivered as a standard H.264 MP4 file that plays on every device, TV, and video editor without additional codecs.',
+      'Works with all public YouTube URL formats — youtube.com/watch?v=, youtu.be short links, and YouTube app share links. No YouTube account, no Chrome extension, and no desktop software required.',
+    ],
+    features: [
+      'Download YouTube videos in full HD 1080p quality',
+      'Standard H.264 MP4 — plays on all devices without extra codecs',
+      'No YouTube Premium or account required',
+      'Supports youtube.com and youtu.be links',
+      'Works on iPhone, Android, Windows, Mac — no software to install',
+    ],
+    tips: [
+      'Click "Share" beneath a YouTube video and copy the link.',
+      'Paste the URL into ReelGet\'s input box above.',
+      'Select HD (1080p or 720p) from the quality options.',
+      'Click Download to save the HD MP4 directly to your device.',
+    ],
+    faq: [
+      { q: 'What is the maximum quality available?', a: 'Most public YouTube videos are available up to 1080p Full HD. ReelGet always selects the highest available quality automatically.' },
+      { q: 'Do I need YouTube Premium to get HD downloads?', a: 'No — ReelGet downloads public YouTube videos in HD for free. No YouTube account or Premium subscription is needed.' },
+      { q: 'What format is the HD video saved in?', a: 'Videos are saved as H.264 MP4 — the most compatible format, playable on all devices and in all video editors.' },
+      { q: 'Can I download YouTube Shorts in HD?', a: 'Yes — YouTube Shorts are downloaded in vertical HD format. Paste the /shorts/ URL and select HD.' },
+      { q: 'Why is some content not available in HD?', a: 'Quality depends on the original upload. If the creator uploaded in 720p, that\'s the maximum available. ReelGet always fetches the best stream available.' },
+    ],
+  },
+
+  'facebook-watch-downloader': {
+    platform: 'facebook',
+    emoji: '📺',
+    gradient: 'from-blue-600 to-blue-800',
+    h1colored: 'Facebook Watch',
+    h1white: 'Downloader',
+    titleTag: 'Facebook Watch Downloader — Save Facebook Watch Videos Free | ReelGet',
+    metaDesc: 'Download Facebook Watch videos for free — no login, no app, HD quality. Save any public Facebook Watch video as MP4 instantly with ReelGet.',
+    subtitle: 'Save Facebook Watch videos as HD MP4 — free, no login, works on all devices.',
+    body: [
+      'Facebook Watch is Facebook\'s dedicated video tab, hosting news clips, sports highlights, TV show previews, creator videos, and viral content. ReelGet\'s Facebook Watch downloader lets you save any publicly accessible Watch video as an HD MP4 file — no Facebook account, no browser extension, and no desktop software required.',
+      'Facebook Watch videos use the same URL format as regular Facebook videos (facebook.com/watch?v=). Just copy the video URL from the Watch tab — or the three-dot menu on the video — and paste it into ReelGet. The tool also accepts short fb.watch links that Facebook generates when you share Watch videos.',
+      'Downloaded Watch videos are saved as standard MP4 files at up to 1080p HD quality. They\'re perfect for watching on a plane or in areas with poor connectivity, sharing in group chats, or archiving educational or news content for later reference.',
+    ],
+    features: [
+      'Download Facebook Watch videos in HD MP4',
+      'No Facebook account or login required',
+      'Supports facebook.com/watch URLs and fb.watch short links',
+      'Works on iPhone, Android, Windows, and Mac',
+      'Free with no download limits',
+    ],
+    tips: [
+      'Open the Facebook Watch video you want to save.',
+      'Click the three-dot menu (⋯) on the video and select "Copy link to video."',
+      'Alternatively, use the Share button and select "Copy link."',
+      'Paste the link into ReelGet and click Download to save the HD MP4.',
+    ],
+    faq: [
+      { q: 'Can I download Facebook Watch videos without a Facebook account?', a: 'Yes — ReelGet only needs the public video URL. No Facebook login or account is required.' },
+      { q: 'Do fb.watch short links work for Watch videos?', a: 'Yes — fb.watch short links are automatically resolved to the full video URL.' },
+      { q: 'What quality are downloaded Facebook Watch videos?', a: 'ReelGet selects the highest available quality from Facebook\'s CDN, typically up to 1080p HD.' },
+      { q: 'Can I download Facebook Live recordings from Watch?', a: 'Public Facebook Live recordings that appear in the Watch tab can be downloaded after the broadcast ends.' },
+      { q: 'Is it free?', a: 'Yes — completely free with no download limits.' },
+    ],
+  },
+
+  'threads-video-downloader': {
+    platform: 'threads',
+    emoji: '🧵',
+    gradient: 'from-slate-700 to-slate-900',
+    h1colored: 'Threads Video',
+    h1white: 'Downloader',
+    titleTag: 'Threads Video Downloader — Save Threads Videos Free | ReelGet',
+    metaDesc: 'Download Threads videos for free — no login, no app needed. Save any public Threads video post as MP4 instantly with ReelGet.',
+    subtitle: 'Save any public Threads video post as MP4 — free, no account, instant download.',
+    body: [
+      'Threads is Meta\'s fast-growing social platform and a growing hub for short-form video content. ReelGet\'s Threads video downloader lets you save any public Threads video post as an MP4 file — no Threads account, no Meta login, and no browser extension required.',
+      'Simply copy the URL of any public Threads post containing a video — tap the three-dot menu on the post and select "Copy link" — then paste it into ReelGet. The tool fetches the video from Meta\'s CDN at the best available quality and streams it directly to your device.',
+      'Downloaded Threads videos save as standard MP4 files compatible with all devices. Great for watching offline, sharing in WhatsApp or Telegram, or archiving content from your favourite creators.',
+    ],
+    features: [
+      'Download Threads video posts as MP4',
+      'No Threads account or Meta login required',
+      'Fetches original quality from Meta\'s CDN',
+      'Works on iPhone, Android, PC, and Mac',
+      'Free with no download limits',
+    ],
+    tips: [
+      'Open the Threads post containing the video.',
+      'Tap the three-dot menu (⋯) on the post and select "Copy link."',
+      'Paste the link into ReelGet\'s input box and click Download.',
+      'The MP4 saves directly to your device.',
+    ],
+    faq: [
+      { q: 'Can I download Threads videos without a Threads account?', a: 'Yes — only the public post URL is needed. No Threads or Meta account is required.' },
+      { q: 'What quality are the downloads?', a: 'ReelGet fetches the original video quality as uploaded by the creator on Meta\'s CDN.' },
+      { q: 'Can I download videos from private Threads accounts?', a: 'No — only public Threads posts with a shareable link can be downloaded.' },
+      { q: 'What format are the downloaded videos?', a: 'Videos are saved as MP4 files, compatible with all devices and video players.' },
+      { q: 'Is it free?', a: 'Yes — completely free with no download limits.' },
+    ],
+  },
+
+  'youtube-audio-downloader': {
+    platform: 'youtube',
+    emoji: '🎧',
+    gradient: 'from-red-600 to-violet-600',
+    h1colored: 'YouTube Audio',
+    h1white: 'Downloader',
+    titleTag: 'YouTube Audio Downloader — Download YouTube Audio Free as M4A | ReelGet',
+    metaDesc: 'Download YouTube audio for free as M4A — no login, no software. Extract the audio track from any public YouTube video and save it to your phone or PC instantly.',
+    subtitle: 'Extract high-quality audio from any YouTube video as M4A — free, no login, any device.',
+    body: [
+      'ReelGet\'s YouTube audio downloader extracts the audio track from any public YouTube video and saves it as an M4A (AAC) file — the native audio format YouTube stores on its servers. This means no re-encoding and no quality loss: you get the best audio quality YouTube offers, saved as a file you can listen to anywhere offline.',
+      'M4A (AAC) is the preferred format for audio quality. Unlike MP3, which re-encodes audio and introduces compression artefacts, M4A is a container for the AAC stream that YouTube already provides. The result is a smaller file that sounds better than an equivalent MP3 at the same bitrate.',
+      'Perfect for podcast episodes published on YouTube, music performances, language learning audio, lectures, and any other content where you only need the sound. No YouTube Premium, no account, no Chrome extension, and no desktop software required.',
+    ],
+    features: [
+      'Extract YouTube audio as M4A (AAC) — native format, no re-encoding',
+      'Better quality than MP3 at the same file size',
+      'Works with youtube.com and youtu.be links',
+      'Compatible with all audio players — iPhone Music, VLC, Spotify',
+      'Free, no account required, works on phone and PC',
+    ],
+    tips: [
+      'Copy the YouTube video URL from the address bar or the Share → Copy link option.',
+      'Paste the URL into ReelGet\'s input box and click Download.',
+      'When the result appears, select the "Audio Only" or "Extract MP3 / Audio" option.',
+      'The M4A audio file saves to your device — import it into Apple Music, VLC, or any player.',
+    ],
+    faq: [
+      { q: 'What is M4A and why is it better than MP3?', a: 'M4A is a container for AAC audio — the same format YouTube uses internally. Unlike MP3, it doesn\'t re-encode the audio, so there\'s no quality loss from the conversion process.' },
+      { q: 'Can I play M4A files on Android?', a: 'Yes — M4A files play natively on Android in Google Play Music, Samsung Music, VLC, and all modern Android audio apps.' },
+      { q: 'Does it work for live stream recordings?', a: 'Public YouTube live stream recordings that have been processed as regular videos can be downloaded.' },
+      { q: 'Can I download just the audio from YouTube Shorts?', a: 'Yes — paste a YouTube Shorts URL and select the Audio Only option to extract just the sound.' },
+      { q: 'Is there a file size or duration limit?', a: 'No — ReelGet imposes no file size or duration limits on audio downloads.' },
+    ],
+  },
+
+  'twitter-gif-downloader': {
+    platform: 'twitter',
+    emoji: '🎞️',
+    gradient: 'from-sky-500 to-blue-600',
+    h1colored: 'Twitter GIF',
+    h1white: 'Downloader',
+    titleTag: 'Twitter GIF Downloader — Save X GIFs as MP4 Free | ReelGet',
+    metaDesc: 'Download Twitter and X GIFs as MP4 for free — no login, no app. Save any public tweet GIF as a high-quality video file instantly with ReelGet.',
+    subtitle: 'Save Twitter and X GIFs as high-quality MP4 — free, no login, better than GIF format.',
+    body: [
+      'Twitter GIFs look like animated images but they\'re actually looping MP4 videos — which means you can\'t save them as GIF files directly from the platform. ReelGet downloads them as MP4 files, which are smaller, higher quality, and more compatible than the GIF format itself.',
+      'To download a Twitter GIF, copy the tweet URL (not the GIF embed URL — the full tweet link like twitter.com/user/status/123) and paste it into ReelGet. Both twitter.com and x.com URL formats are fully supported. The MP4 is delivered at the original quality Twitter stores on its CDN.',
+      'Downloaded Twitter GIFs (as MP4) can be shared on WhatsApp and Telegram, imported into video editors, or used in presentations. They loop seamlessly just like the original GIF — but at a fraction of the file size and much higher quality.',
+    ],
+    features: [
+      'Download Twitter / X GIFs as high-quality MP4 video files',
+      'Smaller file size and better quality than GIF format',
+      'Supports both twitter.com and x.com tweet URLs',
+      'Loops seamlessly like the original GIF',
+      'No Twitter account or X Premium required',
+    ],
+    tips: [
+      'Click the share icon on the tweet containing the GIF and select "Copy link to Tweet."',
+      'Make sure you copy the tweet URL (twitter.com/user/status/...), not the GIF image URL.',
+      'Paste the tweet link into ReelGet and click Download.',
+      'The GIF is saved as MP4 — it plays and loops like the original on all devices.',
+    ],
+    faq: [
+      { q: 'Why are Twitter GIFs saved as MP4 instead of GIF?', a: 'Twitter converts all GIFs to MP4 internally for better performance. ReelGet downloads the actual MP4, which has better quality and smaller file size than a re-encoded GIF would.' },
+      { q: 'Will the MP4 loop like a GIF?', a: 'The MP4 file itself doesn\'t loop automatically, but apps like WhatsApp, Telegram, and Discord will loop short MP4 files just like GIFs.' },
+      { q: 'Can I convert the MP4 back to GIF?', a: 'Yes — you can use any online MP4 to GIF converter, but the MP4 is generally a better format to keep.' },
+      { q: 'Do both twitter.com and x.com GIF links work?', a: 'Yes — both domain formats work identically with ReelGet.' },
+      { q: 'Is there a size limit for GIFs that can be downloaded?', a: 'No — ReelGet downloads any public Twitter/X GIF regardless of file size.' },
+    ],
+  },
+
+  'reddit-gif-downloader': {
+    platform: 'reddit',
+    emoji: '🤖',
+    gradient: 'from-orange-500 to-red-600',
+    h1colored: 'Reddit GIF',
+    h1white: 'Downloader',
+    titleTag: 'Reddit GIF Downloader — Save Reddit GIFs with Audio Free | ReelGet',
+    metaDesc: 'Download Reddit GIFs as MP4 with audio for free — no login, no app. Fix the missing audio problem and save any public Reddit GIF instantly with ReelGet.',
+    subtitle: 'Save Reddit GIFs as MP4 with audio — fixes the silent download problem, free & instant.',
+    body: [
+      'Reddit GIFs are served as short MP4 videos under the hood — and like longer Reddit videos, they sometimes have audio attached. Most GIF downloader tools only grab the video stream and miss the audio. ReelGet merges both streams server-side before delivering the file, so you always get a complete MP4 with full audio where it exists.',
+      'Works with any public Reddit post containing a GIF or short video clip — from any subreddit. Both full reddit.com post URLs and short redd.it share links are supported. No Reddit account, no browser extension, and no desktop software needed.',
+      'Downloaded Reddit GIFs are saved as MP4 files — smaller and higher quality than re-encoded GIF format, compatible with all devices, and ready to share on Discord, WhatsApp, or Telegram.',
+    ],
+    features: [
+      'Download Reddit GIFs with audio — no more silent clips',
+      'Merges audio and video streams automatically server-side',
+      'Supports redd.it short links and full reddit.com URLs',
+      'Works across all public subreddits',
+      'No Reddit account required',
+    ],
+    tips: [
+      'Open the Reddit post with the GIF and tap Share → Copy link.',
+      'Paste the post URL into ReelGet\'s input box.',
+      'Click Download — audio and video streams are merged automatically.',
+      'Both redd.it and reddit.com links work identically.',
+    ],
+    faq: [
+      { q: 'Why do Reddit GIFs have no sound when downloaded elsewhere?', a: 'Reddit stores audio separately from video. Most tools only grab the video stream. ReelGet merges both so you get full audio where it exists.' },
+      { q: 'Are Reddit GIFs actually GIF files?', a: 'No — Reddit serves GIFs as MP4 videos internally for better performance. ReelGet saves them as MP4, which is higher quality than a re-encoded GIF.' },
+      { q: 'Can I download from any subreddit?', a: 'Yes — any public subreddit\'s GIF or video post can be downloaded. Private or restricted subreddits are not accessible.' },
+      { q: 'Do redd.it short links work?', a: 'Yes — short redd.it share links are automatically resolved.' },
+      { q: 'Is it free?', a: 'Yes — completely free with no download limits.' },
+    ],
+  },
 };
 
 // ─── Schema builder ───────────────────────────────────────────────────────────
@@ -1436,6 +1808,13 @@ function buildSchema(
           name: item.q,
           acceptedAnswer: { '@type': 'Answer', text: item.a },
         })),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'ReelGet', item: 'https://reelget.com' },
+          { '@type': 'ListItem', position: 2, name: name, item: pageUrl },
+        ],
       },
     ],
   };
@@ -1588,6 +1967,34 @@ export default async function PlatformPage({
           </div>
         </section>
 
+        {/* Related landing pages for this platform */}
+        {(() => {
+          const currentPlatform = LANDING_META[platform as LandingSlug]?.platform;
+          const relatedSlugs = LANDING_SLUGS.filter((slug) => {
+            const lp = LANDING_META[slug as LandingSlug];
+            return lp && lp.platform === currentPlatform && slug !== platform;
+          });
+          if (relatedSlugs.length === 0) return null;
+          const platformName = currentPlatform ? currentPlatform.charAt(0).toUpperCase() + currentPlatform.slice(1) : '';
+          return (
+            <section className="max-w-3xl mx-auto px-4 py-8">
+              <h2 className="text-lg font-semibold text-slate-400 mb-4 text-center">More {platformName} tools</h2>
+              <div className="flex flex-wrap justify-center gap-3">
+                {relatedSlugs.map((slug) => {
+                  const lp = LANDING_META[slug as LandingSlug];
+                  return (
+                    <a key={slug} href={`/en/${slug}`}
+                      className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-teal-500 text-slate-300 hover:text-white rounded-full px-4 py-2 text-sm font-medium transition">
+                      <span>{lp.emoji}</span>
+                      <span>{lp.h1colored} {lp.h1white}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
         <section className="max-w-3xl mx-auto px-4 py-8 pb-16">
           <h2 className="text-lg font-semibold text-slate-400 mb-4 text-center">Also download from</h2>
           <div className="flex flex-wrap justify-center gap-3">
@@ -1721,6 +2128,32 @@ export default async function PlatformPage({
           </div>
         </div>
       </section>
+
+      {/* Related landing pages for this platform */}
+      {(() => {
+        const related = LANDING_SLUGS.filter((slug) => {
+          const lp = LANDING_META[slug as LandingSlug];
+          return lp && lp.platform === platform;
+        });
+        if (related.length === 0) return null;
+        return (
+          <section className="max-w-3xl mx-auto px-4 py-8">
+            <h2 className="text-lg font-semibold text-slate-400 mb-4 text-center">More {name} tools</h2>
+            <div className="flex flex-wrap justify-center gap-3">
+              {related.map((slug) => {
+                const lp = LANDING_META[slug as LandingSlug];
+                return (
+                  <a key={slug} href={`/en/${slug}`}
+                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-teal-500 text-slate-300 hover:text-white rounded-full px-4 py-2 text-sm font-medium transition">
+                    <span>{lp.emoji}</span>
+                    <span>{lp.h1colored} {lp.h1white}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       <section className="max-w-3xl mx-auto px-4 py-8 pb-16">
         <h2 className="text-lg font-semibold text-slate-400 mb-4 text-center">Also download from</h2>
