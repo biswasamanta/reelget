@@ -601,12 +601,8 @@ async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
         if PROXY_URL:
             session.proxies = {"http": PROXY_URL, "https": PROXY_URL}
 
-        # Inject session cookies
-        for k, v in cookies.items():
-            session.cookies.set(k, v, domain=".instagram.com")
-
-        # Seed session — extract real lsd + csrf tokens from the Instagram homepage.
-        # Instagram returns HTTP 200 with empty body if lsd is wrong/stale.
+        # Seed session first (do NOT inject user cookies yet — seed sets Instagram's
+        # own anonymous cookies; we inject ours AFTER so they take precedence).
         csrf = cookies.get("csrftoken", "")
         lsd = ""
         try:
@@ -620,18 +616,26 @@ async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
                 },
                 timeout=15,
             )
-            csrf = session.cookies.get("csrftoken") or csrf
             # Extract lsd token from page HTML (format: "LSD":{"token":"VALUE"})
             _lsd_m = re.search(r'"LSD"\s*,\s*\[\s*\]\s*,\s*\{\s*"token"\s*:\s*"([^"]+)"', _seed.text) \
                   or re.search(r'"token"\s*:\s*"([^"]+)"[^}]*"LSD"', _seed.text) \
-                  or re.search(r'lsd["\s:]+([A-Za-z0-9_-]{10,})', _seed.text)
+                  or re.search(r'"lsd["\s:,\[]+([A-Za-z0-9_-]{8,})', _seed.text)
             if _lsd_m:
                 lsd = _lsd_m.group(1)
                 print(f"[ig-gql] extracted lsd={lsd[:12]}...", flush=True)
             else:
-                # Fallback: try to get from cookies
-                lsd = session.cookies.get("lsd", "AVqbxe3J_YA")
-                print(f"[ig-gql] lsd from cookie/fallback={lsd[:12]}", flush=True)
+                lsd = session.cookies.get("lsd", "")
+                print(f"[ig-gql] lsd from cookie={lsd[:12] if lsd else 'not found'}", flush=True)
+        except Exception as _se:
+            print(f"[ig-gql] seed error: {_se}", flush=True)
+
+        # NOW inject user session cookies (overrides any anonymous ones from seed)
+        for k, v in cookies.items():
+            session.cookies.set(k, v, domain=".instagram.com")
+        # Use our csrf if available (more trusted than anonymous one)
+        if cookies.get("csrftoken"):
+            csrf = cookies["csrftoken"]
+            session.cookies.set("csrftoken", csrf, domain=".instagram.com")
         except Exception as _se:
             print(f"[ig-gql] seed error (using cookie csrf): {_se}", flush=True)
 
@@ -653,18 +657,22 @@ async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
                         "lsd": lsd,
                     },
                     headers={
+                        "Accept": "application/json",
                         "X-IG-App-ID": "936619743392459",
                         "X-FB-LSD": lsd,
                         "X-ASBD-ID": "129477",
                         "X-CSRFToken": csrf,
                         "Content-Type": "application/x-www-form-urlencoded",
                         "Sec-Fetch-Site": "same-origin",
+                        "Sec-Fetch-Mode": "cors",
+                        "Sec-Fetch-Dest": "empty",
                         "Referer": f"https://www.instagram.com/reel/{shortcode}/",
                         "Origin": "https://www.instagram.com",
                     },
                     timeout=20,
                 )
-                print(f"[ig-gql] doc_id={doc_id} body_len={len(resp.text)}", flush=True)
+                _ct = resp.headers.get("content-type", "?")[:40]
+                print(f"[ig-gql] doc_id={doc_id} HTTP {resp.status_code} ct={_ct} len={len(resp.text)}", flush=True)
                 print(f"[ig-gql] doc_id={doc_id} → HTTP {resp.status_code}", flush=True)
                 if resp.status_code != 200:
                     continue
