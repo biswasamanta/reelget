@@ -561,6 +561,93 @@ def _normalize_url(url: str) -> str:
         return url
 
 
+async def _instagram_mobile_api_extract(url: str) -> dict | None:
+    """
+    Bypass yt-dlp for Instagram by using:
+    1. Instagram's public oEmbed endpoint  →  get media_id
+    2. Instagram mobile API  →  get video URL
+
+    Works for PUBLIC reels/posts without a logged-in session.
+    Returns a dict with keys: title, thumbnail, video_url — or None on failure.
+    """
+    shortcode_m = re.search(r"/(reel|p|tv)/([A-Za-z0-9_-]+)", url)
+    if not shortcode_m:
+        return None
+    shortcode = shortcode_m.group(2)
+
+    # Step 1: oembed → get media_id (no auth needed, always works for public posts)
+    try:
+        import urllib.parse as _up
+        oembed_url = (
+            "https://api.instagram.com/oembed/"
+            f"?url={_up.quote(f'https://www.instagram.com/reel/{shortcode}/', safe='')}"
+            "&format=json"
+        )
+        async with httpx.AsyncClient(timeout=10.0) as _hc:
+            _r = await _hc.get(oembed_url)
+        if _r.status_code != 200:
+            print(f"[ig-api] oembed failed: HTTP {_r.status_code}", flush=True)
+            return None
+        oembed = _r.json()
+        media_id = oembed.get("media_id")
+        title = oembed.get("title") or "Instagram Reel"
+        thumbnail = oembed.get("thumbnail_url")
+        print(f"[ig-api] oembed OK media_id={media_id} title={title!r}", flush=True)
+    except Exception as _oe:
+        print(f"[ig-api] oembed error: {_oe}", flush=True)
+        return None
+
+    if not media_id:
+        return None
+
+    # Step 2: Instagram mobile API → get video URL
+    # Use Android app UA + X-IG-App-ID to access public media without a session.
+    _mobile_headers = {
+        "User-Agent": (
+            "Instagram 275.0.0.27.98 Android "
+            "(26/8.0.0; 440dpi; 1080x1920; Xiaomi; MI 5s; capricorn; qcom; en_US; 314665256)"
+        ),
+        "X-IG-App-ID": "936619743392459",
+        "X-IG-Connection-Type": "WIFI",
+        "Accept-Encoding": "gzip, deflate",
+        "Accept": "*/*",
+    }
+    _proxy_map = {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
+
+    try:
+        api_url = f"https://i.instagram.com/api/v1/media/{media_id}/info/"
+        async with httpx.AsyncClient(
+            proxies=_proxy_map, headers=_mobile_headers,
+            follow_redirects=True, timeout=20.0
+        ) as _hc:
+            _r = await _hc.get(api_url)
+        print(f"[ig-api] media/info HTTP {_r.status_code}", flush=True)
+        if _r.status_code != 200:
+            return None
+        data = _r.json()
+        items = data.get("items") or []
+        if not items:
+            return None
+        media = items[0]
+        # video_versions contains quality variants; pick the first (highest quality)
+        video_versions = media.get("video_versions") or []
+        if not video_versions:
+            return None
+        video_url = video_versions[0].get("url")
+        if not video_url:
+            return None
+        thumb = (
+            (media.get("image_versions2") or {})
+            .get("candidates", [{}])[0]
+            .get("url") or thumbnail
+        )
+        print(f"[ig-api] success → {title!r}", flush=True)
+        return {"title": title, "thumbnail": thumb, "video_url": video_url}
+    except Exception as _ae:
+        print(f"[ig-api] media/info error: {_ae}", flush=True)
+        return None
+
+
 @app.post("/api/download", response_model=DownloadResponse)
 @limiter.limit("20/minute")
 async def download(request: Request, req: DownloadRequest):
@@ -693,22 +780,35 @@ async def download(request: Request, req: DownloadRequest):
     try:
         info = _run_ydl(ydl_opts)
     except Exception as _e1:
-        if is_instagram and INSTAGRAM_COOKIES:
-            # Retry with cookies as second attempt
-            print(f"[instagram] first attempt failed ({type(_e1).__name__}), retrying with cookies", flush=True)
-            _logger.last_error = ""
-            _tmp2 = None
-            try:
-                _tmp2 = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
-                _tmp2.write(INSTAGRAM_COOKIES)
-                _tmp2.close()
-                info = _run_ydl({**ydl_opts, "cookiefile": _tmp2.name})
-            except Exception as _e2:
-                _extract_err = _e2
-            finally:
-                if _tmp2:
-                    try: os.unlink(_tmp2.name)
-                    except Exception: pass
+        if is_instagram:
+            # ── Instagram fallback chain ──────────────────────────────────────
+            # 1. Mobile API (oembed → i.instagram.com/api/v1/media/) — no cookies needed
+            print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying mobile API", flush=True)
+            _api_result = await _instagram_mobile_api_extract(req.url)
+            if _api_result:
+                return DownloadResponse(
+                    title=_api_result["title"],
+                    thumbnail=_api_result.get("thumbnail"),
+                    formats=[FormatInfo(label="Video (HD)", url=_api_result["video_url"], ext="mp4")],
+                )
+            # 2. yt-dlp retry with cookies (session-based fallback)
+            if INSTAGRAM_COOKIES:
+                print(f"[instagram] mobile API failed, retrying yt-dlp with cookies", flush=True)
+                _logger.last_error = ""
+                _tmp2 = None
+                try:
+                    _tmp2 = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+                    _tmp2.write(INSTAGRAM_COOKIES)
+                    _tmp2.close()
+                    info = _run_ydl({**ydl_opts, "cookiefile": _tmp2.name})
+                except Exception as _e2:
+                    _extract_err = _e2
+                finally:
+                    if _tmp2:
+                        try: os.unlink(_tmp2.name)
+                        except Exception: pass
+            else:
+                _extract_err = _e1
         else:
             _extract_err = _e1
 
