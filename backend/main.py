@@ -749,6 +749,58 @@ async def download(request: Request, req: DownloadRequest):
         import traceback
         err_msg = str(e) or _logger.last_error or repr(e)
         print(f"[extract] unexpected {type(e).__name__}: {err_msg}\n{traceback.format_exc()}", flush=True)
+        # ── Instagram embed fallback ────────────────────────────────────────────
+        # When yt-dlp's Instagram extractor fails (AssertionError / IP mismatch /
+        # bot-check), try fetching the public embed page which requires no auth.
+        # The embed page always contains the video URL for public reels.
+        if re.search(r"instagram\.com", req.url):
+            shortcode_m = re.search(r"/(reel|p)/([A-Za-z0-9_-]+)", req.url)
+            if shortcode_m:
+                shortcode = shortcode_m.group(2)
+                print(f"[instagram] yt-dlp failed, trying embed fallback for {shortcode}", flush=True)
+                try:
+                    embed_url = f"https://www.instagram.com/reel/{shortcode}/embed/"
+                    _hdrs = {
+                        "User-Agent": (
+                            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+                            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+                            "Version/17.0 Mobile/15E148 Safari/604.1"
+                        ),
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Referer": "https://www.instagram.com/",
+                    }
+                    _proxy_map = (
+                        {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
+                    )
+                    async with httpx.AsyncClient(
+                        proxies=_proxy_map, headers=_hdrs,
+                        follow_redirects=True, timeout=20.0
+                    ) as _hc:
+                        _resp = await _hc.get(embed_url)
+                    _html = _resp.text
+                    # video_url is JSON-encoded in the embed page source
+                    _vu = re.search(r'"video_url"\s*:\s*"([^"]+)"', _html)
+                    if not _vu:
+                        # fallback to og:video tag
+                        _vu = re.search(r'<meta[^>]+property="og:video"[^>]+content="([^"]+)"', _html)
+                    if _vu:
+                        _video_url = _vu.group(1).replace("\\u0026", "&").replace("\\/", "/")
+                        _title_m = re.search(r'"title"\s*:\s*"([^"]+)"', _html) or \
+                                   re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', _html)
+                        _thumb_m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', _html)
+                        _title = _title_m.group(1) if _title_m else "Instagram Reel"
+                        _thumb = _thumb_m.group(1) if _thumb_m else None
+                        print(f"[instagram] embed fallback OK → {_title!r}", flush=True)
+                        return DownloadResponse(
+                            title=_title,
+                            thumbnail=_thumb,
+                            formats=[FormatInfo(label="Video (HD)", url=_video_url, ext="mp4")],
+                        )
+                    else:
+                        print(f"[instagram] embed fallback: no video_url found in page (status {_resp.status_code})", flush=True)
+                except Exception as _emb_e:
+                    print(f"[instagram] embed fallback error: {_emb_e}", flush=True)
         raise HTTPException(status_code=422, detail={"message": err_msg or type(e).__name__, "code": "unknown"})
     finally:
         if cookies_file:
