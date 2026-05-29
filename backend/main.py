@@ -589,55 +589,57 @@ async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
 
     cookies = _parse_netscape_cookies(cookie_str) if cookie_str else {}
 
-    _page_hdrs = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Upgrade-Insecure-Requests": "1",
-    }
+    # Instagram only includes og:video in the SSR HTML when it thinks a social
+    # media crawler is fetching the page. With a browser UA it serves a JS shell.
+    # Try several known crawler UAs that Instagram serves full SSR to.
+    _crawler_uas = [
+        "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        "Twitterbot/1.0",
+        "WhatsApp/2.22.8.79 A",
+        "LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient/4.1.1 +http://www.linkedin.com)",
+    ]
 
-    # Approach 1: fetch reel page and scrape og:video (most reliable)
-    for page_url in [
-        f"https://www.instagram.com/reel/{shortcode}/",
-        f"https://www.instagram.com/p/{shortcode}/",
-    ]:
-        try:
-            async with httpx.AsyncClient(
-                proxy=PROXY_URL if PROXY_URL else None,
-                headers=_page_hdrs, cookies=cookies,
-                follow_redirects=True, timeout=25.0
-            ) as _hc:
-                _r = await _hc.get(page_url)
-            print(f"[ig-page] {page_url} → HTTP {_r.status_code} ({len(_r.content)} bytes)", flush=True)
-            if _r.status_code != 200:
-                continue
-            html = _r.text
-            # og:video gives the direct MP4 URL — present in all public reels
-            _vu = (re.search(r'<meta\s+property=["\']og:video["\']\s+content=["\']([^"\']+)["\']', html)
-                   or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:video["\']', html))
-            if _vu:
-                video_url = _vu.group(1).replace("&amp;", "&")
-                _tu = (re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']', html)
-                       or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:title["\']', html))
-                _im = (re.search(r'<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']', html)
-                       or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:image["\']', html))
-                title = (_tu.group(1).replace("&amp;", "&") if _tu else "Instagram Reel")
-                thumb = (_im.group(1).replace("&amp;", "&") if _im else None)
-                print(f"[ig-page] og:video found → {title[:60]!r}", flush=True)
-                return {"title": title, "thumbnail": thumb, "video_url": video_url}
-            # Log snippet to diagnose what Instagram returned
-            _snippet = html[:500].replace("\n", " ")
-            print(f"[ig-page] no og:video — page snippet: {_snippet[:200]}", flush=True)
-        except Exception as _pe:
-            print(f"[ig-page] error for {page_url}: {_pe}", flush=True)
+    def _scrape_og(html: str) -> dict | None:
+        _vu = (re.search(r'<meta\s+property=["\']og:video["\']\s+content=["\']([^"\']+)["\']', html)
+               or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:video["\']', html))
+        if not _vu:
+            return None
+        video_url = _vu.group(1).replace("&amp;", "&")
+        _tu = (re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']', html)
+               or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:title["\']', html))
+        _im = (re.search(r'<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']', html)
+               or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:image["\']', html))
+        title = (_tu.group(1).replace("&amp;", "&") if _tu else "Instagram Reel")
+        thumb = (_im.group(1).replace("&amp;", "&") if _im else None)
+        return {"title": title, "thumbnail": thumb, "video_url": video_url}
+
+    # Approach 1: fetch reel page with crawler UAs to get SSR with og:video
+    for ua in _crawler_uas:
+        for page_url in [
+            f"https://www.instagram.com/reel/{shortcode}/",
+            f"https://www.instagram.com/p/{shortcode}/",
+        ]:
+            try:
+                _hdrs = {
+                    "User-Agent": ua,
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                }
+                async with httpx.AsyncClient(
+                    proxy=PROXY_URL if PROXY_URL else None,
+                    headers=_hdrs, cookies=cookies,
+                    follow_redirects=True, timeout=25.0
+                ) as _hc:
+                    _r = await _hc.get(page_url)
+                has_og = "og:video" in _r.text
+                print(f"[ig-page] {ua[:30]} → HTTP {_r.status_code} has_og:{has_og}", flush=True)
+                if _r.status_code == 200 and has_og:
+                    result = _scrape_og(_r.text)
+                    if result:
+                        print(f"[ig-page] og:video found → {result['title'][:60]!r}", flush=True)
+                        return result
+            except Exception as _pe:
+                print(f"[ig-page] error ({ua[:20]}): {_pe}", flush=True)
 
     # Approach 2: web_info API endpoint (newer, still active)
     _api_hdrs = {
