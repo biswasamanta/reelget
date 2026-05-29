@@ -561,6 +561,100 @@ def _normalize_url(url: str) -> str:
         return url
 
 
+def _parse_netscape_cookies(cookie_str: str) -> dict:
+    """Parse a Netscape cookie file string into a name→value dict."""
+    cookies = {}
+    for line in cookie_str.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 7:
+            cookies[parts[5]] = parts[6]
+    return cookies
+
+
+async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
+    """
+    Authenticated Instagram web API extraction using session cookies.
+    Uses the ?__a=1 JSON endpoint which returns full media data when authenticated.
+    This bypasses yt-dlp entirely and works with valid session cookies.
+    """
+    shortcode_m = re.search(r"/(reel|p|tv)/([A-Za-z0-9_-]+)", url)
+    if not shortcode_m:
+        return None
+    shortcode = shortcode_m.group(2)
+
+    cookies = _parse_netscape_cookies(cookie_str)
+    if not cookies.get("sessionid"):
+        print("[ig-web] no sessionid in cookies, skipping", flush=True)
+        return None
+
+    _hdrs = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "x-ig-app-id": "936619743392459",
+        "x-csrftoken": cookies.get("csrftoken", ""),
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": f"https://www.instagram.com/reel/{shortcode}/",
+        "X-Requested-With": "XMLHttpRequest",
+    }
+    _proxy_map = {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
+
+    # Try the ?__a=1 JSON endpoint (returns full media JSON when authenticated)
+    for api_url in [
+        f"https://www.instagram.com/reel/{shortcode}/?__a=1&__d=dis",
+        f"https://www.instagram.com/p/{shortcode}/?__a=1&__d=dis",
+    ]:
+        try:
+            async with httpx.AsyncClient(
+                proxies=_proxy_map, headers=_hdrs, cookies=cookies,
+                follow_redirects=True, timeout=20.0
+            ) as _hc:
+                _r = await _hc.get(api_url)
+            print(f"[ig-web] {api_url.split('?')[0]} → HTTP {_r.status_code}", flush=True)
+            if _r.status_code != 200:
+                continue
+            data = _r.json()
+            # Response structure: {"items": [{"video_versions": [...], ...}]}
+            items = (data.get("items") or
+                     [(data.get("graphql") or {}).get("shortcode_media") or {}])
+            if not items:
+                continue
+            media = items[0]
+            # Try video_versions (API v1 format)
+            video_versions = media.get("video_versions") or []
+            video_url = video_versions[0].get("url") if video_versions else None
+            # Try video_url (GraphQL format)
+            if not video_url:
+                video_url = media.get("video_url")
+            if not video_url:
+                print(f"[ig-web] no video_url in response keys: {list(media.keys())[:10]}", flush=True)
+                continue
+            # Title from caption
+            caption = (
+                ((media.get("caption") or {}).get("text") or "")
+                or (((media.get("edge_media_to_caption") or {})
+                     .get("edges") or [{}])[0].get("node", {}).get("text") or "")
+                or "Instagram Reel"
+            )
+            # Thumbnail
+            thumb = (
+                ((media.get("image_versions2") or {})
+                 .get("candidates") or [{}])[0].get("url")
+                or media.get("display_url")
+            )
+            print(f"[ig-web] success → {caption[:60]!r}", flush=True)
+            return {"title": caption[:100] or "Instagram Reel", "thumbnail": thumb, "video_url": video_url}
+        except Exception as _we:
+            print(f"[ig-web] error for {api_url}: {_we}", flush=True)
+    return None
+
+
 async def _instagram_mobile_api_extract(url: str) -> dict | None:
     """
     Bypass yt-dlp for Instagram by using:
@@ -818,8 +912,18 @@ async def download(request: Request, req: DownloadRequest):
     except Exception as _e1:
         if is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
-            # 1. Mobile API (oembed → i.instagram.com/api/v1/media/) — no cookies needed
-            print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying mobile API", flush=True)
+            # 1. Authenticated web API (?__a=1) — uses session cookies directly
+            if INSTAGRAM_COOKIES:
+                print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying web API with cookies", flush=True)
+                _web_result = await _instagram_web_api_extract(req.url, INSTAGRAM_COOKIES)
+                if _web_result:
+                    return DownloadResponse(
+                        title=_web_result["title"],
+                        thumbnail=_web_result.get("thumbnail"),
+                        formats=[FormatInfo(label="Video (HD)", url=_web_result["video_url"], ext="mp4")],
+                    )
+            # 2. Mobile API (oembed → i.instagram.com) — no cookies needed
+            print(f"[instagram] web API failed, trying mobile API", flush=True)
             _api_result = await _instagram_mobile_api_extract(req.url)
             if _api_result:
                 return DownloadResponse(
@@ -827,9 +931,9 @@ async def download(request: Request, req: DownloadRequest):
                     thumbnail=_api_result.get("thumbnail"),
                     formats=[FormatInfo(label="Video (HD)", url=_api_result["video_url"], ext="mp4")],
                 )
-            # 2. yt-dlp retry with cookies (session-based fallback)
+            # 3. yt-dlp retry with cookies (last resort)
             if INSTAGRAM_COOKIES:
-                print(f"[instagram] mobile API failed, retrying yt-dlp with cookies", flush=True)
+                print(f"[instagram] all API fallbacks failed, retrying yt-dlp with cookies", flush=True)
                 _logger.last_error = ""
                 _tmp2 = None
                 try:
