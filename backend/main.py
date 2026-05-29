@@ -782,7 +782,12 @@ async def download(request: Request, req: DownloadRequest):
             if cookies_file:
                 try: os.unlink(cookies_file)
                 except Exception: pass
-            raise HTTPException(status_code=422, detail={"message": err_msg or type(_extract_err).__name__, "code": "unknown"})
+            # AssertionError from yt-dlp's Instagram extractor means Instagram
+            # returned a login/bot-check page — surface as sign_in_required.
+            _code = "unknown"
+            if isinstance(_extract_err, AssertionError) and re.search(r"instagram\.com", req.url):
+                _code = "sign_in_required:instagram"
+            raise HTTPException(status_code=422, detail={"message": err_msg or type(_extract_err).__name__, "code": _code})
 
     if cookies_file:
         try: os.unlink(cookies_file)
