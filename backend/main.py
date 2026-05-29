@@ -55,6 +55,8 @@ YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
 COOKIES = os.environ.get("COOKIES", "")
 YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", COOKIES)
 INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", COOKIES)
+# Facebook needs a logged-in session to server-render video data; falls back to COOKIES.
+FACEBOOK_COOKIES = os.environ.get("FACEBOOK_COOKIES", COOKIES)
 # Outbound proxy for yt-dlp requests (helps bypass datacenter IP blocks).
 # Format: http://user:pass@host:port  — leave unset to use direct connection.
 PROXY_URL = os.environ.get("PROXY_URL", "")
@@ -648,7 +650,7 @@ async def _facebook_html_extract(url: str) -> dict | None:
 
     Returns dict with title, thumbnail, video_url — or None.
     """
-    cookies = _parse_netscape_cookies(COOKIES) if COOKIES else {}
+    cookies = _parse_netscape_cookies(FACEBOOK_COOKIES) if FACEBOOK_COOKIES else {}
 
     def _sync_fb() -> dict | None:
         try:
