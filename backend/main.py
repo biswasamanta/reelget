@@ -565,6 +565,63 @@ def _normalize_url(url: str) -> str:
         return url
 
 
+async def _twitter_fxapi_extract(url: str) -> dict | None:
+    """
+    Extract Twitter/X video via the public fxtwitter API (api.fxtwitter.com).
+    Free, no auth, no proxy needed. Works for any public tweet with video.
+
+    Returns dict with title, thumbnail, video_url (highest quality) — or None.
+    """
+    # Tweet ID is the trailing numeric segment of /status/{id}
+    id_m = re.search(r"/status(?:es)?/(\d+)", url)
+    if not id_m:
+        return None
+    tweet_id = id_m.group(1)
+
+    # fxtwitter mirrors (try in order); each returns JSON with media info
+    hosts = ["api.fxtwitter.com", "api.vxtwitter.com"]
+    for host in hosts:
+        try:
+            api_url = f"https://{host}/status/{tweet_id}"
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as _hc:
+                _r = await _hc.get(api_url, headers={"User-Agent": "Mozilla/5.0 (compatible; ReelGet/1.0)"})
+            print(f"[twitter-fx] {host} → HTTP {_r.status_code}", flush=True)
+            if _r.status_code != 200:
+                continue
+            data = _r.json()
+            video_url = None
+            title = "Twitter Video"
+            thumb = None
+            if host == "api.fxtwitter.com":
+                tweet = data.get("tweet") or {}
+                title = (tweet.get("text") or "Twitter Video")[:120]
+                media = tweet.get("media") or {}
+                videos = media.get("videos") or []
+                if videos:
+                    # pick highest bitrate variant
+                    best = max(videos, key=lambda v: v.get("bitrate", 0) or 0)
+                    video_url = best.get("url")
+                    thumb = best.get("thumbnail_url") or videos[0].get("thumbnail_url")
+            else:  # vxtwitter format
+                title = (data.get("text") or "Twitter Video")[:120]
+                mediaurls = data.get("mediaURLs") or []
+                # vxtwitter media_extended has type info
+                ext = data.get("media_extended") or []
+                vids = [m for m in ext if m.get("type") == "video"]
+                if vids:
+                    video_url = vids[0].get("url")
+                    thumb = vids[0].get("thumbnail_url")
+                elif mediaurls:
+                    video_url = mediaurls[0]
+            if video_url:
+                print(f"[twitter-fx] success ({host}) → {title[:50]!r}", flush=True)
+                return {"title": title, "thumbnail": thumb, "video_url": video_url}
+            print(f"[twitter-fx] {host}: no video in tweet", flush=True)
+        except Exception as _te:
+            print(f"[twitter-fx] {host} error: {_te}", flush=True)
+    return None
+
+
 def _parse_netscape_cookies(cookie_str: str) -> dict:
     """Parse a Netscape cookie file string into a name→value dict."""
     cookies = {}
@@ -1128,7 +1185,19 @@ async def download(request: Request, req: DownloadRequest):
     try:
         info = _run_ydl(ydl_opts)
     except Exception as _e1:
-        if is_instagram:
+        is_twitter = bool(re.search(r"twitter\.com|x\.com|t\.co", req.url))
+        if is_twitter:
+            # ── Twitter/X fallback: public fxtwitter API (free, no auth) ──────
+            print(f"[twitter] yt-dlp failed ({type(_e1).__name__}), trying fxtwitter API", flush=True)
+            _tw_result = await _twitter_fxapi_extract(req.url)
+            if _tw_result:
+                return DownloadResponse(
+                    title=_tw_result["title"],
+                    thumbnail=_tw_result.get("thumbnail"),
+                    formats=[FormatInfo(label="Video (HD)", url=_tw_result["video_url"], ext="mp4")],
+                )
+            _extract_err = _e1
+        elif is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
             # 0. HikerAPI (managed) — reliable, used first when configured
             if HIKER_API_KEY:
