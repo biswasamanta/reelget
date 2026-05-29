@@ -2908,10 +2908,19 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
     }
     content_type = _CT.get(ext.lower(), "video/mp4")
 
+    # Twitter's CDN (video.twimg.com) serves an empty body to datacenter IPs
+    # (returns 200 but 0 bytes). Route those downloads through the residential
+    # proxy so the bytes actually come through. Other CDNs (Instagram, TikTok,
+    # etc.) allow datacenter IPs, so we only proxy Twitter to save bandwidth.
+    _dl_proxy = None
+    if PROXY_URL and ("twimg" in url or "twitter" in url):
+        _dl_proxy = PROXY_URL
+        print(f"[proxy] routing twimg download through residential proxy", flush=True)
+
     # Open the upstream connection and validate status BEFORE returning the
     # StreamingResponse. If we only checked inside the generator, a non-200
     # would raise after headers were already sent → client gets 200 + 0 bytes.
-    client = httpx.AsyncClient(follow_redirects=True, timeout=120)
+    client = httpx.AsyncClient(follow_redirects=True, timeout=120, proxy=_dl_proxy)
     try:
         req_ctx = client.stream("GET", url, headers=headers)
         r = await req_ctx.__aenter__()
