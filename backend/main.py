@@ -2215,6 +2215,8 @@ def _referer_for(url: str) -> str:
         return "https://www.instagram.com/"
     if "facebook" in url or "fbcdn" in url:
         return "https://www.facebook.com/"
+    if "twimg" in url or "twitter" in url or "x.com" in url:
+        return "https://x.com/"
     if "pinterest" in url or "pinimg" in url or "pin.it" in url:
         return "https://www.pinterest.com/"
     if "snapchat" in url:
@@ -2906,19 +2908,39 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
     }
     content_type = _CT.get(ext.lower(), "video/mp4")
 
-    async def stream():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=120) as client:
-            async with client.stream("GET", url, headers=headers) as r:
-                if r.status_code != 200:
-                    raise HTTPException(status_code=r.status_code, detail="CDN fetch failed")
-                async for chunk in r.aiter_bytes(chunk_size=65536):
-                    yield chunk
+    # Open the upstream connection and validate status BEFORE returning the
+    # StreamingResponse. If we only checked inside the generator, a non-200
+    # would raise after headers were already sent → client gets 200 + 0 bytes.
+    client = httpx.AsyncClient(follow_redirects=True, timeout=120)
+    try:
+        req_ctx = client.stream("GET", url, headers=headers)
+        r = await req_ctx.__aenter__()
+        if r.status_code != 200:
+            await req_ctx.__aexit__(None, None, None)
+            await client.aclose()
+            print(f"[proxy] CDN fetch failed: HTTP {r.status_code} for {url[:80]}", flush=True)
+            raise HTTPException(status_code=502, detail=f"CDN returned HTTP {r.status_code}")
+    except HTTPException:
+        raise
+    except Exception as _pe:
+        await client.aclose()
+        print(f"[proxy] connection error: {_pe} for {url[:80]}", flush=True)
+        raise HTTPException(status_code=502, detail="Could not fetch the video from its CDN.")
 
-    return StreamingResponse(
-        stream(),
-        media_type=content_type,
-        headers={"Content-Disposition": f'attachment; filename="{safe_filename}.{ext}"'},
-    )
+    async def stream():
+        try:
+            async for chunk in r.aiter_bytes(chunk_size=65536):
+                yield chunk
+        finally:
+            await req_ctx.__aexit__(None, None, None)
+            await client.aclose()
+
+    fwd_len = r.headers.get("content-length")
+    resp_headers = {"Content-Disposition": f'attachment; filename="{safe_filename}.{ext}"'}
+    if fwd_len:
+        resp_headers["Content-Length"] = fwd_len
+
+    return StreamingResponse(stream(), media_type=content_type, headers=resp_headers)
 
 
 @app.get("/api/counter")
