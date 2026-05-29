@@ -574,6 +574,113 @@ def _parse_netscape_cookies(cookie_str: str) -> dict:
     return cookies
 
 
+async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
+    """
+    Extract Instagram reel video URL via the internal GraphQL endpoint.
+    Uses curl_cffi for TLS fingerprint spoofing (required — Instagram blocks
+    standard Python TLS before even checking auth).
+
+    Endpoint: POST https://www.instagram.com/api/graphql
+    doc_id rotates every 2–4 weeks; try all known values.
+    """
+    shortcode_m = re.search(r"/(reel|p|tv)/([A-Za-z0-9_-]+)", url)
+    if not shortcode_m:
+        return None
+    shortcode = shortcode_m.group(2)
+
+    cookies = _parse_netscape_cookies(cookie_str) if cookie_str else {}
+
+    def _sync_graphql() -> dict | None:
+        try:
+            from curl_cffi import requests as cf_requests
+        except ImportError:
+            print("[ig-gql] curl_cffi not available", flush=True)
+            return None
+
+        session = cf_requests.Session(impersonate="chrome124")
+        if PROXY_URL:
+            session.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+
+        # Inject session cookies
+        for k, v in cookies.items():
+            session.cookies.set(k, v, domain=".instagram.com")
+
+        # Seed session + get fresh CSRF token
+        csrf = cookies.get("csrftoken", "")
+        try:
+            _seed = session.get(
+                "https://www.instagram.com/",
+                headers={"Accept-Language": "en-US,en;q=0.9"},
+                timeout=10,
+            )
+            csrf = session.cookies.get("csrftoken") or csrf
+        except Exception as _se:
+            print(f"[ig-gql] seed error (using cookie csrf): {_se}", flush=True)
+
+        # doc_id rotates every 2-4 weeks; try all known working values
+        DOC_IDS = [
+            "10015901848480474",   # active early 2026 (socialcrawl.dev)
+            "8845758582119845",    # yt-dlp current
+            "24368985919464652",   # instapydl
+            "25981206651899035",   # alternate
+        ]
+
+        for doc_id in DOC_IDS:
+            try:
+                resp = session.post(
+                    "https://www.instagram.com/api/graphql",
+                    data={
+                        "variables": json.dumps({"shortcode": shortcode}),
+                        "doc_id": doc_id,
+                        "lsd": "AVqbxe3J_YA",
+                    },
+                    headers={
+                        "X-IG-App-ID": "936619743392459",
+                        "X-FB-LSD": "AVqbxe3J_YA",
+                        "X-ASBD-ID": "129477",
+                        "X-CSRFToken": csrf,
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "Sec-Fetch-Site": "same-origin",
+                        "Referer": f"https://www.instagram.com/reel/{shortcode}/",
+                    },
+                    timeout=20,
+                )
+                print(f"[ig-gql] doc_id={doc_id} → HTTP {resp.status_code}", flush=True)
+                if resp.status_code != 200:
+                    continue
+                data = resp.json()
+                d = data.get("data") or {}
+                # Path 1: xdt_shortcode_media (GraphQL v1)
+                media = d.get("xdt_shortcode_media")
+                if media:
+                    video_url = media.get("video_url")
+                    if video_url:
+                        edges = ((media.get("edge_media_to_caption") or {}).get("edges") or [])
+                        caption = edges[0].get("node", {}).get("text", "") if edges else ""
+                        thumb = media.get("thumbnail_src") or media.get("display_url")
+                        print(f"[ig-gql] path1 success → {caption[:50]!r}", flush=True)
+                        return {"title": caption[:100] or "Instagram Reel", "thumbnail": thumb, "video_url": video_url}
+                # Path 2: xdt_api__v1__media__shortcode__web_info (API v2)
+                items = (d.get("xdt_api__v1__media__shortcode__web_info") or {}).get("items") or []
+                if items:
+                    m2 = items[0]
+                    vv = m2.get("video_versions") or []
+                    if vv:
+                        video_url = vv[0].get("url")
+                        if video_url:
+                            cap = (m2.get("caption") or {}).get("text") or "Instagram Reel"
+                            thumb = ((m2.get("image_versions2") or {}).get("candidates") or [{}])[0].get("url")
+                            print(f"[ig-gql] path2 success → {cap[:50]!r}", flush=True)
+                            return {"title": cap[:100], "thumbnail": thumb, "video_url": video_url}
+                print(f"[ig-gql] doc_id={doc_id} no video in response keys: {list(d.keys())}", flush=True)
+            except Exception as _e:
+                print(f"[ig-gql] doc_id={doc_id} error: {_e}", flush=True)
+        return None
+
+    import asyncio
+    return await asyncio.get_event_loop().run_in_executor(None, _sync_graphql)
+
+
 async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
     """
     Scrape the Instagram reel page directly (with session cookies + proxy) and
@@ -935,9 +1042,18 @@ async def download(request: Request, req: DownloadRequest):
     except Exception as _e1:
         if is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
-            # 1. Authenticated web API (?__a=1) — uses session cookies directly
+            # 1. curl_cffi GraphQL — the method used by all working scrapers
+            print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying GraphQL", flush=True)
+            _gql_result = await _instagram_graphql_extract(req.url, INSTAGRAM_COOKIES or "")
+            if _gql_result:
+                return DownloadResponse(
+                    title=_gql_result["title"],
+                    thumbnail=_gql_result.get("thumbnail"),
+                    formats=[FormatInfo(label="Video (HD)", url=_gql_result["video_url"], ext="mp4")],
+                )
+            # 2. Page scrape + web_info fallback
             if INSTAGRAM_COOKIES:
-                print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying web API with cookies", flush=True)
+                print(f"[instagram] GraphQL failed, trying page scrape", flush=True)
                 _web_result = await _instagram_web_api_extract(req.url, INSTAGRAM_COOKIES)
                 if _web_result:
                     return DownloadResponse(
