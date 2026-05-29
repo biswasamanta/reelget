@@ -636,8 +636,6 @@ async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
         if cookies.get("csrftoken"):
             csrf = cookies["csrftoken"]
             session.cookies.set("csrftoken", csrf, domain=".instagram.com")
-        except Exception as _se:
-            print(f"[ig-gql] seed error (using cookie csrf): {_se}", flush=True)
 
         # doc_id rotates every 2-4 weeks; try all known working values
         DOC_IDS = [
