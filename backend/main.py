@@ -603,8 +603,6 @@ async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
         "Referer": f"https://www.instagram.com/reel/{shortcode}/",
         "X-Requested-With": "XMLHttpRequest",
     }
-    _proxy_map = {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
-
     # Try the ?__a=1 JSON endpoint (returns full media JSON when authenticated)
     for api_url in [
         f"https://www.instagram.com/reel/{shortcode}/?__a=1&__d=dis",
@@ -612,7 +610,7 @@ async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
     ]:
         try:
             async with httpx.AsyncClient(
-                proxies=_proxy_map, headers=_hdrs, cookies=cookies,
+                proxy=PROXY_URL if PROXY_URL else None, headers=_hdrs, cookies=cookies,
                 follow_redirects=True, timeout=20.0
             ) as _hc:
                 _r = await _hc.get(api_url)
@@ -706,20 +704,16 @@ async def _instagram_mobile_api_extract(url: str) -> dict | None:
         "Accept": "*/*",
     }
     # Try both direct (Railway IP) and via proxy — one of them may be less restricted
-    for _proxy_map in [
-        {},  # direct Railway IP first
-        {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else None,
-    ]:
-        if _proxy_map is None:
-            continue
+    for _use_proxy in [False, True]:
+        _proxy = PROXY_URL if (_use_proxy and PROXY_URL) else None
+        _label = "proxy" if _proxy else "direct"
         try:
             api_url = f"https://i.instagram.com/api/v1/media/{media_id}/info/"
             async with httpx.AsyncClient(
-                proxies=_proxy_map, headers=_mobile_headers,
+                proxy=_proxy, headers=_mobile_headers,
                 follow_redirects=True, timeout=20.0
             ) as _hc:
                 _r = await _hc.get(api_url)
-            _label = "direct" if not _proxy_map else "proxy"
             print(f"[ig-api] media/info ({_label}) HTTP {_r.status_code}", flush=True)
             if _r.status_code == 200:
                 data = _r.json()
@@ -738,7 +732,7 @@ async def _instagram_mobile_api_extract(url: str) -> dict | None:
                             print(f"[ig-api] success ({_label}) → {title!r}", flush=True)
                             return {"title": title, "thumbnail": thumb, "video_url": video_url}
         except Exception as _ae:
-            print(f"[ig-api] media/info error: {_ae}", flush=True)
+            print(f"[ig-api] media/info ({_label}) error: {_ae}", flush=True)
 
     # Step 2b: Try the GraphQL approach (works for some public reels)
     try:
@@ -753,9 +747,8 @@ async def _instagram_mobile_api_extract(url: str) -> dict | None:
             "Accept": "application/json",
             "Referer": "https://www.instagram.com/",
         }
-        _proxy_map2 = {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
         async with httpx.AsyncClient(
-            proxies=_proxy_map2, headers=_gql_hdrs,
+            proxy=PROXY_URL if PROXY_URL else None, headers=_gql_hdrs,
             follow_redirects=True, timeout=15.0
         ) as _hc:
             _r = await _hc.get(gql_url)
