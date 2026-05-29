@@ -624,74 +624,105 @@ async def _twitter_fxapi_extract(url: str) -> dict | None:
     return None
 
 
+def _fb_walk_json(obj):
+    """Yield every dict in a nested JSON structure (for scanning Relay blobs)."""
+    if isinstance(obj, dict):
+        yield obj
+        for v in obj.values():
+            yield from _fb_walk_json(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _fb_walk_json(v)
+
+
 async def _facebook_html_extract(url: str) -> dict | None:
     """
-    Extract a public Facebook video URL by scraping the page HTML.
-    Facebook embeds direct CDN URLs in the page JSON (playable_url_quality_hd,
-    browser_native_hd_url, etc.) for public videos. Routed through the residential
-    proxy + cookies since Facebook blocks datacenter IPs.
+    Extract a public Facebook video URL using curl_cffi (Chrome TLS impersonation)
+    to fetch the page, then walk the embedded `data-sjs`/ScheduledServerJS Relay
+    JSON for videoDeliveryResponseFragment → progressive_urls[].progressive_url.
+
+    Facebook serves the real video JSON ONLY to clients with a real browser TLS
+    fingerprint — plain httpx/requests get a stripped page (hence the prior
+    "no video url" failures). Routed through the residential proxy + cookies
+    (fbcdn URLs are IP-bound, so the download must use the same proxy).
 
     Returns dict with title, thumbnail, video_url — or None.
     """
     cookies = _parse_netscape_cookies(COOKIES) if COOKIES else {}
-    # mobile basic site (mbasic/m.facebook) serves simpler HTML, but the desktop
-    # page embeds the HD url in JSON — try desktop first, then mobile.
-    targets = [url]
-    # Normalise reel/watch URLs are fine as-is.
 
-    _hdrs = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-    for tgt in targets:
+    def _sync_fb() -> dict | None:
         try:
-            async with httpx.AsyncClient(
-                proxy=PROXY_URL if PROXY_URL else None,
-                headers=_hdrs, cookies=cookies,
-                follow_redirects=True, timeout=25.0
-            ) as _hc:
-                _r = await _hc.get(tgt)
-            print(f"[fb-html] {tgt[:50]} → HTTP {_r.status_code} ({len(_r.content)} bytes)", flush=True)
-            if _r.status_code != 200:
-                continue
-            html = _r.text
-            # Facebook embeds video data as an ESCAPED JSON string inside the page
-            # (keys appear as \"playable_url\":\"https:\/\/...\"). Normalise the
-            # backslash-escaping so the keys/URLs become matchable.
-            norm = html.replace('\\/', '/').replace('\\"', '"').replace('\\u0025', '%')
-            vid = None
-            for source in (norm, html):
-                for key in ("playable_url_quality_hd", "browser_native_hd_url",
-                            "playable_url_quality_sd", "playable_url",
-                            "browser_native_sd_url", "hd_src", "sd_src"):
-                    m = re.search(rf'"{key}"\s*:\s*"(https?:[^"]+)"', source)
-                    if m and m.group(1):
-                        vid = m.group(1)
-                        break
-                if vid:
-                    break
-            if not vid:
-                # og:video fallback (uses raw html — meta tags aren't escaped)
-                m = re.search(r'<meta[^>]+property="og:video(?::url)?"[^>]+content="([^"]+)"', html)
-                if m:
-                    vid = m.group(1)
-            if not vid:
-                print(f"[fb-html] no video url found in page", flush=True)
-                continue
-            video_url = vid.replace("\\/", "/").replace("&amp;", "&").replace("\\u0026", "&")
+            from curl_cffi import requests as cf_requests
+        except ImportError:
+            print("[fb] curl_cffi not available", flush=True)
+            return None
+        try:
+            session = cf_requests.Session(impersonate="chrome124")
+            if PROXY_URL:
+                session.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+            for k, v in cookies.items():
+                session.cookies.set(k, v, domain=".facebook.com")
+            resp = session.get(
+                url,
+                headers={"Accept-Language": "en-US,en;q=0.9"},
+                timeout=30,
+            )
+            print(f"[fb] page → HTTP {resp.status_code} ({len(resp.text)} bytes)", flush=True)
+            if resp.status_code != 200:
+                return None
+            html = resp.text
+
+            best = {}   # quality -> url
+            legacy = {}
+            for blob in re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', html):
+                try:
+                    data = json.loads(blob)
+                except Exception:
+                    continue
+                for node in _fb_walk_json(data):
+                    if not isinstance(node, dict):
+                        continue
+                    # Modern delivery fragment (2026)
+                    frag = node.get("videoDeliveryResponseFragment")
+                    vr = frag.get("videoDeliveryResponseResult") if isinstance(frag, dict) else None
+                    if isinstance(vr, dict):
+                        for p in (vr.get("progressive_urls") or []):
+                            q = ((p.get("metadata") or {}).get("quality") or "?")
+                            if p.get("progressive_url"):
+                                best[q] = p["progressive_url"]
+                    # Legacy flat keys (older/embedded videos)
+                    for k in ("playable_url_quality_hd", "playable_url",
+                              "browser_native_hd_url", "browser_native_sd_url"):
+                        if node.get(k) and k not in legacy:
+                            legacy[k] = node[k]
+
+            # Prefer HD progressive, then SD, then legacy HD→SD.
+            video_url = (
+                best.get("HD") or best.get("SD")
+                or (next(iter(best.values())) if best else None)
+                or legacy.get("playable_url_quality_hd")
+                or legacy.get("browser_native_hd_url")
+                or legacy.get("playable_url")
+                or legacy.get("browser_native_sd_url")
+            )
+            if not video_url:
+                print(f"[fb] no progressive/legacy url found (sjs blobs scanned)", flush=True)
+                return None
+            video_url = video_url.replace("\\/", "/").replace("\\u0026", "&").replace("&amp;", "&")
+
+            # Title/thumbnail from og: meta tags (not escaped)
             _tm = re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', html)
             _im = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', html)
             title = (_tm.group(1) if _tm else "Facebook Video").replace("&amp;", "&")
             thumb = (_im.group(1).replace("\\/", "/").replace("&amp;", "&") if _im else None)
-            print(f"[fb-html] success → {title[:50]!r}", flush=True)
+            print(f"[fb] success ({'/'.join(best.keys()) or 'legacy'}) → {title[:50]!r}", flush=True)
             return {"title": title[:120], "thumbnail": thumb, "video_url": video_url}
         except Exception as _fe:
-            print(f"[fb-html] error: {_fe}", flush=True)
-    return None
+            print(f"[fb] error: {_fe}", flush=True)
+            return None
+
+    import asyncio
+    return await asyncio.get_event_loop().run_in_executor(None, _sync_fb)
 
 
 def _parse_netscape_cookies(cookie_str: str) -> dict:
