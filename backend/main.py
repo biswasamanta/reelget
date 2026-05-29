@@ -659,23 +659,30 @@ async def _facebook_html_extract(url: str) -> dict | None:
             if _r.status_code != 200:
                 continue
             html = _r.text
-            # Try HD first, then SD. URLs are JSON-escaped in the page source.
+            # Facebook embeds video data as an ESCAPED JSON string inside the page
+            # (keys appear as \"playable_url\":\"https:\/\/...\"). Normalise the
+            # backslash-escaping so the keys/URLs become matchable.
+            norm = html.replace('\\/', '/').replace('\\"', '"').replace('\\u0025', '%')
             vid = None
-            for key in ("playable_url_quality_hd", "browser_native_hd_url",
-                        "playable_url", "browser_native_sd_url", "sd_src", "hd_src"):
-                m = re.search(rf'"{key}"\s*:\s*"([^"]+)"', html)
-                if m and m.group(1):
-                    vid = m.group(1)
+            for source in (norm, html):
+                for key in ("playable_url_quality_hd", "browser_native_hd_url",
+                            "playable_url_quality_sd", "playable_url",
+                            "browser_native_sd_url", "hd_src", "sd_src"):
+                    m = re.search(rf'"{key}"\s*:\s*"(https?:[^"]+)"', source)
+                    if m and m.group(1):
+                        vid = m.group(1)
+                        break
+                if vid:
                     break
             if not vid:
-                # og:video fallback
+                # og:video fallback (uses raw html — meta tags aren't escaped)
                 m = re.search(r'<meta[^>]+property="og:video(?::url)?"[^>]+content="([^"]+)"', html)
                 if m:
                     vid = m.group(1)
             if not vid:
                 print(f"[fb-html] no video url found in page", flush=True)
                 continue
-            video_url = vid.encode().decode("unicode_escape").replace("\\/", "/").replace("&amp;", "&")
+            video_url = vid.replace("\\/", "/").replace("&amp;", "&").replace("\\u0026", "&")
             _tm = re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', html)
             _im = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', html)
             title = (_tm.group(1) if _tm else "Facebook Video").replace("&amp;", "&")
