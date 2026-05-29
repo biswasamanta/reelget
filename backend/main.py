@@ -605,15 +605,33 @@ async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
         for k, v in cookies.items():
             session.cookies.set(k, v, domain=".instagram.com")
 
-        # Seed session + get fresh CSRF token
+        # Seed session — extract real lsd + csrf tokens from the Instagram homepage.
+        # Instagram returns HTTP 200 with empty body if lsd is wrong/stale.
         csrf = cookies.get("csrftoken", "")
+        lsd = ""
         try:
             _seed = session.get(
                 "https://www.instagram.com/",
-                headers={"Accept-Language": "en-US,en;q=0.9"},
-                timeout=10,
+                headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Upgrade-Insecure-Requests": "1",
+                },
+                timeout=15,
             )
             csrf = session.cookies.get("csrftoken") or csrf
+            # Extract lsd token from page HTML (format: "LSD":{"token":"VALUE"})
+            _lsd_m = re.search(r'"LSD"\s*,\s*\[\s*\]\s*,\s*\{\s*"token"\s*:\s*"([^"]+)"', _seed.text) \
+                  or re.search(r'"token"\s*:\s*"([^"]+)"[^}]*"LSD"', _seed.text) \
+                  or re.search(r'lsd["\s:]+([A-Za-z0-9_-]{10,})', _seed.text)
+            if _lsd_m:
+                lsd = _lsd_m.group(1)
+                print(f"[ig-gql] extracted lsd={lsd[:12]}...", flush=True)
+            else:
+                # Fallback: try to get from cookies
+                lsd = session.cookies.get("lsd", "AVqbxe3J_YA")
+                print(f"[ig-gql] lsd from cookie/fallback={lsd[:12]}", flush=True)
         except Exception as _se:
             print(f"[ig-gql] seed error (using cookie csrf): {_se}", flush=True)
 
@@ -632,19 +650,21 @@ async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
                     data={
                         "variables": json.dumps({"shortcode": shortcode}),
                         "doc_id": doc_id,
-                        "lsd": "AVqbxe3J_YA",
+                        "lsd": lsd,
                     },
                     headers={
                         "X-IG-App-ID": "936619743392459",
-                        "X-FB-LSD": "AVqbxe3J_YA",
+                        "X-FB-LSD": lsd,
                         "X-ASBD-ID": "129477",
                         "X-CSRFToken": csrf,
                         "Content-Type": "application/x-www-form-urlencoded",
                         "Sec-Fetch-Site": "same-origin",
                         "Referer": f"https://www.instagram.com/reel/{shortcode}/",
+                        "Origin": "https://www.instagram.com",
                     },
                     timeout=20,
                 )
+                print(f"[ig-gql] doc_id={doc_id} body_len={len(resp.text)}", flush=True)
                 print(f"[ig-gql] doc_id={doc_id} → HTTP {resp.status_code}", flush=True)
                 if resp.status_code != 200:
                     continue
