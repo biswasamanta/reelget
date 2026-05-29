@@ -600,8 +600,7 @@ async def _instagram_mobile_api_extract(url: str) -> dict | None:
     if not media_id:
         return None
 
-    # Step 2: Instagram mobile API → get video URL
-    # Use Android app UA + X-IG-App-ID to access public media without a session.
+    # Step 2a: Try Instagram mobile API (works without auth on some proxy IPs)
     _mobile_headers = {
         "User-Agent": (
             "Instagram 275.0.0.27.98 Android "
@@ -612,40 +611,77 @@ async def _instagram_mobile_api_extract(url: str) -> dict | None:
         "Accept-Encoding": "gzip, deflate",
         "Accept": "*/*",
     }
-    _proxy_map = {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
+    # Try both direct (Railway IP) and via proxy — one of them may be less restricted
+    for _proxy_map in [
+        {},  # direct Railway IP first
+        {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else None,
+    ]:
+        if _proxy_map is None:
+            continue
+        try:
+            api_url = f"https://i.instagram.com/api/v1/media/{media_id}/info/"
+            async with httpx.AsyncClient(
+                proxies=_proxy_map, headers=_mobile_headers,
+                follow_redirects=True, timeout=20.0
+            ) as _hc:
+                _r = await _hc.get(api_url)
+            _label = "direct" if not _proxy_map else "proxy"
+            print(f"[ig-api] media/info ({_label}) HTTP {_r.status_code}", flush=True)
+            if _r.status_code == 200:
+                data = _r.json()
+                items = data.get("items") or []
+                if items:
+                    media = items[0]
+                    video_versions = media.get("video_versions") or []
+                    if video_versions:
+                        video_url = video_versions[0].get("url")
+                        if video_url:
+                            thumb = (
+                                (media.get("image_versions2") or {})
+                                .get("candidates", [{}])[0]
+                                .get("url") or thumbnail
+                            )
+                            print(f"[ig-api] success ({_label}) → {title!r}", flush=True)
+                            return {"title": title, "thumbnail": thumb, "video_url": video_url}
+        except Exception as _ae:
+            print(f"[ig-api] media/info error: {_ae}", flush=True)
 
+    # Step 2b: Try the GraphQL approach (works for some public reels)
     try:
-        api_url = f"https://i.instagram.com/api/v1/media/{media_id}/info/"
-        async with httpx.AsyncClient(
-            proxies=_proxy_map, headers=_mobile_headers,
-            follow_redirects=True, timeout=20.0
-        ) as _hc:
-            _r = await _hc.get(api_url)
-        print(f"[ig-api] media/info HTTP {_r.status_code}", flush=True)
-        if _r.status_code != 200:
-            return None
-        data = _r.json()
-        items = data.get("items") or []
-        if not items:
-            return None
-        media = items[0]
-        # video_versions contains quality variants; pick the first (highest quality)
-        video_versions = media.get("video_versions") or []
-        if not video_versions:
-            return None
-        video_url = video_versions[0].get("url")
-        if not video_url:
-            return None
-        thumb = (
-            (media.get("image_versions2") or {})
-            .get("candidates", [{}])[0]
-            .get("url") or thumbnail
+        gql_url = (
+            "https://www.instagram.com/graphql/query"
+            "?query_hash=b3055c01b4b222b8a47dc12b090e4e64"
+            f'&variables={{"shortcode":"{shortcode}"}}'
         )
-        print(f"[ig-api] success → {title!r}", flush=True)
-        return {"title": title, "thumbnail": thumb, "video_url": video_url}
-    except Exception as _ae:
-        print(f"[ig-api] media/info error: {_ae}", flush=True)
-        return None
+        _gql_hdrs = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "X-IG-App-ID": "936619743392459",
+            "Accept": "application/json",
+            "Referer": "https://www.instagram.com/",
+        }
+        _proxy_map2 = {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
+        async with httpx.AsyncClient(
+            proxies=_proxy_map2, headers=_gql_hdrs,
+            follow_redirects=True, timeout=15.0
+        ) as _hc:
+            _r = await _hc.get(gql_url)
+        print(f"[ig-api] graphql HTTP {_r.status_code}", flush=True)
+        if _r.status_code == 200:
+            gql = _r.json()
+            node = (
+                ((gql.get("data") or {})
+                 .get("shortcode_media") or {})
+            )
+            video_url = node.get("video_url")
+            if video_url:
+                _gql_title = (node.get("edge_media_to_caption") or {}).get("edges", [{}])[0].get("node", {}).get("text") or title
+                _gql_thumb = node.get("display_url") or thumbnail
+                print(f"[ig-api] graphql success → {_gql_title!r}", flush=True)
+                return {"title": _gql_title, "thumbnail": _gql_thumb, "video_url": video_url}
+    except Exception as _ge:
+        print(f"[ig-api] graphql error: {_ge}", flush=True)
+
+    return None
 
 
 @app.post("/api/download", response_model=DownloadResponse)
