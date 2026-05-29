@@ -576,21 +576,71 @@ def _parse_netscape_cookies(cookie_str: str) -> dict:
 
 async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
     """
-    Authenticated Instagram web API extraction using session cookies.
-    Uses the ?__a=1 JSON endpoint which returns full media data when authenticated.
-    This bypasses yt-dlp entirely and works with valid session cookies.
+    Scrape the Instagram reel page directly (with session cookies + proxy) and
+    extract video URL from og:video meta tag. Instagram always sets this for
+    public reels. Works because we present as a browser from a residential IP.
+
+    Also tries the /api/v1/media/shortcode/web_info/ endpoint.
     """
     shortcode_m = re.search(r"/(reel|p|tv)/([A-Za-z0-9_-]+)", url)
     if not shortcode_m:
         return None
     shortcode = shortcode_m.group(2)
 
-    cookies = _parse_netscape_cookies(cookie_str)
-    if not cookies.get("sessionid"):
-        print("[ig-web] no sessionid in cookies, skipping", flush=True)
-        return None
+    cookies = _parse_netscape_cookies(cookie_str) if cookie_str else {}
 
-    _hdrs = {
+    _page_hdrs = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Upgrade-Insecure-Requests": "1",
+    }
+
+    # Approach 1: fetch reel page and scrape og:video (most reliable)
+    for page_url in [
+        f"https://www.instagram.com/reel/{shortcode}/",
+        f"https://www.instagram.com/p/{shortcode}/",
+    ]:
+        try:
+            async with httpx.AsyncClient(
+                proxy=PROXY_URL if PROXY_URL else None,
+                headers=_page_hdrs, cookies=cookies,
+                follow_redirects=True, timeout=25.0
+            ) as _hc:
+                _r = await _hc.get(page_url)
+            print(f"[ig-page] {page_url} → HTTP {_r.status_code} ({len(_r.content)} bytes)", flush=True)
+            if _r.status_code != 200:
+                continue
+            html = _r.text
+            # og:video gives the direct MP4 URL — present in all public reels
+            _vu = (re.search(r'<meta\s+property=["\']og:video["\']\s+content=["\']([^"\']+)["\']', html)
+                   or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:video["\']', html))
+            if _vu:
+                video_url = _vu.group(1).replace("&amp;", "&")
+                _tu = (re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']', html)
+                       or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:title["\']', html))
+                _im = (re.search(r'<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']', html)
+                       or re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:image["\']', html))
+                title = (_tu.group(1).replace("&amp;", "&") if _tu else "Instagram Reel")
+                thumb = (_im.group(1).replace("&amp;", "&") if _im else None)
+                print(f"[ig-page] og:video found → {title[:60]!r}", flush=True)
+                return {"title": title, "thumbnail": thumb, "video_url": video_url}
+            # Log snippet to diagnose what Instagram returned
+            _snippet = html[:500].replace("\n", " ")
+            print(f"[ig-page] no og:video — page snippet: {_snippet[:200]}", flush=True)
+        except Exception as _pe:
+            print(f"[ig-page] error for {page_url}: {_pe}", flush=True)
+
+    # Approach 2: web_info API endpoint (newer, still active)
+    _api_hdrs = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -598,58 +648,36 @@ async def _instagram_web_api_extract(url: str, cookie_str: str) -> dict | None:
         ),
         "x-ig-app-id": "936619743392459",
         "x-csrftoken": cookies.get("csrftoken", ""),
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "application/json",
         "Referer": f"https://www.instagram.com/reel/{shortcode}/",
-        "X-Requested-With": "XMLHttpRequest",
     }
-    # Try the ?__a=1 JSON endpoint (returns full media JSON when authenticated)
-    for api_url in [
-        f"https://www.instagram.com/reel/{shortcode}/?__a=1&__d=dis",
-        f"https://www.instagram.com/p/{shortcode}/?__a=1&__d=dis",
-    ]:
-        try:
-            async with httpx.AsyncClient(
-                proxy=PROXY_URL if PROXY_URL else None, headers=_hdrs, cookies=cookies,
-                follow_redirects=True, timeout=20.0
-            ) as _hc:
-                _r = await _hc.get(api_url)
-            print(f"[ig-web] {api_url.split('?')[0]} → HTTP {_r.status_code}", flush=True)
-            if _r.status_code != 200:
-                continue
+    try:
+        _wi_url = f"https://www.instagram.com/api/v1/media/shortcode/web_info/?shortcode={shortcode}"
+        async with httpx.AsyncClient(
+            proxy=PROXY_URL if PROXY_URL else None,
+            headers=_api_hdrs, cookies=cookies,
+            follow_redirects=True, timeout=20.0
+        ) as _hc:
+            _r = await _hc.get(_wi_url)
+        print(f"[ig-wi] web_info → HTTP {_r.status_code}", flush=True)
+        if _r.status_code == 200:
             data = _r.json()
-            # Response structure: {"items": [{"video_versions": [...], ...}]}
-            items = (data.get("items") or
-                     [(data.get("graphql") or {}).get("shortcode_media") or {}])
-            if not items:
-                continue
-            media = items[0]
-            # Try video_versions (API v1 format)
-            video_versions = media.get("video_versions") or []
-            video_url = video_versions[0].get("url") if video_versions else None
-            # Try video_url (GraphQL format)
-            if not video_url:
-                video_url = media.get("video_url")
-            if not video_url:
-                print(f"[ig-web] no video_url in response keys: {list(media.keys())[:10]}", flush=True)
-                continue
-            # Title from caption
-            caption = (
-                ((media.get("caption") or {}).get("text") or "")
-                or (((media.get("edge_media_to_caption") or {})
-                     .get("edges") or [{}])[0].get("node", {}).get("text") or "")
-                or "Instagram Reel"
-            )
-            # Thumbnail
-            thumb = (
-                ((media.get("image_versions2") or {})
-                 .get("candidates") or [{}])[0].get("url")
-                or media.get("display_url")
-            )
-            print(f"[ig-web] success → {caption[:60]!r}", flush=True)
-            return {"title": caption[:100] or "Instagram Reel", "thumbnail": thumb, "video_url": video_url}
-        except Exception as _we:
-            print(f"[ig-web] error for {api_url}: {_we}", flush=True)
+            items = data.get("items") or []
+            if items:
+                media = items[0]
+                video_versions = media.get("video_versions") or []
+                if video_versions:
+                    video_url = video_versions[0].get("url")
+                    if video_url:
+                        caption_obj = media.get("caption") or {}
+                        title = caption_obj.get("text") or "Instagram Reel"
+                        thumb = ((media.get("image_versions2") or {})
+                                 .get("candidates") or [{}])[0].get("url")
+                        print(f"[ig-wi] success → {title[:60]!r}", flush=True)
+                        return {"title": title[:100], "thumbnail": thumb, "video_url": video_url}
+    except Exception as _wie:
+        print(f"[ig-wi] error: {_wie}", flush=True)
+
     return None
 
 
