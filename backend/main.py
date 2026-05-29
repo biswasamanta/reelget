@@ -58,6 +58,10 @@ INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", COOKIES)
 # Outbound proxy for yt-dlp requests (helps bypass datacenter IP blocks).
 # Format: http://user:pass@host:port  — leave unset to use direct connection.
 PROXY_URL = os.environ.get("PROXY_URL", "")
+# HikerAPI key — managed Instagram extraction (https://hikerapi.com).
+# When set, Instagram reels are resolved via HikerAPI (reliable, no proxy/cookies
+# needed). ~$0.0006/request. Leave unset to fall back to free scraping methods.
+HIKER_API_KEY = os.environ.get("HIKER_API_KEY", "")
 # Telegram alerting — set both vars to enable cookie-expiry notifications
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -574,6 +578,64 @@ def _parse_netscape_cookies(cookie_str: str) -> dict:
     return cookies
 
 
+async def _instagram_hiker_extract(url: str) -> dict | None:
+    """
+    Resolve an Instagram reel via HikerAPI (managed Instagram API).
+    Reliable — HikerAPI handles all proxy/cookie/bot-detection on their side.
+    Requires HIKER_API_KEY. ~$0.0006/request.
+
+    Endpoint: GET https://api.hikerapi.com/v2/media/info/by/code?code={shortcode}
+    Auth: x-access-key header
+    """
+    if not HIKER_API_KEY:
+        return None
+    shortcode_m = re.search(r"/(reel|reels|p|tv)/([A-Za-z0-9_-]+)", url)
+    if not shortcode_m:
+        return None
+    shortcode = shortcode_m.group(2)
+
+    headers = {"x-access-key": HIKER_API_KEY, "accept": "application/json"}
+    # v2 endpoint preferred; v1 as fallback (different response shape)
+    endpoints = [
+        f"https://api.hikerapi.com/v2/media/info/by/code?code={shortcode}",
+        f"https://api.hikerapi.com/v1/media/by/code?code={shortcode}",
+    ]
+    for api_url in endpoints:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as _hc:
+                _r = await _hc.get(api_url, headers=headers)
+            print(f"[ig-hiker] {api_url.split('?')[0]} → HTTP {_r.status_code}", flush=True)
+            if _r.status_code != 200:
+                continue
+            data = _r.json()
+            # v2 wraps the media in a "media" key; v1 returns it at top level
+            media = data.get("media") or data
+            # Find video URL across known shapes
+            video_url = (
+                media.get("video_url")
+                or ((media.get("video_versions") or [{}])[0].get("url"))
+            )
+            if not video_url:
+                print(f"[ig-hiker] no video_url in response keys: {list(media.keys())[:12]}", flush=True)
+                continue
+            title = (
+                media.get("caption_text")
+                or (media.get("caption") or {}).get("text")
+                or media.get("title")
+                or "Instagram Reel"
+            )
+            thumb = (
+                media.get("thumbnail_url")
+                or media.get("display_url")
+                or ((media.get("image_versions2") or {}).get("candidates") or [{}])[0].get("url")
+            )
+            print(f"[ig-hiker] success → {str(title)[:60]!r}", flush=True)
+            return {"title": str(title)[:120], "thumbnail": thumb, "video_url": video_url}
+        except Exception as _he:
+            print(f"[ig-hiker] error for {api_url}: {_he}", flush=True)
+    return None
+
+
 async def _instagram_graphql_extract(url: str, cookie_str: str) -> dict | None:
     """
     Extract Instagram reel video URL via the internal GraphQL endpoint.
@@ -1068,8 +1130,18 @@ async def download(request: Request, req: DownloadRequest):
     except Exception as _e1:
         if is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
-            # 1. curl_cffi GraphQL — the method used by all working scrapers
-            print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying GraphQL", flush=True)
+            # 0. HikerAPI (managed) — reliable, used first when configured
+            if HIKER_API_KEY:
+                print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying HikerAPI", flush=True)
+                _hiker_result = await _instagram_hiker_extract(req.url)
+                if _hiker_result:
+                    return DownloadResponse(
+                        title=_hiker_result["title"],
+                        thumbnail=_hiker_result.get("thumbnail"),
+                        formats=[FormatInfo(label="Video (HD)", url=_hiker_result["video_url"], ext="mp4")],
+                    )
+            # 1. curl_cffi GraphQL — free fallback
+            print(f"[instagram] trying GraphQL", flush=True)
             _gql_result = await _instagram_graphql_extract(req.url, INSTAGRAM_COOKIES or "")
             if _gql_result:
                 return DownloadResponse(
