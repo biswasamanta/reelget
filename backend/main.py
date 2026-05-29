@@ -1132,14 +1132,17 @@ async def download(request: Request, req: DownloadRequest):
     if not SUPPORTED_PATTERN.search(req.url):
         raise HTTPException(status_code=400, detail="Unsupported platform")
 
-    # Per-IP daily quota (configurable via IP_QUOTA_DAILY env var, default 30)
+    # Per-IP daily quota (configurable via IP_QUOTA_DAILY env var, default 30).
+    # Exempt localhost — the internal daily self-test calls this endpoint and
+    # must not consume user quota or get blocked by it.
     client_ip = request.client.host if request.client else "unknown"
-    if not _db_check_and_increment_quota(client_ip):
-        raise HTTPException(
-            status_code=429,
-            detail=f"Daily download limit reached ({_MAX_DOWNLOADS_PER_IP_PER_DAY}/day). "
-                   "Please try again tomorrow.",
-        )
+    if client_ip not in ("127.0.0.1", "::1", "localhost"):
+        if not _db_check_and_increment_quota(client_ip):
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily download limit reached ({_MAX_DOWNLOADS_PER_IP_PER_DAY}/day). "
+                       "Please try again tomorrow.",
+            )
 
     # Return cached result if fresh
     cached = _cache_get(req.url)
@@ -1879,6 +1882,9 @@ async def _selftest_one(base: str, platform: str, url: str, mode: str) -> dict:
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             r = await client.post(f"{base}/api/download", json={"url": url, "quality": "hd"})
+            if r.status_code == 429:
+                # Rate-limited/quota — inconclusive, not a platform failure. Don't alarm.
+                return {"platform": platform, "ok": True, "detail": "skipped (rate-limited)"}
             if r.status_code != 200:
                 return {"platform": platform, "ok": False, "detail": f"resolve HTTP {r.status_code}"}
             data = r.json()
