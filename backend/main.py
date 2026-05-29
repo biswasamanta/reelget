@@ -672,9 +672,19 @@ async def _facebook_html_extract(url: str) -> dict | None:
                 return None
             html = resp.text
 
+            # Diagnostics: detect login wall + whether video data is present at all.
+            _has_frag = "videoDeliveryResponseFragment" in html
+            _has_prog = "progressive_url" in html
+            _login_wall = ("You must log in to continue" in html
+                           or '"loginredirect"' in html.lower()
+                           or "login_form" in html)
+            blobs = re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', html, re.DOTALL)
+            print(f"[fb] diag: sjs_blobs={len(blobs)} has_frag={_has_frag} "
+                  f"has_progressive={_has_prog} login_wall={_login_wall}", flush=True)
+
             best = {}   # quality -> url
             legacy = {}
-            for blob in re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', html):
+            for blob in blobs:
                 try:
                     data = json.loads(blob)
                 except Exception:
@@ -705,8 +715,23 @@ async def _facebook_html_extract(url: str) -> dict | None:
                 or legacy.get("playable_url")
                 or legacy.get("browser_native_sd_url")
             )
+            # Raw-regex fallback: search the whole HTML (and an unescaped copy)
+            # for progressive_url / playable_url even if JSON parsing missed it.
             if not video_url:
-                print(f"[fb] no progressive/legacy url found (sjs blobs scanned)", flush=True)
+                norm = html.replace('\\/', '/').replace('\\u0025', '%')
+                for src in (html, norm):
+                    for key in ("progressive_url", "playable_url_quality_hd",
+                                "playable_url", "browser_native_hd_url",
+                                "browser_native_sd_url"):
+                        m = re.search(rf'"{key}"\s*:\s*"(https?:[^"\\]+(?:\\.[^"\\]*)*)"', src)
+                        if m:
+                            video_url = m.group(1)
+                            break
+                    if video_url:
+                        break
+
+            if not video_url:
+                print(f"[fb] no progressive/legacy url found", flush=True)
                 return None
             video_url = video_url.replace("\\/", "/").replace("\\u0026", "&").replace("&amp;", "&")
 
