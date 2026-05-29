@@ -409,6 +409,8 @@ async def _cookie_reminder_loop() -> None:
 async def _startup():
     asyncio.create_task(_cookie_reminder_loop())
     print("[startup] cookie reminder loop started", flush=True)
+    asyncio.create_task(_selftest_loop())
+    print("[startup] daily platform self-test loop started", flush=True)
 
 
 # In-memory result cache — avoids repeated yt-dlp calls for the same URL
@@ -1771,6 +1773,94 @@ async def _send_telegram_alert(message: str) -> None:
         print(f"[alert] Telegram send failed: {ex}", flush=True)
 
 
+# ── Daily platform self-test ───────────────────────────────────────────────────
+# Known-good public videos per platform. Resolution + (where applicable) a
+# small byte-range download are verified daily so breakages are caught early.
+SELFTEST_URLS = {
+    "YouTube":   "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "Instagram": "https://www.instagram.com/reel/DY1vXr6iqxr/",
+    "TikTok":    "https://www.tiktok.com/@tiktok/video/7106594312292453675",
+    "Twitter/X": "https://x.com/SpaceX/status/1732824684683784516",
+    "Facebook":  "https://www.facebook.com/watch/?v=10153231379946729",
+    "Vimeo":     "https://vimeo.com/76979871",
+}
+
+
+async def _selftest_one(base: str, platform: str, url: str) -> dict:
+    """Resolve a platform URL and (for direct-CDN formats) verify bytes flow.
+    Returns {platform, ok, detail}."""
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(f"{base}/api/download", json={"url": url, "quality": "hd"})
+            if r.status_code != 200:
+                return {"platform": platform, "ok": False, "detail": f"resolve HTTP {r.status_code}"}
+            data = r.json()
+            formats = data.get("formats") or []
+            if not formats:
+                return {"platform": platform, "ok": False, "detail": "no formats returned"}
+            fmt_url = formats[0].get("url") or ""
+            # For direct CDN URLs, verify real bytes download via the proxy (Range 0-65535).
+            # /api/... streaming endpoints (YouTube/TikTok) are validated by resolution only
+            # (a full byte test would spawn an expensive subprocess).
+            if fmt_url.startswith("http"):
+                import urllib.parse as _up
+                proxy_url = f"{base}/api/proxy?url={_up.quote(fmt_url, safe='')}&filename=selftest&ext=mp4"
+                pr = await client.get(proxy_url, headers={"Range": "bytes=0-65535"})
+                got = len(pr.content)
+                if pr.status_code not in (200, 206) or got < 1024:
+                    return {"platform": platform, "ok": False,
+                            "detail": f"download {pr.status_code}, {got} bytes"}
+                return {"platform": platform, "ok": True, "detail": f"{got} bytes ok"}
+            return {"platform": platform, "ok": True, "detail": "resolved (stream endpoint)"}
+    except Exception as ex:
+        return {"platform": platform, "ok": False, "detail": f"{type(ex).__name__}: {str(ex)[:80]}"}
+
+
+async def _run_platform_selftest() -> list[dict]:
+    """Run the self-test for every platform against this server's own endpoints."""
+    port = os.environ.get("PORT", "8000")
+    base = f"http://127.0.0.1:{port}"
+    results = []
+    for platform, url in SELFTEST_URLS.items():
+        res = await _selftest_one(base, platform, url)
+        status = "OK" if res["ok"] else "FAIL"
+        print(f"[selftest] {platform}: {status} — {res['detail']}", flush=True)
+        results.append(res)
+    return results
+
+
+async def _selftest_loop() -> None:
+    """Background task: run the platform self-test once every 24h, alert on failures."""
+    CHECK_SEC = 3600  # check hourly
+    INTERVAL_SEC = 24 * 3600
+    # Wait a bit after startup so the server is fully ready
+    await asyncio.sleep(120)
+    while True:
+        try:
+            last_str = _db_get_config("selftest_ran_at")
+            last_ts = float(last_str) if last_str else 0.0
+            if time.time() - last_ts >= INTERVAL_SEC:
+                print("[selftest] running daily platform self-test", flush=True)
+                results = await _run_platform_selftest()
+                _db_set_config("selftest_ran_at", str(time.time()))
+                failures = [r for r in results if not r["ok"]]
+                if failures:
+                    lines = "\n".join(f"❌ <b>{r['platform']}</b>: {r['detail']}" for r in failures)
+                    oks = ", ".join(r["platform"] for r in results if r["ok"]) or "none"
+                    msg = (
+                        f"🚨 <b>ReelGet Daily Health Check — {len(failures)} platform(s) FAILING</b>\n\n"
+                        f"{lines}\n\n"
+                        f"✅ Working: {oks}\n\n"
+                        f"<i>Automated daily self-test.</i>"
+                    )
+                    await _send_telegram_alert(msg)
+                else:
+                    print(f"[selftest] all {len(results)} platforms OK", flush=True)
+        except Exception as ex:
+            print(f"[selftest] loop error: {ex}", flush=True)
+        await asyncio.sleep(CHECK_SEC)
+
+
 async def _check_proxy_health(proxy_url: str) -> bool:
     """Return True if the proxy can reach the internet within 6 seconds."""
     try:
@@ -3007,6 +3097,20 @@ def _require_admin(request: Request) -> None:
     token = auth.removeprefix("Bearer ").strip()
     if token != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+@app.get("/api/selftest")
+async def run_selftest(request: Request):
+    """Admin-only: run the platform self-test on demand and return per-platform results."""
+    _require_admin(request)
+    results = await _run_platform_selftest()
+    failures = [r for r in results if not r["ok"]]
+    return {
+        "ok": len(failures) == 0,
+        "total": len(results),
+        "failing": len(failures),
+        "results": results,
+    }
 
 
 @app.get("/api/admin/stats")
