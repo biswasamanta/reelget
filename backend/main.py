@@ -648,13 +648,19 @@ async def download(request: Request, req: DownloadRequest):
         ydl_opts["impersonate"] = "chrome"
         print(f"[impersonate] chrome for {req.url[:60]}", flush=True)
 
-    # Pick cookie jar: platform-specific override → universal COOKIES → none
-    if re.search(r"instagram\.com", req.url):
-        cookie_content = INSTAGRAM_COOKIES or None
-        label = "INSTAGRAM_COOKIES"
-    elif re.search(r"youtube\.com|youtu\.be", req.url):
+    # Pick cookie jar: platform-specific override → universal COOKIES → none.
+    # NOTE: For Instagram we deliberately skip cookies on the FIRST attempt.
+    # Instagram ties sessions to IP addresses — cookies from the user's home
+    # browser + a residential proxy IP = IP mismatch → bot-check page → AssertionError.
+    # Public reels don't need auth; impersonation + a clean proxy IP is sufficient.
+    # Cookies are only used on a second retry if the no-cookie attempt also fails.
+    is_instagram = bool(re.search(r"instagram\.com", req.url))
+    if re.search(r"youtube\.com|youtu\.be", req.url):
         cookie_content = YOUTUBE_COOKIES or None
         label = "YOUTUBE_COOKIES"
+    elif is_instagram:
+        cookie_content = None   # skip cookies on first attempt (see note above)
+        label = "INSTAGRAM_COOKIES (skipped on first try)"
     else:
         # Facebook, TikTok, Twitter, Pinterest, Snapchat all use universal jar
         cookie_content = COOKIES or None
@@ -672,142 +678,115 @@ async def download(request: Request, req: DownloadRequest):
         except Exception as ex:
             print(f"[cookies] Failed to write cookies file: {ex}", flush=True)
 
+    # ── Run yt-dlp extraction (with Instagram no-cookie-first strategy) ────────
+    # Instagram ties sessions to IP. Cookies from user's home browser + a
+    # rotating residential proxy IP = IP mismatch → bot-check → AssertionError.
+    # Strategy: try without cookies first (sufficient for public reels via proxy
+    # + impersonation), then retry with cookies only if the first attempt fails.
+    info = None
+    _extract_err = None   # final exception after all retries
+
+    def _run_ydl(opts):
+        with yt_dlp.YoutubeDL(opts) as _ydl:
+            return _ydl.extract_info(req.url, download=False)
+
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(req.url, download=False)
-    except yt_dlp.utils.DownloadError as e:
-        err_str = str(e) or _logger.last_error or repr(e)
-        print(f"[yt-dlp DownloadError] {err_str}", flush=True)
-        # Fire-and-forget cookie alert check (won't block the error response)
-        asyncio.create_task(_check_and_alert_cookie_error(req.url, err_str))
-        # ── YouTube oEmbed fallback ──────────────────────────────────────────
-        # When yt-dlp fails for a YouTube URL (bot-detection, VEVO region block,
-        # Shorts bot-check, etc.), silently call YouTube's public oEmbed endpoint
-        # which always works for any public video regardless of IP or auth.
-        # The result card will show correctly; the download buttons already call
-        # /api/download-youtube directly so they are unaffected by yt-dlp failing here.
-        if re.search(r"youtube\.com|youtu\.be", req.url):
+        info = _run_ydl(ydl_opts)
+    except Exception as _e1:
+        if is_instagram and INSTAGRAM_COOKIES:
+            # Retry with cookies as second attempt
+            print(f"[instagram] first attempt failed ({type(_e1).__name__}), retrying with cookies", flush=True)
+            _logger.last_error = ""
+            _tmp2 = None
             try:
-                import urllib.parse as _up
-                # Normalise the URL for oEmbed: Shorts and youtu.be links are
-                # converted to the standard watch URL, which oEmbed always accepts.
-                # oEmbed does NOT reliably handle /shorts/, /live/, ?si= etc.
-                _vid_m = re.search(
-                    r"(?:shorts/|watch\?v=|youtu\.be/|embed/|v/)([A-Za-z0-9_-]{11})",
-                    req.url,
-                )
-                _oembed_target = (
-                    f"https://www.youtube.com/watch?v={_vid_m.group(1)}"
-                    if _vid_m else req.url
-                )
-                _oembed_url = (
-                    "https://www.youtube.com/oembed"
-                    f"?url={_up.quote(_oembed_target, safe='')}&format=json"
-                )
-                async with httpx.AsyncClient(timeout=6.0) as _hc:
-                    _r = await _hc.get(_oembed_url)
-                if _r.status_code == 200:
-                    _d = _r.json()
-                    _title = _d.get("title") or "YouTube Video"
-                    _thumb = _d.get("thumbnail_url")
-                    print(f"[oembed] fallback OK → {_title!r}", flush=True)
-                    # Return a stub result — the real download goes via /api/download-youtube
-                    return DownloadResponse(
-                        title=_title,
-                        thumbnail=_thumb,
-                        formats=[FormatInfo(label="Video", url="", ext="mp4")],
-                    )
-                else:
-                    print(f"[oembed] fallback HTTP {_r.status_code}", flush=True)
-            except Exception as _oe:
-                print(f"[oembed] fallback error: {_oe}", flush=True)
-        # ── non-YouTube (or oEmbed also failed): surface structured error ──
-        _code = "unknown"
-        _s = err_str.lower()
-        if any(k in _s for k in ("sign in", "bot", "confirm you're not", "use --cookies",
-                                   "login required", "not authenticated", "checkpoint")):
-            # Attach platform hint so the frontend can give a more specific message
-            _plat = (
-                "instagram" if re.search(r"instagram\.com", req.url) else
-                "facebook"  if re.search(r"facebook\.com|fb\.watch", req.url) else
-                "twitter"   if re.search(r"twitter\.com|x\.com|t\.co", req.url) else
-                None
-            )
-            _code = f"sign_in_required:{_plat}" if _plat else "sign_in_required"
-        elif any(k in _s for k in ("unavailable", "not available", "video unavailable")):
-            _code = "unavailable"
-        elif "private" in _s:
-            _code = "private"
-        elif any(k in _s for k in ("age-restricted", "age restricted", "age_restricted", "age gate", "confirm your age")):
-            _code = "age_restricted"
-        elif any(k in _s for k in ("not found", "no video", "404")):
-            _code = "not_found"
-        elif "region" in _s or "country" in _s:
-            _code = "geo_blocked"
-        raise HTTPException(status_code=422, detail={"message": err_str, "code": _code})
-    except Exception as e:
+                _tmp2 = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+                _tmp2.write(INSTAGRAM_COOKIES)
+                _tmp2.close()
+                info = _run_ydl({**ydl_opts, "cookiefile": _tmp2.name})
+            except Exception as _e2:
+                _extract_err = _e2
+            finally:
+                if _tmp2:
+                    try: os.unlink(_tmp2.name)
+                    except Exception: pass
+        else:
+            _extract_err = _e1
+
+    # ── Handle extraction error (DownloadError or unexpected) ──────────────────
+    if _extract_err is not None:
         import traceback
-        err_msg = str(e) or _logger.last_error or repr(e)
-        print(f"[extract] unexpected {type(e).__name__}: {err_msg}\n{traceback.format_exc()}", flush=True)
-        # ── Instagram embed fallback ────────────────────────────────────────────
-        # When yt-dlp's Instagram extractor fails (AssertionError / IP mismatch /
-        # bot-check), try fetching the public embed page which requires no auth.
-        # The embed page always contains the video URL for public reels.
-        if re.search(r"instagram\.com", req.url):
-            shortcode_m = re.search(r"/(reel|p)/([A-Za-z0-9_-]+)", req.url)
-            if shortcode_m:
-                shortcode = shortcode_m.group(2)
-                print(f"[instagram] yt-dlp failed, trying embed fallback for {shortcode}", flush=True)
+        if isinstance(_extract_err, yt_dlp.utils.DownloadError):
+            err_str = str(_extract_err) or _logger.last_error or repr(_extract_err)
+            print(f"[yt-dlp DownloadError] {err_str}", flush=True)
+            asyncio.create_task(_check_and_alert_cookie_error(req.url, err_str))
+            # YouTube oEmbed fallback
+            if re.search(r"youtube\.com|youtu\.be", req.url):
                 try:
-                    embed_url = f"https://www.instagram.com/reel/{shortcode}/embed/"
-                    _hdrs = {
-                        "User-Agent": (
-                            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-                            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
-                            "Version/17.0 Mobile/15E148 Safari/604.1"
-                        ),
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                        "Accept-Language": "en-US,en;q=0.9",
-                        "Referer": "https://www.instagram.com/",
-                    }
-                    _proxy_map = (
-                        {"http://": PROXY_URL, "https://": PROXY_URL} if PROXY_URL else {}
+                    import urllib.parse as _up
+                    _vid_m = re.search(
+                        r"(?:shorts/|watch\?v=|youtu\.be/|embed/|v/)([A-Za-z0-9_-]{11})",
+                        req.url,
                     )
-                    async with httpx.AsyncClient(
-                        proxies=_proxy_map, headers=_hdrs,
-                        follow_redirects=True, timeout=20.0
-                    ) as _hc:
-                        _resp = await _hc.get(embed_url)
-                    _html = _resp.text
-                    # video_url is JSON-encoded in the embed page source
-                    _vu = re.search(r'"video_url"\s*:\s*"([^"]+)"', _html)
-                    if not _vu:
-                        # fallback to og:video tag
-                        _vu = re.search(r'<meta[^>]+property="og:video"[^>]+content="([^"]+)"', _html)
-                    if _vu:
-                        _video_url = _vu.group(1).replace("\\u0026", "&").replace("\\/", "/")
-                        _title_m = re.search(r'"title"\s*:\s*"([^"]+)"', _html) or \
-                                   re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', _html)
-                        _thumb_m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', _html)
-                        _title = _title_m.group(1) if _title_m else "Instagram Reel"
-                        _thumb = _thumb_m.group(1) if _thumb_m else None
-                        print(f"[instagram] embed fallback OK → {_title!r}", flush=True)
+                    _oembed_target = (
+                        f"https://www.youtube.com/watch?v={_vid_m.group(1)}"
+                        if _vid_m else req.url
+                    )
+                    _oembed_url = (
+                        "https://www.youtube.com/oembed"
+                        f"?url={_up.quote(_oembed_target, safe='')}&format=json"
+                    )
+                    async with httpx.AsyncClient(timeout=6.0) as _hc:
+                        _r = await _hc.get(_oembed_url)
+                    if _r.status_code == 200:
+                        _d = _r.json()
+                        _title = _d.get("title") or "YouTube Video"
+                        _thumb = _d.get("thumbnail_url")
+                        print(f"[oembed] fallback OK → {_title!r}", flush=True)
                         return DownloadResponse(
                             title=_title,
                             thumbnail=_thumb,
-                            formats=[FormatInfo(label="Video (HD)", url=_video_url, ext="mp4")],
+                            formats=[FormatInfo(label="Video", url="", ext="mp4")],
                         )
                     else:
-                        print(f"[instagram] embed fallback: no video_url found in page (status {_resp.status_code})", flush=True)
-                except Exception as _emb_e:
-                    print(f"[instagram] embed fallback error: {_emb_e}", flush=True)
-        raise HTTPException(status_code=422, detail={"message": err_msg or type(e).__name__, "code": "unknown"})
-    finally:
-        if cookies_file:
-            try:
-                os.unlink(cookies_file)
-            except Exception:
-                pass
+                        print(f"[oembed] fallback HTTP {_r.status_code}", flush=True)
+                except Exception as _oe:
+                    print(f"[oembed] fallback error: {_oe}", flush=True)
+            _code = "unknown"
+            _s = err_str.lower()
+            if any(k in _s for k in ("sign in", "bot", "confirm you're not", "use --cookies",
+                                       "login required", "not authenticated", "checkpoint")):
+                _plat = (
+                    "instagram" if re.search(r"instagram\.com", req.url) else
+                    "facebook"  if re.search(r"facebook\.com|fb\.watch", req.url) else
+                    "twitter"   if re.search(r"twitter\.com|x\.com|t\.co", req.url) else
+                    None
+                )
+                _code = f"sign_in_required:{_plat}" if _plat else "sign_in_required"
+            elif any(k in _s for k in ("unavailable", "not available", "video unavailable")):
+                _code = "unavailable"
+            elif "private" in _s:
+                _code = "private"
+            elif any(k in _s for k in ("age-restricted", "age restricted", "age_restricted", "age gate", "confirm your age")):
+                _code = "age_restricted"
+            elif any(k in _s for k in ("not found", "no video", "404")):
+                _code = "not_found"
+            elif "region" in _s or "country" in _s:
+                _code = "geo_blocked"
+            if cookies_file:
+                try: os.unlink(cookies_file)
+                except Exception: pass
+            raise HTTPException(status_code=422, detail={"message": err_str, "code": _code})
+        else:
+            err_msg = str(_extract_err) or _logger.last_error or repr(_extract_err)
+            print(f"[extract] unexpected {type(_extract_err).__name__}: {err_msg}\n{traceback.format_exc()}", flush=True)
+            if cookies_file:
+                try: os.unlink(cookies_file)
+                except Exception: pass
+            raise HTTPException(status_code=422, detail={"message": err_msg or type(_extract_err).__name__, "code": "unknown"})
+
+    if cookies_file:
+        try: os.unlink(cookies_file)
+        except Exception: pass
 
     if not info:
         raise HTTPException(status_code=404, detail={"message": "Video not found", "code": "not_found"})
