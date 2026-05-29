@@ -624,6 +624,69 @@ async def _twitter_fxapi_extract(url: str) -> dict | None:
     return None
 
 
+async def _facebook_html_extract(url: str) -> dict | None:
+    """
+    Extract a public Facebook video URL by scraping the page HTML.
+    Facebook embeds direct CDN URLs in the page JSON (playable_url_quality_hd,
+    browser_native_hd_url, etc.) for public videos. Routed through the residential
+    proxy + cookies since Facebook blocks datacenter IPs.
+
+    Returns dict with title, thumbnail, video_url — or None.
+    """
+    cookies = _parse_netscape_cookies(COOKIES) if COOKIES else {}
+    # mobile basic site (mbasic/m.facebook) serves simpler HTML, but the desktop
+    # page embeds the HD url in JSON — try desktop first, then mobile.
+    targets = [url]
+    # Normalise reel/watch URLs are fine as-is.
+
+    _hdrs = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    for tgt in targets:
+        try:
+            async with httpx.AsyncClient(
+                proxy=PROXY_URL if PROXY_URL else None,
+                headers=_hdrs, cookies=cookies,
+                follow_redirects=True, timeout=25.0
+            ) as _hc:
+                _r = await _hc.get(tgt)
+            print(f"[fb-html] {tgt[:50]} → HTTP {_r.status_code} ({len(_r.content)} bytes)", flush=True)
+            if _r.status_code != 200:
+                continue
+            html = _r.text
+            # Try HD first, then SD. URLs are JSON-escaped in the page source.
+            vid = None
+            for key in ("playable_url_quality_hd", "browser_native_hd_url",
+                        "playable_url", "browser_native_sd_url", "sd_src", "hd_src"):
+                m = re.search(rf'"{key}"\s*:\s*"([^"]+)"', html)
+                if m and m.group(1):
+                    vid = m.group(1)
+                    break
+            if not vid:
+                # og:video fallback
+                m = re.search(r'<meta[^>]+property="og:video(?::url)?"[^>]+content="([^"]+)"', html)
+                if m:
+                    vid = m.group(1)
+            if not vid:
+                print(f"[fb-html] no video url found in page", flush=True)
+                continue
+            video_url = vid.encode().decode("unicode_escape").replace("\\/", "/").replace("&amp;", "&")
+            _tm = re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', html)
+            _im = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', html)
+            title = (_tm.group(1) if _tm else "Facebook Video").replace("&amp;", "&")
+            thumb = (_im.group(1).replace("\\/", "/").replace("&amp;", "&") if _im else None)
+            print(f"[fb-html] success → {title[:50]!r}", flush=True)
+            return {"title": title[:120], "thumbnail": thumb, "video_url": video_url}
+        except Exception as _fe:
+            print(f"[fb-html] error: {_fe}", flush=True)
+    return None
+
+
 def _parse_netscape_cookies(cookie_str: str) -> dict:
     """Parse a Netscape cookie file string into a name→value dict."""
     cookies = {}
@@ -1188,6 +1251,7 @@ async def download(request: Request, req: DownloadRequest):
         info = _run_ydl(ydl_opts)
     except Exception as _e1:
         is_twitter = bool(re.search(r"twitter\.com|x\.com|t\.co", req.url))
+        is_facebook = bool(re.search(r"facebook\.com|fb\.watch|fb\.com", req.url))
         if is_twitter:
             # ── Twitter/X fallback: public fxtwitter API (free, no auth) ──────
             print(f"[twitter] yt-dlp failed ({type(_e1).__name__}), trying fxtwitter API", flush=True)
@@ -1197,6 +1261,17 @@ async def download(request: Request, req: DownloadRequest):
                     title=_tw_result["title"],
                     thumbnail=_tw_result.get("thumbnail"),
                     formats=[FormatInfo(label="Video (HD)", url=_tw_result["video_url"], ext="mp4")],
+                )
+            _extract_err = _e1
+        elif is_facebook:
+            # ── Facebook fallback: scrape page HTML for embedded CDN url ──────
+            print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying HTML scrape", flush=True)
+            _fb_result = await _facebook_html_extract(req.url)
+            if _fb_result:
+                return DownloadResponse(
+                    title=_fb_result["title"],
+                    thumbnail=_fb_result.get("thumbnail"),
+                    formats=[FormatInfo(label="Video (HD)", url=_fb_result["video_url"], ext="mp4")],
                 )
             _extract_err = _e1
         elif is_instagram:
@@ -1776,18 +1851,23 @@ async def _send_telegram_alert(message: str) -> None:
 # ── Daily platform self-test ───────────────────────────────────────────────────
 # Known-good public videos per platform. Resolution + (where applicable) a
 # small byte-range download are verified daily so breakages are caught early.
-SELFTEST_URLS = {
-    "YouTube":   "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    "Instagram": "https://www.instagram.com/reel/DY1vXr6iqxr/",
-    "TikTok":    "https://www.tiktok.com/@tiktok/video/7106594312292453675",
-    "Twitter/X": "https://x.com/SpaceX/status/1732824684683784516",
-    "Facebook":  "https://www.facebook.com/watch/?v=10153231379946729",
-    "Vimeo":     "https://vimeo.com/76979871",
+# mode: "proxy"  → download is served via /api/proxy, so byte-check the CDN URL.
+#       "stream" → download uses a dedicated streaming endpoint (yt-dlp subprocess),
+#                  so the direct CDN URL is NOT the real download path. Resolution
+#                  success is the meaningful signal (byte-testing would false-fail
+#                  on IP-bound CDN URLs and spawn an expensive subprocess).
+SELFTEST_TARGETS = {
+    "YouTube":   {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",                "mode": "stream"},
+    "TikTok":    {"url": "https://www.tiktok.com/@tiktok/video/7106594312292453675",  "mode": "stream"},
+    "Instagram": {"url": "https://www.instagram.com/reel/DY1vXr6iqxr/",               "mode": "proxy"},
+    "Twitter/X": {"url": "https://x.com/SpaceX/status/1732824684683784516",           "mode": "proxy"},
+    "Facebook":  {"url": "https://www.facebook.com/NASA/videos/1062661025838729/",    "mode": "proxy"},
+    "Vimeo":     {"url": "https://vimeo.com/76979871",                                "mode": "proxy"},
 }
 
 
-async def _selftest_one(base: str, platform: str, url: str) -> dict:
-    """Resolve a platform URL and (for direct-CDN formats) verify bytes flow.
+async def _selftest_one(base: str, platform: str, url: str, mode: str) -> dict:
+    """Resolve a platform URL and, for proxy-mode platforms, verify bytes flow.
     Returns {platform, ok, detail}."""
     try:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -1798,20 +1878,22 @@ async def _selftest_one(base: str, platform: str, url: str) -> dict:
             formats = data.get("formats") or []
             if not formats:
                 return {"platform": platform, "ok": False, "detail": "no formats returned"}
+            # Stream-mode platforms (YouTube/TikTok) download via a dedicated endpoint,
+            # not the direct CDN URL — resolution success is the meaningful check.
+            if mode == "stream":
+                return {"platform": platform, "ok": True, "detail": "resolved (stream endpoint)"}
             fmt_url = formats[0].get("url") or ""
-            # For direct CDN URLs, verify real bytes download via the proxy (Range 0-65535).
-            # /api/... streaming endpoints (YouTube/TikTok) are validated by resolution only
-            # (a full byte test would spawn an expensive subprocess).
-            if fmt_url.startswith("http"):
-                import urllib.parse as _up
-                proxy_url = f"{base}/api/proxy?url={_up.quote(fmt_url, safe='')}&filename=selftest&ext=mp4"
-                pr = await client.get(proxy_url, headers={"Range": "bytes=0-65535"})
-                got = len(pr.content)
-                if pr.status_code not in (200, 206) or got < 1024:
-                    return {"platform": platform, "ok": False,
-                            "detail": f"download {pr.status_code}, {got} bytes"}
-                return {"platform": platform, "ok": True, "detail": f"{got} bytes ok"}
-            return {"platform": platform, "ok": True, "detail": "resolved (stream endpoint)"}
+            if not fmt_url.startswith("http"):
+                return {"platform": platform, "ok": True, "detail": "resolved"}
+            # Proxy-mode: verify real bytes download via the proxy (Range 0-65535).
+            import urllib.parse as _up
+            proxy_url = f"{base}/api/proxy?url={_up.quote(fmt_url, safe='')}&filename=selftest&ext=mp4"
+            pr = await client.get(proxy_url, headers={"Range": "bytes=0-65535"})
+            got = len(pr.content)
+            if pr.status_code not in (200, 206) or got < 1024:
+                return {"platform": platform, "ok": False,
+                        "detail": f"download {pr.status_code}, {got} bytes"}
+            return {"platform": platform, "ok": True, "detail": f"{got} bytes ok"}
     except Exception as ex:
         return {"platform": platform, "ok": False, "detail": f"{type(ex).__name__}: {str(ex)[:80]}"}
 
@@ -1821,8 +1903,8 @@ async def _run_platform_selftest() -> list[dict]:
     port = os.environ.get("PORT", "8000")
     base = f"http://127.0.0.1:{port}"
     results = []
-    for platform, url in SELFTEST_URLS.items():
-        res = await _selftest_one(base, platform, url)
+    for platform, cfg in SELFTEST_TARGETS.items():
+        res = await _selftest_one(base, platform, cfg["url"], cfg["mode"])
         status = "OK" if res["ok"] else "FAIL"
         print(f"[selftest] {platform}: {status} — {res['detail']}", flush=True)
         results.append(res)
@@ -3003,9 +3085,9 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
     # proxy so the bytes actually come through. Other CDNs (Instagram, TikTok,
     # etc.) allow datacenter IPs, so we only proxy Twitter to save bandwidth.
     _dl_proxy = None
-    if PROXY_URL and ("twimg" in url or "twitter" in url):
+    if PROXY_URL and ("twimg" in url or "twitter" in url or "fbcdn" in url or "facebook" in url):
         _dl_proxy = PROXY_URL
-        print(f"[proxy] routing twimg download through residential proxy", flush=True)
+        print(f"[proxy] routing download through residential proxy", flush=True)
 
     # Open the upstream connection and validate status BEFORE returning the
     # StreamingResponse. If we only checked inside the generator, a non-200
