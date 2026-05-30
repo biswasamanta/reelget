@@ -2032,7 +2032,7 @@ SELFTEST_TARGETS = {
     "TikTok":    {"url": "https://www.tiktok.com/@tiktok/video/7106594312292453675",  "mode": "stream"},
     "Instagram": {"url": "https://www.instagram.com/reel/DY1vXr6iqxr/",               "mode": "proxy"},
     "Twitter/X": {"url": "https://x.com/SpaceX/status/1732824684683784516",           "mode": "proxy"},
-    "Facebook":  {"url": "https://www.facebook.com/NASA/videos/1062661025838729/",    "mode": "proxy"},
+    "Facebook":  {"url": "https://www.facebook.com/reel/1860942398211698",            "mode": "proxy"},
     "Vimeo":     {"url": "https://vimeo.com/76979871",                                "mode": "proxy"},
 }
 
