@@ -64,6 +64,13 @@ PROXY_URL = os.environ.get("PROXY_URL", "")
 # When set, Instagram reels are resolved via HikerAPI (reliable, no proxy/cookies
 # needed). ~$0.0006/request. Leave unset to fall back to free scraping methods.
 HIKER_API_KEY = os.environ.get("HIKER_API_KEY", "")
+# RapidAPI Facebook downloader — managed Facebook extraction (Facebook never
+# embeds the video URL in page HTML, so a managed API is required).
+# Set FB_RAPIDAPI_KEY (your RapidAPI key) and FB_RAPIDAPI_HOST (the API's host).
+# Defaults target the "Social Media Video Downloader" (facebook-reel-and-video-downloader).
+FB_RAPIDAPI_KEY  = os.environ.get("FB_RAPIDAPI_KEY", "")
+FB_RAPIDAPI_HOST = os.environ.get("FB_RAPIDAPI_HOST", "facebook-reel-and-video-downloader.p.rapidapi.com")
+FB_RAPIDAPI_PATH = os.environ.get("FB_RAPIDAPI_PATH", "/app/main.php")
 # Telegram alerting — set both vars to enable cookie-expiry notifications
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -624,6 +631,90 @@ async def _twitter_fxapi_extract(url: str) -> dict | None:
         except Exception as _te:
             print(f"[twitter-fx] {host} error: {_te}", flush=True)
     return None
+
+
+async def _facebook_rapidapi_extract(url: str) -> dict | None:
+    """
+    Resolve a Facebook video via a RapidAPI Facebook downloader (managed API).
+    Required because Facebook never embeds the video URL in page HTML.
+    Configurable via FB_RAPIDAPI_KEY / FB_RAPIDAPI_HOST / FB_RAPIDAPI_PATH so it
+    works with whichever RapidAPI Facebook downloader you subscribe to.
+
+    Parses a wide range of common response shapes (links dict, formats array,
+    hd/sd fields) so it's resilient across providers.
+    """
+    if not FB_RAPIDAPI_KEY:
+        return None
+    import urllib.parse as _up
+    api_url = f"https://{FB_RAPIDAPI_HOST}{FB_RAPIDAPI_PATH}?url={_up.quote(url, safe='')}"
+    headers = {
+        "x-rapidapi-key": FB_RAPIDAPI_KEY,
+        "x-rapidapi-host": FB_RAPIDAPI_HOST,
+        "Accept": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(api_url, headers=headers)
+        print(f"[fb-api] {FB_RAPIDAPI_HOST} → HTTP {r.status_code}", flush=True)
+        if r.status_code != 200:
+            print(f"[fb-api] body: {r.text[:200]}", flush=True)
+            return None
+        data = r.json()
+
+        # Collect candidate (label, url) pairs from many possible shapes.
+        candidates: list[tuple[str, str]] = []
+
+        def _add(label, val):
+            if isinstance(val, str) and val.startswith("http"):
+                candidates.append((str(label).lower(), val))
+
+        # Shape 1: {"links": {"Download High Quality": "...", "Download Low Quality": "..."}}
+        links = data.get("links")
+        if isinstance(links, dict):
+            for k, v in links.items():
+                _add(k, v)
+        elif isinstance(links, list):
+            for item in links:
+                if isinstance(item, dict):
+                    _add(item.get("quality") or item.get("label") or "", item.get("url") or item.get("link"))
+        # Shape 2: flat hd/sd fields
+        for k in ("hd", "sd", "hd_url", "sd_url", "url", "video", "video_url",
+                  "download", "downloadUrl", "high", "low"):
+            _add(k, data.get(k))
+        # Shape 3: {"media": [{"url":...,"quality":...}]} or {"formats":[...]}
+        for arrkey in ("media", "formats", "result", "videos"):
+            arr = data.get(arrkey)
+            if isinstance(arr, list):
+                for item in arr:
+                    if isinstance(item, dict):
+                        _add(item.get("quality") or item.get("label") or arrkey,
+                             item.get("url") or item.get("link") or item.get("src"))
+            elif isinstance(arr, dict):
+                for k, v in arr.items():
+                    _add(k, v)
+
+        if not candidates:
+            print(f"[fb-api] no video url in response keys: {list(data.keys())[:12]}", flush=True)
+            return None
+
+        # Prefer HD/high quality.
+        def _score(label):
+            l = label.lower()
+            if "hd" in l or "high" in l or "720" in l or "1080" in l: return 2
+            if "sd" in l or "low" in l: return 0
+            return 1
+        candidates.sort(key=lambda c: _score(c[0]), reverse=True)
+        video_url = candidates[0][1]
+
+        title = (data.get("title") or data.get("caption")
+                 or (data.get("meta") or {}).get("title") or "Facebook Video")
+        thumb = (data.get("thumbnail") or data.get("thumb")
+                 or data.get("image") or (data.get("meta") or {}).get("image"))
+        print(f"[fb-api] success → {str(title)[:50]!r}", flush=True)
+        return {"title": str(title)[:120], "thumbnail": thumb, "video_url": video_url}
+    except Exception as ex:
+        print(f"[fb-api] error: {ex}", flush=True)
+        return None
 
 
 def _fb_walk_json(obj):
@@ -1332,8 +1423,19 @@ async def download(request: Request, req: DownloadRequest):
                 )
             _extract_err = _e1
         elif is_facebook:
-            # ── Facebook fallback: scrape page HTML for embedded CDN url ──────
-            print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying HTML scrape", flush=True)
+            # ── Facebook fallback chain ───────────────────────────────────────
+            # 1. RapidAPI managed downloader (FB never embeds the URL in HTML)
+            if FB_RAPIDAPI_KEY:
+                print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying RapidAPI", flush=True)
+                _fb_api = await _facebook_rapidapi_extract(req.url)
+                if _fb_api:
+                    return DownloadResponse(
+                        title=_fb_api["title"],
+                        thumbnail=_fb_api.get("thumbnail"),
+                        formats=[FormatInfo(label="Video (HD)", url=_fb_api["video_url"], ext="mp4")],
+                    )
+            # 2. HTML scrape (free fallback — works only for older/embedded videos)
+            print(f"[facebook] trying HTML scrape", flush=True)
             _fb_result = await _facebook_html_extract(req.url)
             if _fb_result:
                 return DownloadResponse(
