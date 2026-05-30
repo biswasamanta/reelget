@@ -3400,6 +3400,19 @@ def _require_admin(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+@app.get("/api/test-alert")
+async def test_alert(request: Request):
+    """Admin-only: send a test Telegram message to verify alerting is configured."""
+    _require_admin(request)
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return {"sent": False, "reason": "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set"}
+    await _send_telegram_alert(
+        "✅ <b>ReelGet test alert</b>\n\nIf you can read this, Telegram alerting "
+        "is working — health-check and reminder alerts will reach you."
+    )
+    return {"sent": True, "note": "Check your Telegram for the test message."}
+
+
 @app.get("/api/selftest")
 async def run_selftest(request: Request):
     """Admin-only: run the platform self-test on demand and return per-platform results."""
