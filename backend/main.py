@@ -69,8 +69,8 @@ HIKER_API_KEY = os.environ.get("HIKER_API_KEY", "")
 # Set FB_RAPIDAPI_KEY (your RapidAPI key) and FB_RAPIDAPI_HOST (the API's host).
 # Defaults target the "Social Media Video Downloader" (facebook-reel-and-video-downloader).
 FB_RAPIDAPI_KEY  = os.environ.get("FB_RAPIDAPI_KEY", "")
-FB_RAPIDAPI_HOST = os.environ.get("FB_RAPIDAPI_HOST", "facebook-reel-and-video-downloader.p.rapidapi.com")
-FB_RAPIDAPI_PATH = os.environ.get("FB_RAPIDAPI_PATH", "/app/main.php")
+FB_RAPIDAPI_HOST = os.environ.get("FB_RAPIDAPI_HOST", "instagram-downloader-download-instagram-videos-stories1.p.rapidapi.com")
+FB_RAPIDAPI_PATH = os.environ.get("FB_RAPIDAPI_PATH", "/get-info-rapidapi")
 # Telegram alerting — set both vars to enable cookie-expiry notifications
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -660,38 +660,39 @@ async def _facebook_rapidapi_extract(url: str) -> dict | None:
             print(f"[fb-api] body: {r.text[:200]}", flush=True)
             return None
         data = r.json()
+        # Unwrap a "data"/"result" envelope if present.
+        if isinstance(data.get("data"), dict):
+            data = {**data, **data["data"]}
 
-        # Collect candidate (label, url) pairs from many possible shapes.
-        candidates: list[tuple[str, str]] = []
+        # Collect candidate (label, url, is_video) tuples from many shapes.
+        candidates: list[tuple[str, str, bool]] = []
 
-        def _add(label, val):
+        def _add(label, val, is_video=True):
             if isinstance(val, str) and val.startswith("http"):
-                candidates.append((str(label).lower(), val))
+                candidates.append((str(label).lower(), val, is_video))
 
-        # Shape 1: {"links": {"Download High Quality": "...", "Download Low Quality": "..."}}
-        links = data.get("links")
-        if isinstance(links, dict):
-            for k, v in links.items():
-                _add(k, v)
-        elif isinstance(links, list):
-            for item in links:
-                if isinstance(item, dict):
-                    _add(item.get("quality") or item.get("label") or "", item.get("url") or item.get("link"))
-        # Shape 2: flat hd/sd fields
-        for k in ("hd", "sd", "hd_url", "sd_url", "url", "video", "video_url",
-                  "download", "downloadUrl", "high", "low"):
-            _add(k, data.get(k))
-        # Shape 3: {"media": [{"url":...,"quality":...}]} or {"formats":[...]}
-        for arrkey in ("media", "formats", "result", "videos"):
+        # fastsaverapi shape: {"medias": [{"url","quality","type","extension"}]}
+        for arrkey in ("medias", "media", "formats", "result", "videos", "links"):
             arr = data.get(arrkey)
             if isinstance(arr, list):
                 for item in arr:
                     if isinstance(item, dict):
+                        _typ = (item.get("type") or "").lower()
+                        is_vid = ("video" in _typ) or (not _typ and not item.get("is_audio"))
                         _add(item.get("quality") or item.get("label") or arrkey,
-                             item.get("url") or item.get("link") or item.get("src"))
+                             item.get("url") or item.get("link") or item.get("src"),
+                             is_vid)
             elif isinstance(arr, dict):
                 for k, v in arr.items():
                     _add(k, v)
+        # flat hd/sd fields
+        for k in ("hd", "sd", "hd_url", "sd_url", "url", "video", "video_url",
+                  "download", "downloadUrl", "high", "low"):
+            _add(k, data.get(k))
+
+        # Prefer actual video entries.
+        video_cands = [c for c in candidates if c[2]] or candidates
+        candidates = video_cands
 
         if not candidates:
             print(f"[fb-api] no video url in response keys: {list(data.keys())[:12]}", flush=True)
