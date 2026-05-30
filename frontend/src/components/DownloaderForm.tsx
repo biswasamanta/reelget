@@ -250,6 +250,8 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
       return updated;
     });
+    // Signal the PWA install prompt at the peak-value moment (a fresh success).
+    try { window.dispatchEvent(new CustomEvent('reelget:download-success')); } catch { /* ignore */ }
   }
 
   useEffect(() => {
