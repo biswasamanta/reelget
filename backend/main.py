@@ -414,12 +414,41 @@ async def _cookie_reminder_loop() -> None:
             print(f"[reminder] loop error: {ex}", flush=True)
 
 
+async def _paid_services_reminder_loop() -> None:
+    """Background task: monthly Telegram reminder to review paid-service balances."""
+    INTERVAL_SEC = 30 * 24 * 3600   # every 30 days
+    CHECK_SEC    = 6 * 3600
+    await asyncio.sleep(300)
+    while True:
+        try:
+            last_str = _db_get_config("paid_services_reminder_sent_at")
+            last_ts  = float(last_str) if last_str else 0.0
+            if time.time() - last_ts >= INTERVAL_SEC:
+                msg = (
+                    "💳 <b>Monthly Paid-Services Review</b>\n\n"
+                    "Check balances / renewals so nothing lapses:\n"
+                    "• <b>Webshare</b> (residential proxy) — check data + plan renewal\n"
+                    "• <b>HikerAPI</b> (Instagram) — check account balance\n"
+                    "• <b>RapidAPI / fastsaverapi</b> (Facebook) — check monthly quota usage\n"
+                    "• <b>Railway</b> — check usage / billing\n"
+                    "• <b>Vercel</b> — check plan if traffic grew\n\n"
+                    "<i>Scheduled monthly reminder — not an error.</i>"
+                )
+                await _send_telegram_alert(msg)
+                _db_set_config("paid_services_reminder_sent_at", str(time.time()))
+        except Exception as ex:
+            print(f"[paid-reminder] loop error: {ex}", flush=True)
+        await asyncio.sleep(CHECK_SEC)
+
+
 @app.on_event("startup")
 async def _startup():
     asyncio.create_task(_cookie_reminder_loop())
     print("[startup] cookie reminder loop started", flush=True)
     asyncio.create_task(_selftest_loop())
     print("[startup] daily platform self-test loop started", flush=True)
+    asyncio.create_task(_paid_services_reminder_loop())
+    print("[startup] paid-services reminder loop started", flush=True)
 
 
 # In-memory result cache — avoids repeated yt-dlp calls for the same URL
@@ -633,15 +662,16 @@ async def _twitter_fxapi_extract(url: str) -> dict | None:
     return None
 
 
-async def _facebook_rapidapi_extract(url: str) -> dict | None:
+async def _rapidapi_extract(url: str) -> dict | None:
     """
-    Resolve a Facebook video via a RapidAPI Facebook downloader (managed API).
-    Required because Facebook never embeds the video URL in page HTML.
-    Configurable via FB_RAPIDAPI_KEY / FB_RAPIDAPI_HOST / FB_RAPIDAPI_PATH so it
-    works with whichever RapidAPI Facebook downloader you subscribe to.
+    Resolve a video via the RapidAPI (fastsaverapi) universal downloader.
+    fastsaverapi supports ~50 platforms (Facebook, Instagram, TikTok, YouTube,
+    Twitter, Vimeo, Reddit, Pinterest, Snapchat, Threads, etc.), so this doubles
+    as a universal LAST-RESORT fallback for any platform whose primary method fails.
+    Configurable via FB_RAPIDAPI_KEY / FB_RAPIDAPI_HOST / FB_RAPIDAPI_PATH.
 
-    Parses a wide range of common response shapes (links dict, formats array,
-    hd/sd fields) so it's resilient across providers.
+    Parses a wide range of response shapes (medias/links/formats arrays, hd/sd
+    fields) so it's resilient across providers.
     """
     if not FB_RAPIDAPI_KEY:
         return None
@@ -1428,7 +1458,7 @@ async def download(request: Request, req: DownloadRequest):
             # 1. RapidAPI managed downloader (FB never embeds the URL in HTML)
             if FB_RAPIDAPI_KEY:
                 print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying RapidAPI", flush=True)
-                _fb_api = await _facebook_rapidapi_extract(req.url)
+                _fb_api = await _rapidapi_extract(req.url)
                 if _fb_api:
                     return DownloadResponse(
                         title=_fb_api["title"],
@@ -1505,6 +1535,21 @@ async def download(request: Request, req: DownloadRequest):
                 _extract_err = _e1
         else:
             _extract_err = _e1
+
+    # ── Universal last-resort: RapidAPI (fastsaverapi) for ANY platform ────────
+    # Costs nothing when primary methods succeed (only runs after they all fail).
+    # Catches breakage on platforms with no dedicated fallback (Pinterest,
+    # Snapchat, Reddit, LinkedIn, Threads, Dailymotion, etc.) and any future
+    # regressions in the primary extractors.
+    if _extract_err is not None and FB_RAPIDAPI_KEY:
+        print(f"[universal] all methods failed, trying RapidAPI fallback", flush=True)
+        _uni = await _rapidapi_extract(req.url)
+        if _uni:
+            return DownloadResponse(
+                title=_uni["title"],
+                thumbnail=_uni.get("thumbnail"),
+                formats=[FormatInfo(label="Video (HD)", url=_uni["video_url"], ext="mp4")],
+            )
 
     # ── Handle extraction error (DownloadError or unexpected) ──────────────────
     if _extract_err is not None:
