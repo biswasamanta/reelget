@@ -2747,14 +2747,20 @@ async def download_youtube(
     # Tier 3 — DASH (separate video+audio merged by ffmpeg → fragmented mp4)
     #           Required for VEVO / official music videos that have no format 18/22.
     #           yt-dlp uses frag_keyframe+empty_moov so piping to stdout works.
+    # IMPORTANT: when piping a merged download to stdout, yt-dlp uses an MPEG-TS
+    # container (mp4 isn't pipe-streamable). AV1/VP9 video does NOT mux into
+    # MPEG-TS correctly — it becomes an unrecognized "private data" stream, so
+    # players fall back to audio-only. Prefer H.264 (avc1), which muxes cleanly.
     _DASH_HD = (
-        "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
-        "/bestvideo[height<=720]+bestaudio"
+        "bestvideo[height<=720][vcodec^=avc1]+bestaudio[ext=m4a]"
+        "/bestvideo[height<=720][ext=mp4][vcodec!*=av01]+bestaudio"
+        "/best[height<=720][vcodec^=avc1]"
         "/best[height<=720]"
     )
     _DASH_SD = (
-        "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
-        "/bestvideo[height<=480]+bestaudio"
+        "bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]"
+        "/bestvideo[height<=480][ext=mp4][vcodec!*=av01]+bestaudio"
+        "/best[height<=480][vcodec^=avc1]"
         "/best[height<=480]"
     )
     _BASE_FORMATS = {
@@ -2967,25 +2973,26 @@ async def _run_youtube_job(job_id: str, url: str, quality: str,
     if quality == "audio":
         fmt_sel = "bestaudio[ext=m4a]/bestaudio"
     elif quality == "sd":
+        # Prefer H.264 (avc1) for DASH merges — AV1/VP9 break in the MPEG-TS pipe.
         fmt_sel = (
-            "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
-            "/bestvideo[height<=480]+bestaudio"
+            "bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=480][ext=mp4][vcodec!*=av01]+bestaudio"
             "/best[height<=480]"
         ) if _is_shorts_job else (
             "18"
-            "/bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]"
-            "/bestvideo[height<=480]+bestaudio"
+            "/bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=480][ext=mp4][vcodec!*=av01]+bestaudio"
             "/best[height<=480]"
         )
     else:
         fmt_sel = (
-            "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
-            "/bestvideo[height<=720]+bestaudio"
+            "bestvideo[height<=720][vcodec^=avc1]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=720][ext=mp4][vcodec!*=av01]+bestaudio"
             "/best[height<=720]"
         ) if _is_shorts_job else (
             "22/18"
-            "/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]"
-            "/bestvideo[height<=720]+bestaudio"
+            "/bestvideo[height<=720][vcodec^=avc1]+bestaudio[ext=m4a]"
+            "/bestvideo[height<=720][ext=mp4][vcodec!*=av01]+bestaudio"
             "/best[height<=720]"
         )
 
