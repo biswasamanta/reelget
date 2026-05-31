@@ -454,6 +454,53 @@ async def _paid_services_reminder_loop() -> None:
         await asyncio.sleep(CHECK_SEC)
 
 
+def _get_trending_title() -> str | None:
+    """Best-effort: read the freshest cached YouTube-trending title for the push."""
+    try:
+        if not CACHE_DIR.exists():
+            return None
+        files = sorted(CACHE_DIR.glob("trending_*.json"),
+                       key=lambda f: f.stat().st_mtime, reverse=True)
+        for f in files:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            vids = data.get("videos") or []
+            if vids and vids[0].get("title"):
+                return vids[0]["title"]
+    except Exception:
+        pass
+    return None
+
+
+async def _weekly_trending_push_loop() -> None:
+    """Background task: once a week, push trending content to all subscribers."""
+    INTERVAL_SEC = 7 * 24 * 3600
+    CHECK_SEC    = 6 * 3600
+    await asyncio.sleep(600)
+    while True:
+        try:
+            if VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
+                last_str = _db_get_config("weekly_push_sent_at")
+                last_ts  = float(last_str) if last_str else 0.0
+                if time.time() - last_ts >= INTERVAL_SEC:
+                    # Skip silently if nobody is subscribed yet.
+                    if _db_get_push_subscriptions():
+                        title = _get_trending_title()
+                        if title:
+                            t = "🔥 Trending this week"
+                            body = f"“{title[:80]}” and more — tap to download free on ReelGet."
+                        else:
+                            t = "🔥 This week's trending videos"
+                            body = "The most-shared clips are waiting — tap to grab them on ReelGet."
+                        result = await asyncio.get_event_loop().run_in_executor(
+                            None, _send_web_push_sync, t, body, "https://www.reelget.com/"
+                        )
+                        print(f"[weekly-push] {result}", flush=True)
+                    _db_set_config("weekly_push_sent_at", str(time.time()))
+        except Exception as ex:
+            print(f"[weekly-push] loop error: {ex}", flush=True)
+        await asyncio.sleep(CHECK_SEC)
+
+
 @app.on_event("startup")
 async def _startup():
     asyncio.create_task(_cookie_reminder_loop())
@@ -462,6 +509,8 @@ async def _startup():
     print("[startup] daily platform self-test loop started", flush=True)
     asyncio.create_task(_paid_services_reminder_loop())
     print("[startup] paid-services reminder loop started", flush=True)
+    asyncio.create_task(_weekly_trending_push_loop())
+    print("[startup] weekly trending push loop started", flush=True)
 
 
 # In-memory result cache — avoids repeated yt-dlp calls for the same URL
