@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { getLocale } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/next';
 import PWAManager from '@/components/PWAManager';
+import PushOptIn from '@/components/PushOptIn';
 import CookieConsent from '@/components/CookieConsent';
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default async function RootLayout({
       <body>
         {children}
         <PWAManager />
+        <PushOptIn />
         <CookieConsent />
         <Analytics />
       </body>

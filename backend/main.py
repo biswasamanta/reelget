@@ -74,6 +74,12 @@ FB_RAPIDAPI_PATH = os.environ.get("FB_RAPIDAPI_PATH", "/get-info-rapidapi")
 # Telegram alerting — set both vars to enable cookie-expiry notifications
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
+# Web Push (VAPID) — set all three to enable browser push notifications.
+# Generate a keypair once; private key stays here, public key also goes to the
+# frontend as NEXT_PUBLIC_VAPID_PUBLIC_KEY. VAPID_SUBJECT is a mailto: or https URL.
+VAPID_PUBLIC_KEY  = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_SUBJECT     = os.environ.get("VAPID_SUBJECT", "mailto:admin@reelget.com")
 CACHE_DIR = Path(__file__).parent / "cache"
 CACHE_TTL = 6 * 3600  # 6 hours
 
@@ -175,6 +181,13 @@ def _init_db():
                     r2_key    TEXT,
                     r2_cached BOOLEAN     NOT NULL DEFAULT FALSE,
                     last_seen TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                CREATE TABLE IF NOT EXISTS push_subscriptions (
+                    endpoint   TEXT PRIMARY KEY,
+                    p256dh     TEXT NOT NULL,
+                    auth       TEXT NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
                 );
             """, (_COUNTER_BASE,))
         print("[db] tables ready", flush=True)
@@ -3360,6 +3373,138 @@ async def track_page(req: TrackRequest):
     if req.page:
         _db_track_page(req.page.strip()[:255])
     return {"ok": True}
+
+
+# ── Web Push (browser notifications) ──────────────────────────────────────────
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: dict   # {"p256dh": "...", "auth": "..."}
+
+
+def _db_add_push_subscription(endpoint: str, p256dh: str, auth: str) -> None:
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO push_subscriptions (endpoint, p256dh, auth)
+                   VALUES (%s, %s, %s)
+                   ON CONFLICT (endpoint) DO UPDATE SET p256dh=EXCLUDED.p256dh, auth=EXCLUDED.auth""",
+                (endpoint, p256dh, auth),
+            )
+    except Exception as ex:
+        print(f"[push] add sub failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+def _db_remove_push_subscription(endpoint: str) -> None:
+    conn = _get_db_conn()
+    if not conn:
+        return
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM push_subscriptions WHERE endpoint=%s", (endpoint,))
+    except Exception as ex:
+        print(f"[push] remove sub failed: {ex}", flush=True)
+    finally:
+        conn.close()
+
+
+def _db_get_push_subscriptions() -> list[dict]:
+    conn = _get_db_conn()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT endpoint, p256dh, auth FROM push_subscriptions")
+            return [{"endpoint": r[0], "p256dh": r[1], "auth": r[2]} for r in cur.fetchall()]
+    except Exception as ex:
+        print(f"[push] list subs failed: {ex}", flush=True)
+        return []
+    finally:
+        conn.close()
+
+
+@app.get("/api/push/vapid-public-key")
+def push_vapid_public_key():
+    """Public VAPID key the frontend needs to create a push subscription."""
+    return {"key": VAPID_PUBLIC_KEY}
+
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(sub: PushSubscription):
+    keys = sub.keys or {}
+    p256dh, auth = keys.get("p256dh"), keys.get("auth")
+    if not (sub.endpoint and p256dh and auth):
+        raise HTTPException(status_code=400, detail="Invalid subscription")
+    _db_add_push_subscription(sub.endpoint, p256dh, auth)
+    return {"ok": True}
+
+
+@app.post("/api/push/unsubscribe")
+async def push_unsubscribe(sub: PushSubscription):
+    if sub.endpoint:
+        _db_remove_push_subscription(sub.endpoint)
+    return {"ok": True}
+
+
+def _send_web_push_sync(title: str, body: str, url: str = "https://www.reelget.com/") -> dict:
+    """Send a push notification to every stored subscription. Returns {sent, removed}."""
+    if not (VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY):
+        print("[push] VAPID keys not configured", flush=True)
+        return {"sent": 0, "removed": 0, "error": "vapid_not_configured"}
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError:
+        print("[push] pywebpush not installed", flush=True)
+        return {"sent": 0, "removed": 0, "error": "pywebpush_missing"}
+
+    payload = json.dumps({"title": title, "body": body, "url": url})
+    subs = _db_get_push_subscriptions()
+    sent = removed = 0
+    for s in subs:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": s["endpoint"],
+                    "keys": {"p256dh": s["p256dh"], "auth": s["auth"]},
+                },
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_SUBJECT},
+                timeout=10,
+            )
+            sent += 1
+        except WebPushException as ex:
+            # 404/410 mean the subscription is dead — prune it.
+            status = getattr(getattr(ex, "response", None), "status_code", None)
+            if status in (404, 410):
+                _db_remove_push_subscription(s["endpoint"])
+                removed += 1
+            else:
+                print(f"[push] send error ({status}): {str(ex)[:120]}", flush=True)
+        except Exception as ex:
+            print(f"[push] unexpected send error: {str(ex)[:120]}", flush=True)
+    print(f"[push] broadcast done — sent={sent} removed={removed} total={len(subs)}", flush=True)
+    return {"sent": sent, "removed": removed, "total": len(subs)}
+
+
+class PushBroadcast(BaseModel):
+    title: str
+    body: str
+    url: str | None = None
+
+
+@app.post("/api/admin/push/broadcast")
+async def push_broadcast(req: PushBroadcast, request: Request):
+    """Admin-only: send a push notification to all subscribers."""
+    _require_admin(request)
+    result = await asyncio.get_event_loop().run_in_executor(
+        None, _send_web_push_sync, req.title, req.body, req.url or "https://www.reelget.com/"
+    )
+    return result
 
 
 @app.get("/api/analytics")
