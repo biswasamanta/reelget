@@ -9,6 +9,7 @@ import AdSlot from './AdSlot';
 import PlaylistResult, { type PlaylistData } from './PlaylistResult';
 import ProfileResult, { type ProfileData } from './ProfileResult';
 import YouTubeJobDownloader from './YouTubeJobDownloader';
+import InstallSurfacesPromo from './InstallSurfacesPromo';
 
 type DownloadMode = 'single' | 'profile' | 'playlist' | 'batch';
 type YouTubeQuality = 'hd' | 'sd' | 'audio';
@@ -1016,6 +1017,9 @@ export default function DownloaderForm({ locale }: { locale: string }) {
               <kbd className="bg-gray-100 text-gray-500 font-mono px-1 py-0.5 rounded text-[10px]">R</kbd>
               {' '}to refresh and try again.
             </p>
+
+            {/* Retention promo: Telegram bot (+ extension when published) */}
+            <InstallSurfacesPromo />
 
             {/* Transcript panel — shown when captions are available or loading */}
             {transcriptStatus !== 'idle' && transcriptStatus !== 'unavailable' && (
