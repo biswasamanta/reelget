@@ -1094,17 +1094,21 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                       <p className="text-white/40 text-[10px]">{item.platform} · {new Date(item.ts).toLocaleDateString()}</p>
                     </div>
                   </button>
-                  {/* Re-download instantly */}
+                  {/* Re-download — always visible (touch devices have no hover) */}
                   <button
                     title="Download again"
-                    onClick={() => { setUrl(item.url); setStatus('idle'); setResult(null); setShowHistory(false); setTimeout(handleDownload, 50); }}
-                    className="shrink-0 text-white/30 hover:text-cyan-400 transition text-sm opacity-0 group-hover:opacity-100"
+                    onClick={() => {
+                      flushSync(() => { setUrl(item.url); setStatus('idle'); setResult(null); setShowHistory(false); });
+                      handleDownload();
+                    }}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition text-[11px] font-semibold px-2 py-1"
                   >
-                    ⬇
+                    <span aria-hidden>⬇</span> Get
                   </button>
-                  {/* Remove from history */}
+                  {/* Remove from history — dim but always tappable on mobile */}
                   <button
                     title="Remove"
+                    aria-label="Remove from history"
                     onClick={(e) => {
                       e.stopPropagation();
                       setHistory(prev => {
@@ -1113,7 +1117,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
                         return updated;
                       });
                     }}
-                    className="shrink-0 text-white/30 hover:text-red-400 transition text-xs opacity-0 group-hover:opacity-100"
+                    className="shrink-0 text-white/30 hover:text-red-400 transition text-xs px-1"
                   >
                     ✕
                   </button>
