@@ -4,7 +4,7 @@ import { routing } from '../i18n/routing';
 export default createMiddleware(routing);
 
 export const config = {
-  // Match all paths except Next.js internals, static files, and the (non-localized)
-  // /admin dashboard — otherwise i18n would redirect /admin → /en/admin (404).
-  matcher: ['/((?!_next|_vercel|admin|.*\\..*).*)'],
+  // Match all paths except Next.js internals and static files.
+  // /admin lives under [locale] (e.g. /en/admin), so it's intentionally matched.
+  matcher: ['/((?!_next|_vercel|.*\\..*).*)'],
 };
