@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface Stats {
+  window_days?: number;
   total_downloads: number;
   real_downloads?: number;
   total_visits?: number;
@@ -20,6 +21,13 @@ interface Stats {
   job_queue_size: number;
 }
 
+const RANGES = [
+  { label: 'All time',     days: 0 },
+  { label: 'Today',        days: 1 },
+  { label: 'Last 7 days',  days: 7 },
+  { label: 'Last 30 days', days: 30 },
+];
+
 export default function AdminPage() {
   const [password, setPassword]   = useState('');
   const [authed,   setAuthed]     = useState(false);
@@ -27,11 +35,12 @@ export default function AdminPage() {
   const [error,    setError]      = useState('');
   const [loading,  setLoading]    = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [days,     setDays]       = useState(0);
 
-  const fetchStats = useCallback(async (pw: string) => {
+  const fetchStats = useCallback(async (pw: string, d: number) => {
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/api/admin/stats`, {
+      const res = await fetch(`${API}/api/admin/stats?days=${d}`, {
         headers: pw ? { Authorization: `Bearer ${pw}` } : {},
       });
       if (res.status === 401) { setError('Wrong password'); setAuthed(false); return; }
@@ -49,13 +58,19 @@ export default function AdminPage() {
   // Auto-refresh every 30s when authenticated
   useEffect(() => {
     if (!authed) return;
-    const id = setInterval(() => fetchStats(password), 30_000);
+    const id = setInterval(() => fetchStats(password, days), 30_000);
     return () => clearInterval(id);
-  }, [authed, password, fetchStats]);
+  }, [authed, password, days, fetchStats]);
+
+  // Re-fetch when the date range changes
+  useEffect(() => {
+    if (authed) fetchStats(password, days);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchStats(password);
+    fetchStats(password, days);
   };
 
   if (!authed) {
@@ -95,13 +110,23 @@ export default function AdminPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">📊 ReelGet Admin</h1>
           <div className="flex items-center gap-3">
+            {/* Date range filter */}
+            <select
+              value={days}
+              onChange={e => setDays(Number(e.target.value))}
+              className="text-xs bg-slate-700 text-white rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+            >
+              {RANGES.map(r => (
+                <option key={r.days} value={r.days}>{r.label}</option>
+              ))}
+            </select>
             {lastRefresh && (
-              <span className="text-slate-400 text-xs">
+              <span className="text-slate-400 text-xs hidden sm:inline">
                 Updated {lastRefresh.toLocaleTimeString()}
               </span>
             )}
             <button
-              onClick={() => fetchStats(password)}
+              onClick={() => fetchStats(password, days)}
               disabled={loading}
               className="text-xs bg-slate-700 hover:bg-slate-600 transition px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -115,6 +140,13 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        {/* Range note */}
+        <p className="text-slate-500 text-xs -mt-2">
+          {days === 0
+            ? 'Showing all-time totals. Downloads, visits & conversions below are cumulative.'
+            : `Showing ${RANGES.find(r => r.days === days)?.label.toLowerCase()} — from daily buckets (data exists only since daily tracking was enabled). Subscribers, IPs & jobs are always live.`}
+        </p>
 
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

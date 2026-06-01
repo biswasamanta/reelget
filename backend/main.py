@@ -191,6 +191,15 @@ def _init_db():
                     auth       TEXT NOT NULL,
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 );
+
+                -- Per-day buckets so the admin dashboard can filter by date range.
+                CREATE TABLE IF NOT EXISTS daily_stats (
+                    day    DATE         NOT NULL,
+                    metric VARCHAR(255) NOT NULL,
+                    count  BIGINT       NOT NULL DEFAULT 0,
+                    PRIMARY KEY (day, metric)
+                );
+                CREATE INDEX IF NOT EXISTS idx_daily_stats_day ON daily_stats (day);
             """, (_COUNTER_BASE,))
         print("[db] tables ready", flush=True)
     except Exception as ex:
@@ -211,6 +220,13 @@ def _db_track_page(page: str):
                 ON CONFLICT (page) DO UPDATE
                 SET count = page_stats.count + 1,
                     last_seen = NOW()
+            """, (page[:255],))
+            # Per-day bucket (for date-range filtering in the admin dashboard).
+            cur.execute("""
+                INSERT INTO daily_stats (day, metric, count)
+                VALUES (CURRENT_DATE, %s, 1)
+                ON CONFLICT (day, metric) DO UPDATE
+                SET count = daily_stats.count + 1
             """, (page[:255],))
     except Exception as ex:
         print(f"[db] track page failed: {ex}", flush=True)
@@ -3632,64 +3648,103 @@ async def run_selftest(request: Request):
 
 
 @app.get("/api/admin/stats")
-async def admin_stats(request: Request):
-    """Admin-only: aggregate stats for dashboard."""
+async def admin_stats(request: Request, days: int = Query(0, ge=0, le=365)):
+    """Admin-only: aggregate stats for dashboard.
+
+    days=0 → all-time (cumulative counters). days>0 → window from the daily_stats
+    buckets covering the last N calendar days (1=today, 7=last week, etc.).
+    Note: day-bucketed data only exists from when daily tracking was added.
+    """
     _require_admin(request)
     conn = _get_db_conn()
     rows: list[dict] = []
     total_count = _COUNTER_BASE + _counter_session
+    real_downloads = 0
     platform_counts: list[dict] = []
     top_ips: list[dict] = []
     cookie_status: list[dict] = []
     total_visits = 0
     top_pages: list[dict] = []
     conversions: dict = {}
+    windowed = days > 0
+    _NOT_VISIT_PG = "page NOT LIKE 'download:%' AND page NOT LIKE 'promo_%' " \
+                    "AND page NOT LIKE 'push_%' AND page NOT LIKE 'pwa_%'"
+    _NOT_VISIT_DS = _NOT_VISIT_PG.replace("page", "metric")
 
     if conn:
         try:
             with conn.cursor() as cur:
-                # Total downloads
+                # Total downloads (all-time counter)
                 cur.execute("SELECT count FROM counter WHERE id=1")
                 r = cur.fetchone()
                 if r:
                     total_count = r[0]
+                real_downloads = max(0, total_count - _COUNTER_BASE)
 
-                # Per-platform breakdown
-                cur.execute("""
-                    SELECT page, count, last_seen FROM page_stats
-                    WHERE page LIKE 'download:%'
-                    ORDER BY count DESC
-                """)
-                platform_counts = [
-                    {"platform": r[0].replace("download:", ""), "count": r[1],
-                     "last_seen": r[2].isoformat() if r[2] else None}
-                    for r in cur.fetchall()
-                ]
+                if windowed:
+                    # ── Date-windowed stats from daily_stats buckets ──────────
+                    since = f"day >= CURRENT_DATE - INTERVAL '{days - 1} days'"
+                    cur.execute(f"""
+                        SELECT metric, SUM(count) FROM daily_stats
+                        WHERE metric LIKE 'download:%' AND {since}
+                        GROUP BY metric ORDER BY SUM(count) DESC
+                    """)
+                    platform_counts = [
+                        {"platform": r[0].replace("download:", ""), "count": int(r[1]), "last_seen": None}
+                        for r in cur.fetchall()
+                    ]
+                    real_downloads = sum(p["count"] for p in platform_counts)
 
-                # Page-visit traffic (exclude download + event rows)
-                _NOT_VISIT = "page NOT LIKE 'download:%' AND page NOT LIKE 'promo_%' " \
-                             "AND page NOT LIKE 'push_%' AND page NOT LIKE 'pwa_%'"
-                cur.execute(f"SELECT COALESCE(SUM(count),0) FROM page_stats WHERE {_NOT_VISIT}")
-                tv = cur.fetchone()
-                total_visits = int(tv[0]) if tv else 0
-                cur.execute(f"""
-                    SELECT page, count, last_seen FROM page_stats
-                    WHERE {_NOT_VISIT}
-                    ORDER BY count DESC LIMIT 15
-                """)
-                top_pages = [
-                    {"page": r[0], "count": r[1],
-                     "last_seen": r[2].isoformat() if r[2] else None}
-                    for r in cur.fetchall()
-                ]
+                    cur.execute(f"SELECT COALESCE(SUM(count),0) FROM daily_stats WHERE {_NOT_VISIT_DS} AND {since}")
+                    tv = cur.fetchone()
+                    total_visits = int(tv[0]) if tv else 0
+                    cur.execute(f"""
+                        SELECT metric, SUM(count) FROM daily_stats
+                        WHERE {_NOT_VISIT_DS} AND {since}
+                        GROUP BY metric ORDER BY SUM(count) DESC LIMIT 15
+                    """)
+                    top_pages = [{"page": r[0], "count": int(r[1]), "last_seen": None} for r in cur.fetchall()]
 
-                # Conversion events (retention funnel)
-                cur.execute("""
-                    SELECT page, count FROM page_stats
-                    WHERE page IN ('pwa_installed','push_subscribed',
-                                   'promo_click_telegram','promo_click_extension')
-                """)
-                conversions = {r[0]: r[1] for r in cur.fetchall()}
+                    cur.execute(f"""
+                        SELECT metric, SUM(count) FROM daily_stats
+                        WHERE metric IN ('pwa_installed','push_subscribed',
+                                         'promo_click_telegram','promo_click_extension') AND {since}
+                        GROUP BY metric
+                    """)
+                    conversions = {r[0]: int(r[1]) for r in cur.fetchall()}
+                else:
+                    # ── All-time stats from cumulative page_stats ─────────────
+                    cur.execute("""
+                        SELECT page, count, last_seen FROM page_stats
+                        WHERE page LIKE 'download:%'
+                        ORDER BY count DESC
+                    """)
+                    platform_counts = [
+                        {"platform": r[0].replace("download:", ""), "count": r[1],
+                         "last_seen": r[2].isoformat() if r[2] else None}
+                        for r in cur.fetchall()
+                    ]
+
+                    cur.execute(f"SELECT COALESCE(SUM(count),0) FROM page_stats WHERE {_NOT_VISIT_PG}")
+                    tv = cur.fetchone()
+                    total_visits = int(tv[0]) if tv else 0
+                    cur.execute(f"""
+                        SELECT page, count, last_seen FROM page_stats
+                        WHERE {_NOT_VISIT_PG}
+                        ORDER BY count DESC LIMIT 15
+                    """)
+                    top_pages = [
+                        {"page": r[0], "count": r[1],
+                         "last_seen": r[2].isoformat() if r[2] else None}
+                        for r in cur.fetchall()
+                    ]
+
+                    cur.execute("""
+                        SELECT page, count FROM page_stats
+                        WHERE page IN ('pwa_installed','push_subscribed',
+                                       'promo_click_telegram','promo_click_extension')
+                    """)
+                    conversions = {r[0]: r[1] for r in cur.fetchall()}
 
                 # Top IPs by today's quota usage
                 cur.execute("""
@@ -3718,9 +3773,10 @@ async def admin_stats(request: Request):
     active_jobs = {jid: j["status"] for jid, j in _JOBS.items()}
 
     return {
+        "window_days":      days,   # 0 = all-time
         "total_downloads":  total_count,
-        # Real downloads since launch (the counter starts at a vanity base).
-        "real_downloads":   max(0, total_count - _COUNTER_BASE),
+        # All-time: counter minus vanity base. Windowed: sum of downloads in range.
+        "real_downloads":   real_downloads,
         "platform_counts":  platform_counts,
         "total_visits":     total_visits,
         "top_pages":        top_pages,
