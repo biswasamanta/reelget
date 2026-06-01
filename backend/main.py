@@ -672,7 +672,7 @@ def _normalize_url(url: str) -> str:
     from urllib.parse import urlparse, urlencode, parse_qsl, urlunparse
     _STRIP_PARAMS = {
         "igsh", "utm_source", "utm_medium", "utm_campaign",
-        "utm_content", "utm_term", "_r", "_t", "si",
+        "utm_content", "utm_term", "_r", "_t", "si", "xmt", "hl",
     }
     try:
         parsed = urlparse(url)
@@ -797,7 +797,8 @@ async def _rapidapi_extract(url: str) -> dict | None:
                     _add(k, v)
         # flat hd/sd fields
         for k in ("hd", "sd", "hd_url", "sd_url", "url", "video", "video_url",
-                  "download", "downloadUrl", "high", "low"):
+                  "download", "downloadUrl", "download_url", "downloadURL",
+                  "videoUrl", "play", "play_url", "hdplay", "high", "low"):
             _add(k, data.get(k))
 
         # Prefer actual video entries.
@@ -805,7 +806,9 @@ async def _rapidapi_extract(url: str) -> dict | None:
         candidates = video_cands
 
         if not candidates:
-            print(f"[fb-api] no video url in response keys: {list(data.keys())[:12]}", flush=True)
+            _err = data.get("error") or data.get("message") or data.get("msg")
+            print(f"[fb-api] no video url in response keys: {list(data.keys())[:12]}"
+                  f" error={_err!r} body={r.text[:300]}", flush=True)
             return None
 
         # Prefer HD/high quality.
