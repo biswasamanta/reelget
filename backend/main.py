@@ -3290,79 +3290,105 @@ async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
 
 @app.get("/api/download-hls")
 async def download_hls(url: str = Query(...), label: str = Query("hd")):
-    """Download an HLS/DASH stream via yt-dlp+ffmpeg and stream the merged MP4 back.
-    Used for platforms like Dailymotion that only expose m3u8 URLs."""
-    tmp_dir = tempfile.mkdtemp()
+    """Stream an HLS/DASH download (e.g. Twitch VODs, Dailymotion) back to the
+    client as it downloads — yt-dlp+ffmpeg pipe a fragmented MP4 straight to
+    stdout, so there is NO download-to-disk step and NO fixed time limit.
+
+    This is essential for long-form content like multi-hour Twitch VODs, which
+    blew past the old 5-minute disk-download timeout. Bytes now flow to the
+    browser as fast as ffmpeg muxes them; the request lives as long as the
+    transfer does.
+    """
     safe = re.sub(r'[^\w\-]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'video'
-    out_path = os.path.join(tmp_dir, f"{safe}.mp4")
 
-    fmt = (
-        "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
-        if label == "hd"
-        else "worstvideo+worstaudio/worst[height<=480]/worst"
-    )
+    # Prefer a single pre-muxed HLS stream when one exists (Twitch quality
+    # variants are already A/V-muxed → no ffmpeg merge needed, pipes cleanly).
+    # Fall back to merging separate video+audio. avc1 (H.264) is preferred so
+    # fragmented-MP4-to-stdout muxes correctly (AV1/VP9 do not pipe cleanly).
+    if label == "hd":
+        fmt = ("best[height<=1080][vcodec^=avc1]/best[height<=1080][ext=mp4]"
+               "/bestvideo[height<=1080][vcodec^=avc1]+bestaudio/best[height<=1080]/best")
+    else:
+        fmt = ("best[height<=480][vcodec^=avc1]/best[height<=480][ext=mp4]"
+               "/worst[height>=360]/worst")
 
-    ydl_opts: dict = {
-        "quiet": True,
-        "no_warnings": True,
-        "format": fmt,
-        "outtmpl": out_path,
-        "merge_output_format": "mp4",
-        "extractor_retries": 5,
-        "fragment_retries": 10,
-        "concurrent_fragments": 4,
-        "socket_timeout": 60,
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-        },
-    }
+    cmd = [
+        sys.executable, "-m", "yt_dlp",
+        "--format", fmt,
+        "--output", "-",                       # pipe to stdout (no disk)
+        "--merge-output-format", "mp4",        # fragmented mp4 (frag_keyframe+empty_moov)
+        "--no-part", "--no-progress",
+        "--socket-timeout", "30",
+        "--retries", "10",
+        "--fragment-retries", "20",
+        "--concurrent-fragments", "8",         # parallel HLS segment fetch (faster VODs)
+        "--user-agent",
+        ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+    ]
     if PROXY_URL:
-        ydl_opts["proxy"] = PROXY_URL
+        cmd += ["--proxy", PROXY_URL]
+    cmd.append(url)
 
-    try:
-        def _run():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=True)
-        info = await asyncio.wait_for(asyncio.to_thread(_run), timeout=300)
-        title = info.get("title", "video") if info else "video"
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Download timed out (>5 min)")
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"HLS download failed: {str(e)[:200]}")
+    clean_title = safe
 
-    # yt-dlp may alter the extension; find the actual output file
-    actual = out_path
-    if not os.path.exists(actual):
-        candidates = list(Path(tmp_dir).glob("*.mp4")) + list(Path(tmp_dir).glob("*.mkv"))
-        if not candidates:
-            raise HTTPException(status_code=500, detail="Output file not found after download")
-        actual = str(candidates[0])
-
-    clean_title = re.sub(r'[^\w\-.]', '_', title, flags=re.ASCII).strip('_')[:80] or safe
-    file_size = os.path.getsize(actual)
-
-    def iterfile():
+    async def stream_subprocess():
+        bytes_sent = 0
+        _MAX_BYTES = 3 * 1024 * 1024 * 1024  # 3 GB cap (long VODs need headroom)
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
         try:
-            with open(actual, "rb") as f:
-                while chunk := f.read(65536):
-                    yield chunk
-        finally:
+            # HLS extraction + first segments can be slow for long VODs — wait up
+            # to 90 s for the first byte before declaring failure.
             try:
-                os.unlink(actual)
-                os.rmdir(tmp_dir)
+                first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=90)
+            except asyncio.TimeoutError:
+                first_chunk = b""
+
+            if not first_chunk:
+                try:
+                    err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                    err_text = err.decode(errors="replace").strip()
+                    if err_text:
+                        print(f"[download-hls] no data — stderr: {err_text[:500]}", flush=True)
+                except Exception:
+                    pass
+                return
+
+            yield first_chunk
+            bytes_sent += len(first_chunk)
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+                bytes_sent += len(chunk)
+                if bytes_sent > _MAX_BYTES:
+                    print(f"[download-hls] 3 GB cap reached — aborting {url}", flush=True)
+                    break
+                yield chunk
+
+            try:
+                err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                err_text = err.decode(errors="replace").strip()
+                if err_text:
+                    print(f"[download-hls] stderr: {err_text[:1000]}", flush=True)
             except Exception:
                 pass
+        finally:
+            print(f"[download-hls] sent {bytes_sent} bytes for {url}", flush=True)
+            try: proc.kill()
+            except Exception: pass
+            try: await proc.wait()
+            except Exception: pass
 
     return StreamingResponse(
-        iterfile(),
+        stream_subprocess(),
         media_type="video/mp4",
         headers={
             "Content-Disposition": f'attachment; filename="{clean_title}.mp4"',
-            "Content-Length": str(file_size),
             "Cache-Control": "no-store",
         },
     )
