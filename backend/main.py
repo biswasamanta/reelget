@@ -48,7 +48,7 @@ app.add_middleware(
 )
 
 SUPPORTED_PATTERN = re.compile(
-    r"(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|story\.snapchat\.com|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|clips\.twitch\.tv|threads\.net)"
+    r"(instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|story\.snapchat\.com|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|clips\.twitch\.tv|threads\.net|threads\.com)"
 )
 
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
@@ -1820,6 +1820,7 @@ async def download(request: Request, req: DownloadRequest):
         (r"vimeo\.com", "download:vimeo"),
         (r"dailymotion\.com|dai\.ly", "download:dailymotion"),
         (r"twitch\.tv", "download:twitch"),
+        (r"threads\.net|threads\.com", "download:threads"),
     ]:
         if re.search(pattern, req.url):
             _db_track_page(label)

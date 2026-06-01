@@ -51,7 +51,7 @@ function detectPlatform(url: string): string {
   if (/vimeo\.com/.test(url)) return 'Vimeo';
   if (/dailymotion\.com|dai\.ly/.test(url)) return 'Dailymotion';
   if (/twitch\.tv/.test(url)) return 'Twitch';
-  if (/threads\.net/.test(url)) return 'Threads';
+  if (/threads\.net|threads\.com/.test(url)) return 'Threads';
   return 'Video';
 }
 
@@ -272,7 +272,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     ['jpg', 'jpeg', 'webp', 'png', 'gif', 'avif'].includes(ext.toLowerCase());
 
   const isValidUrl = (val: string) =>
-    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|threads\.net/.test(val);
+    /instagram\.com|youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com|vm\.tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|snapchat\.com|snapchat\.app|linkedin\.com|reddit\.com|redd\.it|vimeo\.com|dailymotion\.com|dai\.ly|twitch\.tv|threads\.net|threads\.com/.test(val);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
