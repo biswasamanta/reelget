@@ -6,6 +6,11 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface Stats {
   total_downloads: number;
+  real_downloads?: number;
+  total_visits?: number;
+  top_pages?: { page: string; count: number; last_seen: string | null }[];
+  conversions?: Record<string, number>;
+  push_subscribers?: number;
   platform_counts: { platform: string; count: number; last_seen: string | null }[];
   top_ips_today:   { ip: string; today: number }[];
   cookie_alerts:   { platform: string; fail_count: number; last_seen: string | null; alerted_at: string | null }[];
@@ -114,14 +119,29 @@ export default function AdminPage() {
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Total Downloads', value: stats.total_downloads.toLocaleString(), icon: '⬇' },
+            { label: 'Downloads (real)', value: (stats.real_downloads ?? 0).toLocaleString(), icon: '⬇' },
+            { label: 'Page Visits',      value: (stats.total_visits ?? 0).toLocaleString(), icon: '👁' },
+            { label: 'Push Subscribers', value: (stats.push_subscribers ?? 0).toLocaleString(), icon: '🔔' },
+            { label: 'PWA Installs',     value: (stats.conversions?.pwa_installed ?? 0).toLocaleString(), icon: '📲' },
+          ].map(k => (
+            <div key={k.label} className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+              <p className="text-slate-400 text-xs mb-1">{k.icon} {k.label}</p>
+              <p className="text-white text-xl font-bold">{k.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Secondary status row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Counter (vanity)', value: stats.total_downloads.toLocaleString(), icon: '🔢' },
             { label: 'Proxy',           value: stats.proxy_configured ? '✅ Configured' : '⚠️ Direct', icon: '🌐' },
             { label: 'Telegram Alerts', value: stats.telegram_configured ? '✅ On' : '❌ Off', icon: '📬' },
             { label: 'Active Jobs',     value: stats.job_queue_size,  icon: '⚙️' },
           ].map(k => (
             <div key={k.label} className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
               <p className="text-slate-400 text-xs mb-1">{k.icon} {k.label}</p>
-              <p className="text-white text-xl font-bold">{k.value}</p>
+              <p className="text-white text-base font-semibold">{k.value}</p>
             </div>
           ))}
         </div>
@@ -151,6 +171,51 @@ export default function AdminPage() {
               </div>
             )
           }
+        </div>
+
+        {/* Traffic — top pages by visits */}
+        <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+          <h2 className="text-sm font-semibold text-slate-300 mb-3">👁 Traffic — Top Pages by Visits</h2>
+          {(!stats.top_pages || stats.top_pages.length === 0)
+            ? <p className="text-slate-500 text-sm">No visit data yet</p>
+            : (
+              <div className="space-y-2">
+                {stats.top_pages.map(p => {
+                  const max = stats.top_pages?.[0]?.count || 1;
+                  return (
+                    <div key={p.page} className="flex items-center gap-3">
+                      <span className="w-44 text-xs text-slate-400 truncate" title={p.page}>{p.page}</span>
+                      <div className="flex-1 bg-slate-700 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                          style={{ width: `${Math.round((p.count / max) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-300 w-12 text-right">{p.count.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          }
+        </div>
+
+        {/* Conversions — retention funnel */}
+        <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+          <h2 className="text-sm font-semibold text-slate-300 mb-3">🚀 Conversions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+            {[
+              { label: 'PWA Installs',   value: stats.conversions?.pwa_installed ?? 0 },
+              { label: 'Push Subs',      value: stats.conversions?.push_subscribed ?? 0 },
+              { label: 'Telegram Clicks',value: stats.conversions?.promo_click_telegram ?? 0 },
+              { label: 'Extension Clicks',value: stats.conversions?.promo_click_extension ?? 0 },
+            ].map(c => (
+              <div key={c.label} className="bg-slate-900/50 rounded-xl py-3">
+                <p className="text-white text-lg font-bold">{c.value.toLocaleString()}</p>
+                <p className="text-slate-400 text-[11px] mt-0.5">{c.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Cookie alerts */}

@@ -3564,8 +3564,9 @@ async def push_broadcast(req: PushBroadcast, request: Request):
 
 
 @app.get("/api/analytics")
-def get_analytics():
-    """Return page stats sorted by count descending."""
+def get_analytics(request: Request):
+    """Admin-only: raw page stats sorted by count descending."""
+    _require_admin(request)
     conn = _get_db_conn()
     if not conn:
         return {"error": "db_unavailable", "rows": []}
@@ -3638,6 +3639,9 @@ async def admin_stats(request: Request):
     platform_counts: list[dict] = []
     top_ips: list[dict] = []
     cookie_status: list[dict] = []
+    total_visits = 0
+    top_pages: list[dict] = []
+    conversions: dict = {}
 
     if conn:
         try:
@@ -3659,6 +3663,31 @@ async def admin_stats(request: Request):
                      "last_seen": r[2].isoformat() if r[2] else None}
                     for r in cur.fetchall()
                 ]
+
+                # Page-visit traffic (exclude download + event rows)
+                _NOT_VISIT = "page NOT LIKE 'download:%' AND page NOT LIKE 'promo_%' " \
+                             "AND page NOT LIKE 'push_%' AND page NOT LIKE 'pwa_%'"
+                cur.execute(f"SELECT COALESCE(SUM(count),0) FROM page_stats WHERE {_NOT_VISIT}")
+                tv = cur.fetchone()
+                total_visits = int(tv[0]) if tv else 0
+                cur.execute(f"""
+                    SELECT page, count, last_seen FROM page_stats
+                    WHERE {_NOT_VISIT}
+                    ORDER BY count DESC LIMIT 15
+                """)
+                top_pages = [
+                    {"page": r[0], "count": r[1],
+                     "last_seen": r[2].isoformat() if r[2] else None}
+                    for r in cur.fetchall()
+                ]
+
+                # Conversion events (retention funnel)
+                cur.execute("""
+                    SELECT page, count FROM page_stats
+                    WHERE page IN ('pwa_installed','push_subscribed',
+                                   'promo_click_telegram','promo_click_extension')
+                """)
+                conversions = {r[0]: r[1] for r in cur.fetchall()}
 
                 # Top IPs by today's quota usage
                 cur.execute("""
@@ -3688,7 +3717,13 @@ async def admin_stats(request: Request):
 
     return {
         "total_downloads":  total_count,
+        # Real downloads since launch (the counter starts at a vanity base).
+        "real_downloads":   max(0, total_count - _COUNTER_BASE),
         "platform_counts":  platform_counts,
+        "total_visits":     total_visits,
+        "top_pages":        top_pages,
+        "conversions":      conversions,
+        "push_subscribers": len(_db_get_push_subscriptions()),
         "top_ips_today":    top_ips,
         "cookie_alerts":    cookie_status,
         "proxy_configured": bool(PROXY_URL),
