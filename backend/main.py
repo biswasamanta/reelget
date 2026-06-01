@@ -42,7 +42,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    # Authorization is required so the admin dashboard can send its Bearer token
+    # cross-origin (reelget.com → railway.app) without CORS blocking the preflight.
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 SUPPORTED_PATTERN = re.compile(
