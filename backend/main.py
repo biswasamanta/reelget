@@ -3491,6 +3491,19 @@ def push_vapid_public_key():
     return {"key": VAPID_PUBLIC_KEY}
 
 
+@app.get("/api/_envcheck")
+def _envcheck():
+    """TEMP diagnostic: reports whether key vars are set (lengths only, no values)."""
+    import os as _os
+    return {
+        "ADMIN_PASSWORD_len": len(ADMIN_PASSWORD),
+        "ADMIN_PASSWORD_env_len": len(_os.environ.get("ADMIN_PASSWORD", "")),
+        "has_VAPID": bool(VAPID_PUBLIC_KEY),
+        "has_FB_KEY": bool(FB_RAPIDAPI_KEY),
+        "has_HIKER": bool(HIKER_API_KEY),
+    }
+
+
 @app.post("/api/push/subscribe")
 async def push_subscribe(sub: PushSubscription):
     keys = sub.keys or {}
