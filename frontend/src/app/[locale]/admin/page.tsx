@@ -6,6 +6,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface Stats {
   window_days?: number;
+  daily_tracking_since?: string | null;
   total_downloads: number;
   real_downloads?: number;
   total_visits?: number;
@@ -141,12 +142,23 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Range note */}
-        <p className="text-slate-500 text-xs -mt-2">
-          {days === 0
-            ? 'Showing all-time totals. Downloads, visits & conversions below are cumulative.'
-            : `Showing ${RANGES.find(r => r.days === days)?.label.toLowerCase()} — from daily buckets (data exists only since daily tracking was enabled). Subscribers, IPs & jobs are always live.`}
-        </p>
+        {/* Range note + tracking-since heading */}
+        <div className="-mt-2 space-y-0.5">
+          <p className="text-slate-500 text-xs">
+            {days === 0
+              ? 'Showing all-time totals. Downloads, visits & conversions below are cumulative.'
+              : `Showing ${RANGES.find(r => r.days === days)?.label.toLowerCase()} — from daily buckets. Subscribers, IPs & jobs are always live.`}
+          </p>
+          <p className="text-slate-400 text-xs font-medium">
+            📅 Daily tracking active since{' '}
+            <span className="text-cyan-400">
+              {stats.daily_tracking_since
+                ? new Date(stats.daily_tracking_since).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'today'}
+            </span>
+            {' '}— date-filtered ranges only include data from this date onward.
+          </p>
+        </div>
 
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

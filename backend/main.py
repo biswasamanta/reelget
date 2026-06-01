@@ -3666,6 +3666,7 @@ async def admin_stats(request: Request, days: int = Query(0, ge=0, le=365)):
     total_visits = 0
     top_pages: list[dict] = []
     conversions: dict = {}
+    tracking_since: str | None = None
     windowed = days > 0
     _NOT_VISIT_PG = "page NOT LIKE 'download:%' AND page NOT LIKE 'promo_%' " \
                     "AND page NOT LIKE 'push_%' AND page NOT LIKE 'pwa_%'"
@@ -3746,6 +3747,11 @@ async def admin_stats(request: Request, days: int = Query(0, ge=0, le=365)):
                     """)
                     conversions = {r[0]: r[1] for r in cur.fetchall()}
 
+                # Earliest day we have bucketed data for (when daily tracking began)
+                cur.execute("SELECT MIN(day) FROM daily_stats")
+                _ts = cur.fetchone()
+                tracking_since = _ts[0].isoformat() if _ts and _ts[0] else None
+
                 # Top IPs by today's quota usage
                 cur.execute("""
                     SELECT ip, count FROM ip_quota
@@ -3774,6 +3780,7 @@ async def admin_stats(request: Request, days: int = Query(0, ge=0, le=365)):
 
     return {
         "window_days":      days,   # 0 = all-time
+        "daily_tracking_since": tracking_since,
         "total_downloads":  total_count,
         # All-time: counter minus vanity base. Windowed: sum of downloads in range.
         "real_downloads":   real_downloads,
