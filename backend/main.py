@@ -557,6 +557,25 @@ def _cache_set(url: str, data: dict):
     _CACHE[url] = (time.time(), data)
 
 
+def _cache_and_return(url: str, title: str, thumbnail, video_url: str,
+                      label: str = "Video (HD)", ext: str = "mp4"):
+    """Cache a single-format fallback result, then return it.
+
+    The paid/fallback extractors (HikerAPI, RapidAPI, GraphQL, etc.) return
+    directly and would otherwise bypass the in-memory result cache — meaning a
+    repeat download of the same URL within the TTL re-hits the paid API. Routing
+    those returns through here caches them, so repeats are served free.
+    """
+    response_data = {
+        "title": title,
+        "thumbnail": thumbnail,
+        "formats": [FormatInfo(label=label, url=video_url, ext=ext)],
+        "duration": None,
+    }
+    _cache_set(url, response_data)
+    return DownloadResponse(**response_data)
+
+
 def _subtitle_cache_get(url: str) -> dict | None:
     entry = _SUBTITLE_CACHE.get(url)
     if entry and time.time() - entry[0] < _SUBTITLE_CACHE_TTL:
@@ -1530,11 +1549,9 @@ async def download(request: Request, req: DownloadRequest):
             print(f"[twitter] yt-dlp failed ({type(_e1).__name__}), trying fxtwitter API", flush=True)
             _tw_result = await _twitter_fxapi_extract(req.url)
             if _tw_result:
-                return DownloadResponse(
-                    title=_tw_result["title"],
-                    thumbnail=_tw_result.get("thumbnail"),
-                    formats=[FormatInfo(label="Video (HD)", url=_tw_result["video_url"], ext="mp4")],
-                )
+                return _cache_and_return(
+                    req.url, _tw_result["title"],
+                    _tw_result.get("thumbnail"), _tw_result["video_url"])
             _extract_err = _e1
         elif is_facebook:
             # ── Facebook fallback chain ───────────────────────────────────────
@@ -1543,20 +1560,16 @@ async def download(request: Request, req: DownloadRequest):
                 print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying RapidAPI", flush=True)
                 _fb_api = await _rapidapi_extract(req.url)
                 if _fb_api:
-                    return DownloadResponse(
-                        title=_fb_api["title"],
-                        thumbnail=_fb_api.get("thumbnail"),
-                        formats=[FormatInfo(label="Video (HD)", url=_fb_api["video_url"], ext="mp4")],
-                    )
+                    return _cache_and_return(
+                        req.url, _fb_api["title"],
+                        _fb_api.get("thumbnail"), _fb_api["video_url"])
             # 2. HTML scrape (free fallback — works only for older/embedded videos)
             print(f"[facebook] trying HTML scrape", flush=True)
             _fb_result = await _facebook_html_extract(req.url)
             if _fb_result:
-                return DownloadResponse(
-                    title=_fb_result["title"],
-                    thumbnail=_fb_result.get("thumbnail"),
-                    formats=[FormatInfo(label="Video (HD)", url=_fb_result["video_url"], ext="mp4")],
-                )
+                return _cache_and_return(
+                    req.url, _fb_result["title"],
+                    _fb_result.get("thumbnail"), _fb_result["video_url"])
             _extract_err = _e1
         elif is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
@@ -1565,39 +1578,31 @@ async def download(request: Request, req: DownloadRequest):
                 print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying HikerAPI", flush=True)
                 _hiker_result = await _instagram_hiker_extract(req.url)
                 if _hiker_result:
-                    return DownloadResponse(
-                        title=_hiker_result["title"],
-                        thumbnail=_hiker_result.get("thumbnail"),
-                        formats=[FormatInfo(label="Video (HD)", url=_hiker_result["video_url"], ext="mp4")],
-                    )
+                    return _cache_and_return(
+                        req.url, _hiker_result["title"],
+                        _hiker_result.get("thumbnail"), _hiker_result["video_url"])
             # 1. curl_cffi GraphQL — free fallback
             print(f"[instagram] trying GraphQL", flush=True)
             _gql_result = await _instagram_graphql_extract(req.url, INSTAGRAM_COOKIES or "")
             if _gql_result:
-                return DownloadResponse(
-                    title=_gql_result["title"],
-                    thumbnail=_gql_result.get("thumbnail"),
-                    formats=[FormatInfo(label="Video (HD)", url=_gql_result["video_url"], ext="mp4")],
-                )
+                return _cache_and_return(
+                    req.url, _gql_result["title"],
+                    _gql_result.get("thumbnail"), _gql_result["video_url"])
             # 2. Page scrape + web_info fallback
             if INSTAGRAM_COOKIES:
                 print(f"[instagram] GraphQL failed, trying page scrape", flush=True)
                 _web_result = await _instagram_web_api_extract(req.url, INSTAGRAM_COOKIES)
                 if _web_result:
-                    return DownloadResponse(
-                        title=_web_result["title"],
-                        thumbnail=_web_result.get("thumbnail"),
-                        formats=[FormatInfo(label="Video (HD)", url=_web_result["video_url"], ext="mp4")],
-                    )
+                    return _cache_and_return(
+                        req.url, _web_result["title"],
+                        _web_result.get("thumbnail"), _web_result["video_url"])
             # 2. Mobile API (oembed → i.instagram.com) — no cookies needed
             print(f"[instagram] web API failed, trying mobile API", flush=True)
             _api_result = await _instagram_mobile_api_extract(req.url)
             if _api_result:
-                return DownloadResponse(
-                    title=_api_result["title"],
-                    thumbnail=_api_result.get("thumbnail"),
-                    formats=[FormatInfo(label="Video (HD)", url=_api_result["video_url"], ext="mp4")],
-                )
+                return _cache_and_return(
+                    req.url, _api_result["title"],
+                    _api_result.get("thumbnail"), _api_result["video_url"])
             # 3. yt-dlp retry with cookies (last resort)
             if INSTAGRAM_COOKIES:
                 print(f"[instagram] all API fallbacks failed, retrying yt-dlp with cookies", flush=True)
@@ -1628,11 +1633,8 @@ async def download(request: Request, req: DownloadRequest):
         print(f"[universal] all methods failed, trying RapidAPI fallback", flush=True)
         _uni = await _rapidapi_extract(req.url)
         if _uni:
-            return DownloadResponse(
-                title=_uni["title"],
-                thumbnail=_uni.get("thumbnail"),
-                formats=[FormatInfo(label="Video (HD)", url=_uni["video_url"], ext="mp4")],
-            )
+            return _cache_and_return(
+                req.url, _uni["title"], _uni.get("thumbnail"), _uni["video_url"])
 
     # ── Handle extraction error (DownloadError or unexpected) ──────────────────
     if _extract_err is not None:
