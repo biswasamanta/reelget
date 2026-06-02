@@ -3299,6 +3299,7 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     browser as fast as ffmpeg muxes them; the request lives as long as the
     transfer does.
     """
+    import sys
     safe = re.sub(r'[^\w\-]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'video'
 
     # Prefer a single pre-muxed HLS stream when one exists (Twitch quality
