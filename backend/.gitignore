@@ -2,3 +2,10 @@
 __pycache__/
 *.pyc
 cache/
+
+# Local test / runtime artifacts
+*.mp4
+test_dl.*
+uvicorn_out.txt
+uvicorn_err.txt
+*.log
