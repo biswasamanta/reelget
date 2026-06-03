@@ -2203,11 +2203,39 @@ async def _selftest_one(base: str, platform: str, url: str, mode: str) -> dict:
         return {"platform": platform, "ok": False, "detail": f"{type(ex).__name__}: {str(ex)[:80]}"}
 
 
+async def _selftest_proxy() -> dict:
+    """Check the residential proxy directly: can it reach the internet, and
+    what exit IP does it present? A failure here is the upstream cause of
+    Twitter/Vimeo/Facebook(proxy) download failures, so flagging it explicitly
+    turns three confusing platform errors into one actionable alert."""
+    if not PROXY_URL:
+        return {"platform": "Proxy", "ok": True, "detail": "not configured (skipped)"}
+    try:
+        async with httpx.AsyncClient(proxy=PROXY_URL, timeout=10) as client:
+            r = await client.get("https://api.ipify.org?format=json")
+        if r.status_code != 200:
+            return {"platform": "Proxy", "ok": False,
+                    "detail": f"HTTP {r.status_code} (check Webshare data/credentials)"}
+        ip = (r.json() or {}).get("ip", "?")
+        return {"platform": "Proxy", "ok": True, "detail": f"exit IP {ip}"}
+    except Exception as ex:
+        return {"platform": "Proxy", "ok": False,
+                "detail": f"DOWN — {type(ex).__name__}: {str(ex)[:70]} "
+                          "(likely Webshare data cap hit or credentials/IP changed)"}
+
+
 async def _run_platform_selftest() -> list[dict]:
-    """Run the self-test for every platform against this server's own endpoints."""
+    """Run the self-test for every platform against this server's own endpoints.
+    The residential-proxy health check runs first — proxy failures cascade into
+    several platform failures, so surfacing it up front makes alerts actionable."""
     port = os.environ.get("PORT", "8000")
     base = f"http://127.0.0.1:{port}"
     results = []
+
+    proxy_res = await _selftest_proxy()
+    print(f"[selftest] Proxy: {'OK' if proxy_res['ok'] else 'FAIL'} — {proxy_res['detail']}", flush=True)
+    results.append(proxy_res)
+
     for platform, cfg in SELFTEST_TARGETS.items():
         res = await _selftest_one(base, platform, cfg["url"], cfg["mode"])
         status = "OK" if res["ok"] else "FAIL"
@@ -2234,8 +2262,20 @@ async def _selftest_loop() -> None:
                 if failures:
                     lines = "\n".join(f"❌ <b>{r['platform']}</b>: {r['detail']}" for r in failures)
                     oks = ", ".join(r["platform"] for r in results if r["ok"]) or "none"
+                    # If the proxy is down, lead with it — the platform failures
+                    # that route through it are almost certainly downstream symptoms.
+                    proxy_down = any(r["platform"] == "Proxy" and not r["ok"] for r in failures)
+                    header = (
+                        "🔌 <b>ReelGet — RESIDENTIAL PROXY DOWN</b>\n\n"
+                        "The proxy isn't reachable. Twitter/X &amp; Vimeo downloads "
+                        "(which require it) will fail until it's restored.\n"
+                        "👉 Check Webshare: data/bandwidth cap, plan status, and that "
+                        "the authorized IP still matches.\n\n"
+                        if proxy_down else
+                        f"🚨 <b>ReelGet Daily Health Check — {len(failures)} check(s) FAILING</b>\n\n"
+                    )
                     msg = (
-                        f"🚨 <b>ReelGet Daily Health Check — {len(failures)} platform(s) FAILING</b>\n\n"
+                        f"{header}"
                         f"{lines}\n\n"
                         f"✅ Working: {oks}\n\n"
                         f"<i>Automated daily self-test.</i>"
