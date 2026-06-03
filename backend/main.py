@@ -3419,32 +3419,65 @@ async def proxy_download(url: str = Query(...), filename: str = Query("video"), 
     }
     content_type = _CT.get(ext.lower(), "video/mp4")
 
-    # Twitter's CDN (video.twimg.com) serves an empty body to datacenter IPs
-    # (returns 200 but 0 bytes). Route those downloads through the residential
-    # proxy so the bytes actually come through. Other CDNs (Instagram, TikTok,
-    # etc.) allow datacenter IPs, so we only proxy Twitter to save bandwidth.
-    _dl_proxy = None
-    if PROXY_URL and ("twimg" in url or "twitter" in url or "fbcdn" in url or "facebook" in url):
-        _dl_proxy = PROXY_URL
-        print(f"[proxy] routing download through residential proxy", flush=True)
+    # Build an ordered list of (proxy, user-agent) attempts. Different CDNs need
+    # different routing, and a URL that fails one way often succeeds another:
+    #
+    #  • Twitter (twimg): datacenter IPs get a 200 + 0 bytes, so the residential
+    #    proxy is REQUIRED; direct is a pointless fallback but harmless.
+    #  • Facebook (fbcdn): URLs resolved by fastsaverapi are NOT bound to our
+    #    proxy IP, so a DIRECT fetch usually works and the proxy may fail to
+    #    reach the specific edge. URLs we resolved via HTML-scrape are IP-bound
+    #    to the proxy. We don't know which produced this URL, so try BOTH —
+    #    direct first (cheap, works for the common RapidAPI case), then proxy.
+    #    Also try both UAs (crawler vs browser) since fbcdn is picky.
+    _is_fb = ("fbcdn" in url or "facebook" in url)
+    _is_tw = ("twimg" in url or "twitter" in url)
+    _browser_ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+    _crawler_ua = "facebookexternalhit/1.1"
+
+    attempts: list[tuple[str | None, str]] = []
+    if _is_tw and PROXY_URL:
+        attempts = [(PROXY_URL, headers["User-Agent"]), (None, headers["User-Agent"])]
+    elif _is_fb:
+        attempts = [(None, _crawler_ua), (None, _browser_ua)]
+        if PROXY_URL:
+            attempts += [(PROXY_URL, _crawler_ua), (PROXY_URL, _browser_ua)]
+    else:
+        attempts = [(None, headers["User-Agent"])]
 
     # Open the upstream connection and validate status BEFORE returning the
     # StreamingResponse. If we only checked inside the generator, a non-200
     # would raise after headers were already sent → client gets 200 + 0 bytes.
-    client = httpx.AsyncClient(follow_redirects=True, timeout=120, proxy=_dl_proxy)
-    try:
-        req_ctx = client.stream("GET", url, headers=headers)
-        r = await req_ctx.__aenter__()
-        if r.status_code != 200:
-            await req_ctx.__aexit__(None, None, None)
-            await client.aclose()
-            print(f"[proxy] CDN fetch failed: HTTP {r.status_code} for {url[:80]}", flush=True)
-            raise HTTPException(status_code=502, detail=f"CDN returned HTTP {r.status_code}")
-    except HTTPException:
-        raise
-    except Exception as _pe:
-        await client.aclose()
-        print(f"[proxy] connection error: {_pe} for {url[:80]}", flush=True)
+    client = req_ctx = r = None
+    last_problem = "no attempt made"
+    for _idx, (_dl_proxy, _ua) in enumerate(attempts):
+        _h = dict(headers)
+        _h["User-Agent"] = _ua
+        _client = httpx.AsyncClient(follow_redirects=True, timeout=120, proxy=_dl_proxy)
+        _route = "proxy" if _dl_proxy else "direct"
+        try:
+            _ctx = _client.stream("GET", url, headers=_h)
+            _r = await _ctx.__aenter__()
+            if _r.status_code == 200:
+                print(f"[proxy] CDN ok via {_route} (ua={_ua[:20]!r}) "
+                      f"attempt {_idx+1}/{len(attempts)}", flush=True)
+                client, req_ctx, r = _client, _ctx, _r
+                break
+            await _ctx.__aexit__(None, None, None)
+            await _client.aclose()
+            last_problem = f"HTTP {_r.status_code}"
+            print(f"[proxy] {_route} attempt {_idx+1}/{len(attempts)} → "
+                  f"{last_problem} for {url[:80]}", flush=True)
+        except Exception as _pe:
+            try: await _client.aclose()
+            except Exception: pass
+            last_problem = f"{type(_pe).__name__}: {str(_pe)[:80]}"
+            print(f"[proxy] {_route} attempt {_idx+1}/{len(attempts)} → "
+                  f"{last_problem} for {url[:80]}", flush=True)
+
+    if r is None:
+        print(f"[proxy] all {len(attempts)} CDN attempts failed ({last_problem})", flush=True)
         raise HTTPException(status_code=502, detail="Could not fetch the video from its CDN.")
 
     async def stream():
