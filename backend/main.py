@@ -3355,77 +3355,98 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
         fmt = ("best[height<=480][vcodec^=avc1]/best[height<=480][ext=mp4]"
                "/worst[height>=360]/worst")
 
-    cmd = [
-        sys.executable, "-m", "yt_dlp",
-        "--format", fmt,
-        "--output", "-",                       # pipe to stdout (no disk)
-        "--merge-output-format", "mp4",        # fragmented mp4 (frag_keyframe+empty_moov)
-        "--no-part", "--no-progress",
-        "--socket-timeout", "30",
-        "--retries", "10",
-        "--fragment-retries", "20",
-        "--concurrent-fragments", "8",         # parallel HLS segment fetch (faster VODs)
-        "--user-agent",
-        ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
-    ]
-    if PROXY_URL:
-        cmd += ["--proxy", PROXY_URL]
-    cmd.append(url)
+    def _build_cmd(use_proxy: bool) -> list[str]:
+        c = [
+            sys.executable, "-m", "yt_dlp",
+            "--format", fmt,
+            "--output", "-",                       # pipe to stdout (no disk)
+            "--merge-output-format", "mp4",        # fragmented mp4 (frag_keyframe+empty_moov)
+            "--no-part", "--no-progress",
+            "--socket-timeout", "30",
+            "--retries", "10",
+            "--fragment-retries", "20",
+            "--concurrent-fragments", "8",         # parallel HLS segment fetch (faster VODs)
+            "--user-agent",
+            ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+             "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+        ]
+        if use_proxy and PROXY_URL:
+            c += ["--proxy", PROXY_URL]
+        c.append(url)
+        return c
+
+    # Bandwidth optimization: try a DIRECT download first. Twitch/Vimeo/Dailymotion
+    # CDNs serve datacenter IPs fine, and these are the largest payloads (multi-GB
+    # Twitch VODs) — routing them through the metered residential proxy would burn
+    # the monthly bandwidth allowance fast. Only fall back to the proxy if the
+    # direct attempt produces no data (a CDN that actually blocks datacenter IPs).
+    attempts = [False] + ([True] if PROXY_URL else [])
 
     clean_title = safe
 
     async def stream_subprocess():
         bytes_sent = 0
         _MAX_BYTES = 3 * 1024 * 1024 * 1024  # 3 GB cap (long VODs need headroom)
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            # HLS extraction + first segments can be slow for long VODs — wait up
-            # to 90 s for the first byte before declaring failure.
+        for attempt_num, use_proxy in enumerate(attempts):
+            route = "proxy" if use_proxy else "direct"
+            proc = await asyncio.create_subprocess_exec(
+                *_build_cmd(use_proxy),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
             try:
-                first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=90)
-            except asyncio.TimeoutError:
-                first_chunk = b""
+                # HLS extraction + first segments can be slow for long VODs — wait
+                # up to 90 s for the first byte before declaring this route failed.
+                try:
+                    first_chunk = await asyncio.wait_for(proc.stdout.read(65536), timeout=90)
+                except asyncio.TimeoutError:
+                    first_chunk = b""
 
-            if not first_chunk:
+                if not first_chunk:
+                    try:
+                        err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                        err_text = err.decode(errors="replace").strip()
+                        if err_text:
+                            print(f"[download-hls] {route} no data — stderr: {err_text[:400]}", flush=True)
+                    except Exception:
+                        pass
+                    try: proc.kill()
+                    except Exception: pass
+                    try: await proc.wait()
+                    except Exception: pass
+                    if attempt_num < len(attempts) - 1:
+                        print(f"[download-hls] {route} failed, retrying via proxy", flush=True)
+                        continue
+                    print(f"[download-hls] all routes failed for {url}", flush=True)
+                    return
+
+                print(f"[download-hls] streaming via {route}", flush=True)
+                yield first_chunk
+                bytes_sent += len(first_chunk)
+                while True:
+                    chunk = await proc.stdout.read(65536)
+                    if not chunk:
+                        break
+                    bytes_sent += len(chunk)
+                    if bytes_sent > _MAX_BYTES:
+                        print(f"[download-hls] 3 GB cap reached — aborting {url}", flush=True)
+                        break
+                    yield chunk
+
                 try:
                     err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
                     err_text = err.decode(errors="replace").strip()
                     if err_text:
-                        print(f"[download-hls] no data — stderr: {err_text[:500]}", flush=True)
+                        print(f"[download-hls] stderr: {err_text[:1000]}", flush=True)
                 except Exception:
                     pass
-                return
-
-            yield first_chunk
-            bytes_sent += len(first_chunk)
-            while True:
-                chunk = await proc.stdout.read(65536)
-                if not chunk:
-                    break
-                bytes_sent += len(chunk)
-                if bytes_sent > _MAX_BYTES:
-                    print(f"[download-hls] 3 GB cap reached — aborting {url}", flush=True)
-                    break
-                yield chunk
-
-            try:
-                err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
-                err_text = err.decode(errors="replace").strip()
-                if err_text:
-                    print(f"[download-hls] stderr: {err_text[:1000]}", flush=True)
-            except Exception:
-                pass
-        finally:
-            print(f"[download-hls] sent {bytes_sent} bytes for {url}", flush=True)
-            try: proc.kill()
-            except Exception: pass
-            try: await proc.wait()
-            except Exception: pass
+                return  # streamed successfully — done
+            finally:
+                print(f"[download-hls] sent {bytes_sent} bytes for {url} ({route})", flush=True)
+                try: proc.kill()
+                except Exception: pass
+                try: await proc.wait()
+                except Exception: pass
 
     return StreamingResponse(
         stream_subprocess(),
