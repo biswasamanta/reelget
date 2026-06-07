@@ -1632,18 +1632,19 @@ async def download(request: Request, req: DownloadRequest):
             print(f"[dailymotion] yt-dlp failed ({type(_e1).__name__}), trying player metadata API", flush=True)
             _dm = await _dailymotion_extract(req.url)
             if _dm:
-                if _dm.get("mp4_url"):
-                    dl_url, lbl = _dm["mp4_url"], "HD Video (MP4)"
-                else:
-                    from urllib.parse import quote as _q
-                    dl_url = f"/api/download-hls?url={_q(_dm['hls_url'], safe='')}&label=hd"
-                    lbl = "HD Video (MP4)"
-                # Not cached: the HLS/MP4 URL carries a short-lived signed token,
-                # so a stale cache entry would 403 — always resolve fresh.
+                from urllib.parse import quote as _q
+                # Point downloads at /api/download-hls with the ORIGINAL page URL.
+                # download-hls re-resolves the media URL via the metadata API at
+                # download time, so its signed token is always fresh (no caching
+                # of a soon-to-expire token).
+                base = f"/api/download-hls?url={_q(req.url, safe='')}"
                 return DownloadResponse(
                     title=_dm["title"],
                     thumbnail=_dm.get("thumbnail"),
-                    formats=[FormatInfo(label=lbl, url=dl_url, ext="mp4")],
+                    formats=[
+                        FormatInfo(label="HD Video (MP4)", url=f"{base}&label=hd", ext="mp4"),
+                        FormatInfo(label="SD Video (MP4)", url=f"{base}&label=sd", ext="mp4"),
+                    ],
                 )
             _extract_err = _e1
         elif is_twitter:
@@ -3445,6 +3446,18 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     """
     import sys
     safe = re.sub(r'[^\w\-]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'video'
+
+    # Dailymotion: yt-dlp's extractor 401s (rotated OAuth token, upstream issue
+    # #4727). Resolve the page to a direct media URL via the player metadata API
+    # here — at DOWNLOAD time, so the signed token is fresh — then hand yt-dlp the
+    # raw m3u8/mp4, which its GENERIC handler downloads with no Dailymotion OAuth.
+    if re.search(r"dailymotion\.com|dai\.ly", url):
+        _dm = await _dailymotion_extract(url)
+        if _dm and (_dm.get("hls_url") or _dm.get("mp4_url")):
+            url = _dm.get("hls_url") or _dm.get("mp4_url")
+            print(f"[download-hls] dailymotion → resolved to media URL", flush=True)
+        else:
+            print(f"[download-hls] dailymotion metadata resolve failed, passing page URL to yt-dlp", flush=True)
 
     # Prefer a single pre-muxed HLS stream when one exists (Twitch quality
     # variants are already A/V-muxed → no ffmpeg merge needed, pipes cleanly).
