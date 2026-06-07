@@ -3616,28 +3616,38 @@ async def _dmdebug(url: str = Query(...)):
     media = (_dm or {}).get("hls_url") or (_dm or {}).get("mp4_url")
     if media:
         import sys as _s
-        cmd = [_s.executable, "-m", "yt_dlp", "--format",
+        base_cmd = [_s.executable, "-m", "yt_dlp", "--format",
                "best[height<=1080][vcodec^=avc1]/best[height<=1080][ext=mp4]/best",
                "--output", "-", "--merge-output-format", "mp4", "--no-part",
-               "--no-progress", "--socket-timeout", "30", media]
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+               "--no-progress", "--socket-timeout", "30"]
+        variants = {
+            "plain": base_cmd + [media],
+            "with_referer": base_cmd + [
+                "--referer", "https://www.dailymotion.com/",
+                "--user-agent", ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                 "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+                media],
+        }
+        out["ytdlp_on_m3u8"] = {}
+        for vname, cmd in variants.items():
             try:
-                first = await asyncio.wait_for(proc.stdout.read(65536), timeout=45)
-            except asyncio.TimeoutError:
-                first = b""
-            err = b""
-            try:
-                err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
-            except Exception:
-                pass
-            try: proc.kill()
-            except Exception: pass
-            out["ytdlp_on_m3u8"] = {"first_bytes": len(first),
-                                    "stderr": err.decode(errors="replace")[:600]}
-        except Exception as ex:
-            out["ytdlp_on_m3u8"] = {"exception": f"{type(ex).__name__}: {str(ex)[:150]}"}
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+                try:
+                    first = await asyncio.wait_for(proc.stdout.read(65536), timeout=45)
+                except asyncio.TimeoutError:
+                    first = b""
+                err = b""
+                try:
+                    err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+                except Exception:
+                    pass
+                try: proc.kill()
+                except Exception: pass
+                out["ytdlp_on_m3u8"][vname] = {"first_bytes": len(first),
+                                               "stderr": err.decode(errors="replace")[:400]}
+            except Exception as ex:
+                out["ytdlp_on_m3u8"][vname] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
     return out
 
 
