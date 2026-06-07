@@ -3612,8 +3612,28 @@ async def _dmdebug(url: str = Query(...)):
     _dm = await _dailymotion_extract(url)
     out["extract_result"] = {k: (v[:80] if isinstance(v, str) else v) for k, v in (_dm or {}).items()} if _dm else None
 
-    # Run yt-dlp on the resolved m3u8 and capture stderr + first-byte count.
+    # Fetch the manifest directly: plain httpx vs curl_cffi (Chrome TLS) to see
+    # if the 403 is a TLS-fingerprint block on the CDN.
     media = (_dm or {}).get("hls_url") or (_dm or {}).get("mp4_url")
+    if media:
+        _mh = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+               "Referer": "https://www.dailymotion.com/"}
+        try:
+            async with httpx.AsyncClient(timeout=20, follow_redirects=True) as c:
+                rr = await c.get(media, headers=_mh)
+            out["manifest_httpx"] = {"status": rr.status_code, "snip": rr.text[:160]}
+        except Exception as ex:
+            out["manifest_httpx"] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
+        try:
+            from curl_cffi import requests as _cf
+            def _cfget():
+                return _cf.get(media, headers=_mh, impersonate="chrome124", timeout=20)
+            rc = await asyncio.to_thread(_cfget)
+            out["manifest_curlcffi"] = {"status": rc.status_code, "snip": rc.text[:160]}
+        except Exception as ex:
+            out["manifest_curlcffi"] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
+    # Run yt-dlp on the resolved m3u8 and capture stderr + first-byte count.
     if media:
         import sys as _s
         base_cmd = [_s.executable, "-m", "yt_dlp", "--format",
