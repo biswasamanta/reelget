@@ -3573,6 +3573,47 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     )
 
 
+@app.get("/api/_dmdebug")
+async def _dmdebug(url: str = Query(...)):
+    """TEMP diagnostic: show what the Dailymotion metadata API returns from THIS
+    server (Railway datacenter IP), direct and via proxy. Remove after diagnosis."""
+    import urllib.parse as _up
+    m = re.search(r'(?:dailymotion\.com/(?:video|embed/video)/|dai\.ly/)([A-Za-z0-9]+)', url)
+    vid = m.group(1) if m else None
+    api = f"https://www.dailymotion.com/player/metadata/video/{vid}" if vid else None
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+        "Referer": "https://www.dailymotion.com/",
+        "Accept": "application/json, text/plain, */*",
+    }
+    out: dict = {"vid": vid}
+    for route, prox in (("direct", None), ("proxy", PROXY_URL)):
+        if route == "proxy" and not PROXY_URL:
+            continue
+        try:
+            async with httpx.AsyncClient(timeout=20, follow_redirects=True, proxy=prox) as c:
+                r = await c.get(api, headers=headers)
+            body_keys, hls, err = None, None, None
+            try:
+                j = r.json()
+                body_keys = list(j.keys())[:15]
+                err = j.get("error")
+                q = (j.get("qualities") or {}).get("auto") or []
+                hls = (q[0].get("url") if q and isinstance(q[0], dict) else None)
+            except Exception:
+                pass
+            out[route] = {"status": r.status_code, "keys": body_keys,
+                          "error": str(err)[:120] if err else None,
+                          "hls_present": bool(hls), "body_snip": r.text[:160]}
+        except Exception as ex:
+            out[route] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
+    # Also try the extractor itself
+    _dm = await _dailymotion_extract(url)
+    out["extract_result"] = {k: (v[:60] if isinstance(v, str) else v) for k, v in (_dm or {}).items()} if _dm else None
+    return out
+
+
 @app.get("/api/proxy")
 async def proxy_download(url: str = Query(...), filename: str = Query("video"), ext: str = Query("mp4")):
     headers = {
