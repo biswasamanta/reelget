@@ -3451,10 +3451,12 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     # #4727). Resolve the page to a direct media URL via the player metadata API
     # here — at DOWNLOAD time, so the signed token is fresh — then hand yt-dlp the
     # raw m3u8/mp4, which its GENERIC handler downloads with no Dailymotion OAuth.
+    is_dm = False
     if re.search(r"dailymotion\.com|dai\.ly", url):
         _dm = await _dailymotion_extract(url)
         if _dm and (_dm.get("hls_url") or _dm.get("mp4_url")):
             url = _dm.get("hls_url") or _dm.get("mp4_url")
+            is_dm = True
             print(f"[download-hls] dailymotion → resolved to media URL", flush=True)
         else:
             print(f"[download-hls] dailymotion metadata resolve failed, passing page URL to yt-dlp", flush=True)
@@ -3485,6 +3487,11 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
         ]
+        # Dailymotion's CDN (cdndirector/dmcdn) blocks non-browser TLS handshakes
+        # (plain yt-dlp/httpx → 403; Chrome TLS → 200). yt-dlp's --impersonate uses
+        # curl_cffi to present a real Chrome fingerprint for the manifest + segments.
+        if is_dm:
+            c += ["--impersonate", "chrome"]
         if use_proxy and PROXY_URL:
             c += ["--proxy", PROXY_URL]
         c.append(url)
@@ -3571,104 +3578,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             "Cache-Control": "no-store",
         },
     )
-
-
-@app.get("/api/_dmdebug")
-async def _dmdebug(url: str = Query(...)):
-    """TEMP diagnostic: show what the Dailymotion metadata API returns from THIS
-    server (Railway datacenter IP), direct and via proxy. Remove after diagnosis."""
-    import urllib.parse as _up
-    m = re.search(r'(?:dailymotion\.com/(?:video|embed/video)/|dai\.ly/)([A-Za-z0-9]+)', url)
-    vid = m.group(1) if m else None
-    api = f"https://www.dailymotion.com/player/metadata/video/{vid}" if vid else None
-    headers = {
-        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
-        "Referer": "https://www.dailymotion.com/",
-        "Accept": "application/json, text/plain, */*",
-    }
-    out: dict = {"vid": vid}
-    for route, prox in (("direct", None), ("proxy", PROXY_URL)):
-        if route == "proxy" and not PROXY_URL:
-            continue
-        try:
-            async with httpx.AsyncClient(timeout=20, follow_redirects=True, proxy=prox) as c:
-                r = await c.get(api, headers=headers)
-            body_keys, hls, err = None, None, None
-            try:
-                j = r.json()
-                body_keys = list(j.keys())[:15]
-                err = j.get("error")
-                q = (j.get("qualities") or {}).get("auto") or []
-                hls = (q[0].get("url") if q and isinstance(q[0], dict) else None)
-            except Exception:
-                pass
-            out[route] = {"status": r.status_code, "keys": body_keys,
-                          "error": str(err)[:120] if err else None,
-                          "hls_present": bool(hls), "body_snip": r.text[:160]}
-        except Exception as ex:
-            out[route] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
-    # Also try the extractor itself
-    _dm = await _dailymotion_extract(url)
-    out["extract_result"] = {k: (v[:80] if isinstance(v, str) else v) for k, v in (_dm or {}).items()} if _dm else None
-
-    # Fetch the manifest directly: plain httpx vs curl_cffi (Chrome TLS) to see
-    # if the 403 is a TLS-fingerprint block on the CDN.
-    media = (_dm or {}).get("hls_url") or (_dm or {}).get("mp4_url")
-    if media:
-        _mh = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
-               "Referer": "https://www.dailymotion.com/"}
-        try:
-            async with httpx.AsyncClient(timeout=20, follow_redirects=True) as c:
-                rr = await c.get(media, headers=_mh)
-            out["manifest_httpx"] = {"status": rr.status_code, "snip": rr.text[:160]}
-        except Exception as ex:
-            out["manifest_httpx"] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
-        try:
-            from curl_cffi import requests as _cf
-            def _cfget():
-                return _cf.get(media, headers=_mh, impersonate="chrome124", timeout=20)
-            rc = await asyncio.to_thread(_cfget)
-            out["manifest_curlcffi"] = {"status": rc.status_code, "snip": rc.text[:160]}
-        except Exception as ex:
-            out["manifest_curlcffi"] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
-    # Run yt-dlp on the resolved m3u8 and capture stderr + first-byte count.
-    if media:
-        import sys as _s
-        base_cmd = [_s.executable, "-m", "yt_dlp", "--format",
-               "best[height<=1080][vcodec^=avc1]/best[height<=1080][ext=mp4]/best",
-               "--output", "-", "--merge-output-format", "mp4", "--no-part",
-               "--no-progress", "--socket-timeout", "30"]
-        variants = {
-            "plain": base_cmd + [media],
-            "with_referer": base_cmd + [
-                "--referer", "https://www.dailymotion.com/",
-                "--user-agent", ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                                 "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
-                media],
-        }
-        out["ytdlp_on_m3u8"] = {}
-        for vname, cmd in variants.items():
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-                try:
-                    first = await asyncio.wait_for(proc.stdout.read(65536), timeout=45)
-                except asyncio.TimeoutError:
-                    first = b""
-                err = b""
-                try:
-                    err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
-                except Exception:
-                    pass
-                try: proc.kill()
-                except Exception: pass
-                out["ytdlp_on_m3u8"][vname] = {"first_bytes": len(first),
-                                               "stderr": err.decode(errors="replace")[:400]}
-            except Exception as ex:
-                out["ytdlp_on_m3u8"][vname] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
-    return out
 
 
 @app.get("/api/proxy")
