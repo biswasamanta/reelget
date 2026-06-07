@@ -761,6 +761,88 @@ async def _twitter_fxapi_extract(url: str) -> dict | None:
     return None
 
 
+async def _dailymotion_extract(url: str) -> dict | None:
+    """Resolve a Dailymotion video via the public player metadata endpoint,
+    bypassing yt-dlp's OAuth-token path (currently broken upstream — every
+    request 401s because Dailymotion rotated the bundled client token, see
+    yt-dlp issue #4727).
+
+    GET https://www.dailymotion.com/player/metadata/video/{id} returns JSON with
+    a `qualities` map: progressive MP4 entries keyed by height, plus an `auto`
+    HLS manifest. We prefer a direct MP4 when present (simplest download), else
+    return the HLS manifest URL to be streamed via /api/download-hls.
+
+    Returns {title, thumbnail, mp4_url?|hls_url?} or None.
+    """
+    m = re.search(r'(?:dailymotion\.com/(?:video|embed/video)/|dai\.ly/)([A-Za-z0-9]+)', url)
+    if not m:
+        return None
+    vid = m.group(1)
+    api = f"https://www.dailymotion.com/player/metadata/video/{vid}"
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+        "Referer": "https://www.dailymotion.com/",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+            r = await client.get(api, headers=headers)
+        print(f"[dailymotion] metadata → HTTP {r.status_code}", flush=True)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        if data.get("error"):
+            print(f"[dailymotion] error: {str(data.get('error'))[:120]}", flush=True)
+            return None
+        title = data.get("title") or "Dailymotion Video"
+        posters = data.get("posters") or {}
+        thumb = None
+        if isinstance(posters, dict) and posters:
+            # pick the highest-res poster (keys are widths as strings)
+            try:
+                thumb = posters[max(posters, key=lambda k: int(k))]
+            except Exception:
+                thumb = next(iter(posters.values()), None)
+
+        qualities = data.get("qualities") or {}
+        # Prefer a progressive MP4 (highest height that isn't 'auto').
+        best_mp4 = None
+        best_h = -1
+        for qkey, entries in qualities.items():
+            if qkey == "auto" or not isinstance(entries, list):
+                continue
+            for e in entries:
+                if not isinstance(e, dict):
+                    continue
+                typ = (e.get("type") or "").lower()
+                u = e.get("url")
+                if u and "mp4" in typ:
+                    try:
+                        h = int(re.sub(r"\D", "", qkey) or 0)
+                    except Exception:
+                        h = 0
+                    if h > best_h:
+                        best_h, best_mp4 = h, u
+        if best_mp4:
+            print(f"[dailymotion] success (mp4 {best_h}p) → {str(title)[:50]!r}", flush=True)
+            return {"title": str(title)[:120], "thumbnail": thumb, "mp4_url": best_mp4}
+
+        # Fall back to the adaptive HLS manifest.
+        auto = qualities.get("auto") or []
+        hls = auto[0].get("url") if auto and isinstance(auto[0], dict) else None
+        if hls:
+            print(f"[dailymotion] success (hls) → {str(title)[:50]!r}", flush=True)
+            return {"title": str(title)[:120], "thumbnail": thumb, "hls_url": hls}
+
+        print("[dailymotion] no playable quality in metadata", flush=True)
+        return None
+    except Exception as ex:
+        print(f"[dailymotion] error: {ex}", flush=True)
+        return None
+
+
 async def _rapidapi_extract(url: str) -> dict | None:
     """
     Resolve a video via the RapidAPI (fastsaverapi) universal downloader.
@@ -1544,7 +1626,27 @@ async def download(request: Request, req: DownloadRequest):
     except Exception as _e1:
         is_twitter = bool(re.search(r"twitter\.com|x\.com|t\.co", req.url))
         is_facebook = bool(re.search(r"facebook\.com|fb\.watch|fb\.com", req.url))
-        if is_twitter:
+        is_dailymotion = bool(re.search(r"dailymotion\.com|dai\.ly", req.url))
+        if is_dailymotion:
+            # ── Dailymotion: player metadata API (yt-dlp's OAuth path 401s) ────
+            print(f"[dailymotion] yt-dlp failed ({type(_e1).__name__}), trying player metadata API", flush=True)
+            _dm = await _dailymotion_extract(req.url)
+            if _dm:
+                if _dm.get("mp4_url"):
+                    dl_url, lbl = _dm["mp4_url"], "HD Video (MP4)"
+                else:
+                    from urllib.parse import quote as _q
+                    dl_url = f"/api/download-hls?url={_q(_dm['hls_url'], safe='')}&label=hd"
+                    lbl = "HD Video (MP4)"
+                # Not cached: the HLS/MP4 URL carries a short-lived signed token,
+                # so a stale cache entry would 403 — always resolve fresh.
+                return DownloadResponse(
+                    title=_dm["title"],
+                    thumbnail=_dm.get("thumbnail"),
+                    formats=[FormatInfo(label=lbl, url=dl_url, ext="mp4")],
+                )
+            _extract_err = _e1
+        elif is_twitter:
             # ── Twitter/X fallback: public fxtwitter API (free, no auth) ──────
             print(f"[twitter] yt-dlp failed ({type(_e1).__name__}), trying fxtwitter API", flush=True)
             _tw_result = await _twitter_fxapi_extract(req.url)
