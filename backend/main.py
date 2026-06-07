@@ -3610,7 +3610,34 @@ async def _dmdebug(url: str = Query(...)):
             out[route] = {"exception": f"{type(ex).__name__}: {str(ex)[:120]}"}
     # Also try the extractor itself
     _dm = await _dailymotion_extract(url)
-    out["extract_result"] = {k: (v[:60] if isinstance(v, str) else v) for k, v in (_dm or {}).items()} if _dm else None
+    out["extract_result"] = {k: (v[:80] if isinstance(v, str) else v) for k, v in (_dm or {}).items()} if _dm else None
+
+    # Run yt-dlp on the resolved m3u8 and capture stderr + first-byte count.
+    media = (_dm or {}).get("hls_url") or (_dm or {}).get("mp4_url")
+    if media:
+        import sys as _s
+        cmd = [_s.executable, "-m", "yt_dlp", "--format",
+               "best[height<=1080][vcodec^=avc1]/best[height<=1080][ext=mp4]/best",
+               "--output", "-", "--merge-output-format", "mp4", "--no-part",
+               "--no-progress", "--socket-timeout", "30", media]
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            try:
+                first = await asyncio.wait_for(proc.stdout.read(65536), timeout=45)
+            except asyncio.TimeoutError:
+                first = b""
+            err = b""
+            try:
+                err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
+            except Exception:
+                pass
+            try: proc.kill()
+            except Exception: pass
+            out["ytdlp_on_m3u8"] = {"first_bytes": len(first),
+                                    "stderr": err.decode(errors="replace")[:600]}
+        except Exception as ex:
+            out["ytdlp_on_m3u8"] = {"exception": f"{type(ex).__name__}: {str(ex)[:150]}"}
     return out
 
 
