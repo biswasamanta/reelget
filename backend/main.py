@@ -843,6 +843,68 @@ async def _dailymotion_extract(url: str) -> dict | None:
         return None
 
 
+async def _threads_extract(url: str) -> dict | None:
+    """Extract a Threads video by scraping the post page's embedded JSON.
+
+    Threads serves the full post payload (incl. video_versions with direct
+    cdninstagram mp4 URLs) inside <script type="application/json"> blobs — even
+    logged-out — but ONLY to clients with a real browser TLS fingerprint, so we
+    fetch with curl_cffi Chrome impersonation. Free, no API key, no cookies.
+
+    Returns {title, thumbnail, video_url} or None.
+    """
+    def _sync() -> dict | None:
+        try:
+            from curl_cffi import requests as cf_requests
+        except ImportError:
+            print("[threads] curl_cffi not available", flush=True)
+            return None
+        try:
+            r = cf_requests.get(
+                url, impersonate="chrome124", timeout=30,
+                headers={"Accept-Language": "en-US,en;q=0.9"},
+            )
+            print(f"[threads] page → HTTP {r.status_code} ({len(r.text)} bytes)", flush=True)
+            if r.status_code != 200:
+                return None
+            best = title = thumb = None
+            for m in re.finditer(r'<script type="application/json"[^>]*>(.*?)</script>',
+                                 r.text, re.DOTALL):
+                blob = m.group(1)
+                if "video_versions" not in blob:
+                    continue
+                try:
+                    data = json.loads(blob)
+                except Exception:
+                    continue
+                for d in _fb_walk_json(data):
+                    vv = d.get("video_versions")
+                    if isinstance(vv, list) and vv and not best:
+                        urls = [v.get("url") for v in vv
+                                if isinstance(v, dict) and v.get("url")]
+                        if urls:
+                            best = urls[0]  # type 101 (highest quality) is listed first
+                            iv = (d.get("image_versions2") or {}).get("candidates") or []
+                            if iv:
+                                thumb = iv[0].get("url")
+                            cap = d.get("caption")
+                            if isinstance(cap, dict):
+                                title = cap.get("text")
+                if best:
+                    break
+            if not best:
+                print("[threads] no video_versions in page JSON", flush=True)
+                return None
+            title = (title or "Threads Video").strip()
+            print(f"[threads] success → {title[:50]!r}", flush=True)
+            return {"title": title[:120], "thumbnail": thumb, "video_url": best}
+        except Exception as ex:
+            print(f"[threads] error: {ex}", flush=True)
+            return None
+
+    return await asyncio.to_thread(_sync)
+
+
 async def _rapidapi_extract(url: str) -> dict | None:
     """
     Resolve a video via the RapidAPI (fastsaverapi) universal downloader.
@@ -1627,7 +1689,18 @@ async def download(request: Request, req: DownloadRequest):
         is_twitter = bool(re.search(r"twitter\.com|x\.com|t\.co", req.url))
         is_facebook = bool(re.search(r"facebook\.com|fb\.watch|fb\.com", req.url))
         is_dailymotion = bool(re.search(r"dailymotion\.com|dai\.ly", req.url))
-        if is_dailymotion:
+        is_threads = bool(re.search(r"threads\.net|threads\.com", req.url))
+        if is_threads:
+            # ── Threads: page-scrape via curl_cffi (free, no API key) ─────────
+            # yt-dlp has no threads.com extractor; the universal RapidAPI
+            # fallback covers Threads only unreliably, so scrape first.
+            print(f"[threads] yt-dlp failed ({type(_e1).__name__}), trying page scrape", flush=True)
+            _th = await _threads_extract(req.url)
+            if _th:
+                return _cache_and_return(
+                    req.url, _th["title"], _th.get("thumbnail"), _th["video_url"])
+            _extract_err = _e1
+        elif is_dailymotion:
             # ── Dailymotion: player metadata API (yt-dlp's OAuth path 401s) ────
             print(f"[dailymotion] yt-dlp failed ({type(_e1).__name__}), trying player metadata API", flush=True)
             _dm = await _dailymotion_extract(req.url)
