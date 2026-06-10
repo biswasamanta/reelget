@@ -557,6 +557,72 @@ def _cache_set(url: str, data: dict):
     _CACHE[url] = (time.time(), data)
 
 
+# ── Real-time failure-rate monitor ──────────────────────────────────────────
+# A platform can break silently between daily self-tests (e.g. Threads when the
+# RapidAPI fallback stopped covering it). Track the last N resolve outcomes per
+# platform and fire a Telegram alert as soon as the failure ratio spikes —
+# minutes after a breakage instead of up to 24h later.
+
+_PLATFORM_PATTERNS: list[tuple[str, str]] = [
+    (r"instagram\.com", "instagram"),
+    (r"youtube\.com|youtu\.be", "youtube"),
+    (r"tiktok\.com|vm\.tiktok\.com", "tiktok"),
+    (r"facebook\.com|fb\.watch", "facebook"),
+    (r"twitter\.com|x\.com|t\.co", "twitter"),
+    (r"pinterest\.com|pin\.it", "pinterest"),
+    (r"snapchat\.com", "snapchat"),
+    (r"linkedin\.com", "linkedin"),
+    (r"reddit\.com|redd\.it", "reddit"),
+    (r"vimeo\.com", "vimeo"),
+    (r"dailymotion\.com|dai\.ly", "dailymotion"),
+    (r"twitch\.tv", "twitch"),
+    (r"threads\.net|threads\.com", "threads"),
+]
+
+
+def _platform_of(url: str) -> str:
+    for pattern, name in _PLATFORM_PATTERNS:
+        if re.search(pattern, url):
+            return name
+    return "other"
+
+
+from collections import deque as _deque
+
+_OUTCOMES: dict[str, "_deque[int]"] = {}     # platform → last N outcomes (1=ok, 0=fail)
+_FAIL_ALERTED_AT: dict[str, float] = {}      # platform → last alert timestamp
+_FAIL_WINDOW = 10          # rolling window size
+_FAIL_MIN_SAMPLES = 5      # don't judge on fewer than this many attempts
+_FAIL_RATIO = 0.7          # alert when ≥70% of the window failed
+_FAIL_COOLDOWN = 6 * 3600  # max one alert per platform per 6h
+
+
+def _record_outcome(platform: str, ok: bool) -> None:
+    dq = _OUTCOMES.setdefault(platform, _deque(maxlen=_FAIL_WINDOW))
+    dq.append(1 if ok else 0)
+    if ok or len(dq) < _FAIL_MIN_SAMPLES:
+        return
+    fails = list(dq).count(0)
+    if fails / len(dq) < _FAIL_RATIO:
+        return
+    now = time.time()
+    if now - _FAIL_ALERTED_AT.get(platform, 0.0) < _FAIL_COOLDOWN:
+        return
+    _FAIL_ALERTED_AT[platform] = now
+    print(f"[failmon] {platform}: {fails}/{len(dq)} recent resolves failed — alerting", flush=True)
+    msg = (
+        f"⚠️ <b>ReelGet — {platform.title()} failing right now</b>\n\n"
+        f"{fails} of the last {len(dq)} resolve attempts failed.\n"
+        f"Check Railway logs for <code>[{platform}]</code> lines.\n\n"
+        f"<i>Real-time monitor: alerts at ≥{int(_FAIL_RATIO*100)}% failures in the last "
+        f"{_FAIL_WINDOW} attempts, max one alert per platform per {_FAIL_COOLDOWN // 3600}h.</i>"
+    )
+    try:
+        asyncio.create_task(_send_telegram_alert(msg))
+    except RuntimeError:
+        pass  # no running loop (shouldn't happen inside the endpoint)
+
+
 def _cache_and_return(url: str, title: str, thumbnail, video_url: str,
                       label: str = "Video (HD)", ext: str = "mp4"):
     """Cache a single-format fallback result, then return it.
@@ -1554,6 +1620,21 @@ async def _instagram_mobile_api_extract(url: str) -> dict | None:
 @app.post("/api/download", response_model=DownloadResponse)
 @limiter.limit("20/minute")
 async def download(request: Request, req: DownloadRequest):
+    """Thin wrapper around the real resolver that feeds the real-time
+    failure monitor. 400 (unsupported platform) and 429 (quota) are user/abuse
+    conditions, not platform breakage, so they don't count as failures."""
+    platform = _platform_of(req.url)
+    try:
+        resp = await _download_impl(request, req)
+        _record_outcome(platform, True)
+        return resp
+    except HTTPException as e:
+        if e.status_code not in (400, 429):
+            _record_outcome(platform, False)
+        raise
+
+
+async def _download_impl(request: Request, req: DownloadRequest):
     req = req.model_copy(update={"url": _normalize_url(req.url)})
     if not SUPPORTED_PATTERN.search(req.url):
         raise HTTPException(status_code=400, detail="Unsupported platform")
@@ -1988,24 +2069,9 @@ async def download(request: Request, req: DownloadRequest):
     _db_increment()  # persist to DB (fire and forget — fallback to in-memory if fails)
 
     # Track which platform was downloaded
-    for pattern, label in [
-        (r"instagram\.com", "download:instagram"),
-        (r"youtube\.com|youtu\.be", "download:youtube"),
-        (r"tiktok\.com|vm\.tiktok\.com", "download:tiktok"),
-        (r"facebook\.com|fb\.watch", "download:facebook"),
-        (r"twitter\.com|x\.com|t\.co", "download:twitter"),
-        (r"pinterest\.com|pin\.it", "download:pinterest"),
-        (r"snapchat\.com", "download:snapchat"),
-        (r"linkedin\.com", "download:linkedin"),
-        (r"reddit\.com|redd\.it", "download:reddit"),
-        (r"vimeo\.com", "download:vimeo"),
-        (r"dailymotion\.com|dai\.ly", "download:dailymotion"),
-        (r"twitch\.tv", "download:twitch"),
-        (r"threads\.net|threads\.com", "download:threads"),
-    ]:
-        if re.search(pattern, req.url):
-            _db_track_page(label)
-            break
+    _plat = _platform_of(req.url)
+    if _plat != "other":
+        _db_track_page(f"download:{_plat}")
 
     response_data = {
         "title": info.get("title", "Video"),
@@ -2340,6 +2406,13 @@ SELFTEST_TARGETS = {
     "Instagram": {"url": "https://www.instagram.com/reel/DY1vXr6iqxr/",               "mode": "proxy"},
     "Twitter/X": {"url": "https://x.com/SpaceX/status/1732824684683784516",           "mode": "proxy"},
     "Facebook":  {"url": "https://www.facebook.com/reel/1860942398211698",            "mode": "proxy"},
+    "Threads":   {"url": "https://www.threads.com/@mid_nightcricketarena/post/DZCKZWtDf4V", "mode": "proxy"},
+    # Twitch/Dailymotion downloads go via /api/download-hls (a "/api/…" format URL),
+    # so the byte-check is skipped automatically — resolution is the signal.
+    # NOTE: Twitch VODs eventually expire; update this URL if Twitch starts failing
+    # with not_found.
+    "Twitch":    {"url": "https://www.twitch.tv/videos/2782736257",                   "mode": "proxy"},
+    "Dailymotion": {"url": "https://dai.ly/xadp0v6",                                  "mode": "proxy"},
     "Vimeo":     {"url": "https://vimeo.com/76979871",                                "mode": "proxy"},
 }
 
