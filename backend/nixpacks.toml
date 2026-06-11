@@ -1,5 +1,6 @@
 [phases.setup]
-nixPkgs = ["python312", "ffmpeg", "deno", "nodejs_20"]
+# unzip is required by the Deno official installer (it ships zip archives).
+nixPkgs = ["python312", "ffmpeg", "deno", "nodejs_20", "unzip"]
 
 [phases.build]
 cmds = [

@@ -3770,8 +3770,20 @@ async def _ytdebug(url: str = Query("https://www.youtube.com/watch?v=dQw4w9WgXcQ
     et = err.decode(errors="replace")
     interesting = [l for l in et.splitlines()
                    if re.search(r"WARNING|ERROR|[Dd]eno|EJS|ejs|runtime|[Rr]emote comp|challenge|solver|player", l)]
+    import shutil as _sh
+    deno_path = _sh.which("deno")
+    deno_ver = None
+    if deno_path:
+        try:
+            p = await asyncio.create_subprocess_exec(deno_path, "--version",
+                                                     stdout=asyncio.subprocess.PIPE)
+            o, _ = await asyncio.wait_for(p.communicate(), timeout=10)
+            deno_ver = o.decode(errors="replace").splitlines()[0]
+        except Exception as ex:
+            deno_ver = f"err: {ex}"
     return {"first_bytes": len(first), "client": client, "proxy": bool(proxy),
             "cookies": bool(YOUTUBE_COOKIES),
+            "deno_path": deno_path, "deno_version": deno_ver,
             "interesting": interesting[:40]}
 
 
