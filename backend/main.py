@@ -3726,67 +3726,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     )
 
 
-@app.get("/api/_ytdebug")
-async def _ytdebug(url: str = Query("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
-                   client: str = Query("tv_downgraded,web_embedded"),
-                   proxy: int = Query(0)):
-    """TEMP diagnostic: replicate the YouTube streaming download's attempt and
-    return yt-dlp's full stderr. Remove after diagnosis."""
-    import sys as _s
-    cookies_file = None
-    if YOUTUBE_COOKIES:
-        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
-        tmp.write(YOUTUBE_COOKIES); tmp.close()
-        cookies_file = tmp.name
-    fmt = ("bestvideo[height<=720][vcodec^=avc1]+bestaudio[ext=m4a]"
-           "/bestvideo[height<=720][ext=mp4][vcodec!*=av01]+bestaudio"
-           "/best[height<=720][vcodec^=avc1]/best[height<=720]")
-    cmd = [_s.executable, "-m", "yt_dlp", "--format", fmt, "--output", "-",
-           "--merge-output-format", "mp4", "--no-part", "--no-progress",
-           "--socket-timeout", "20",
-           "--extractor-args", f"youtube:player_client={client}",
-           "--remote-components", "ejs:github", "--verbose"]
-    if proxy and PROXY_URL:
-        cmd += ["--proxy", PROXY_URL]
-    if cookies_file:
-        cmd += ["--cookies", cookies_file]
-    cmd.append(url)
-    proc = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    try:
-        first = await asyncio.wait_for(proc.stdout.read(65536), timeout=40)
-    except asyncio.TimeoutError:
-        first = b""
-    err = b""
-    try:
-        err = await asyncio.wait_for(proc.stderr.read(), timeout=8)
-    except Exception:
-        pass
-    try: proc.kill()
-    except Exception: pass
-    if cookies_file:
-        try: os.unlink(cookies_file)
-        except Exception: pass
-    et = err.decode(errors="replace")
-    interesting = [l for l in et.splitlines()
-                   if re.search(r"WARNING|ERROR|[Dd]eno|EJS|ejs|runtime|[Rr]emote comp|challenge|solver|player", l)]
-    import shutil as _sh
-    deno_path = _sh.which("deno")
-    deno_ver = None
-    if deno_path:
-        try:
-            p = await asyncio.create_subprocess_exec(deno_path, "--version",
-                                                     stdout=asyncio.subprocess.PIPE)
-            o, _ = await asyncio.wait_for(p.communicate(), timeout=10)
-            deno_ver = o.decode(errors="replace").splitlines()[0]
-        except Exception as ex:
-            deno_ver = f"err: {ex}"
-    return {"first_bytes": len(first), "client": client, "proxy": bool(proxy),
-            "cookies": bool(YOUTUBE_COOKIES),
-            "deno_path": deno_path, "deno_version": deno_ver,
-            "interesting": interesting[:40]}
-
-
 @app.get("/api/proxy")
 async def proxy_download(url: str = Query(...), filename: str = Query("video"), ext: str = Query("mp4")):
     headers = {
