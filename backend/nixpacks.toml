@@ -3,6 +3,13 @@ nixPkgs = ["python312", "ffmpeg", "deno", "nodejs_20"]
 
 [phases.build]
 cmds = [
+  # Install the LATEST Deno via the official installer. The nixpkgs `deno`
+  # (2.0.6) is now too old for yt-dlp's EJS challenge solver — it reports
+  # "deno-2.0.6 (unsupported)" and signature/n-challenge solving fails,
+  # which kills ALL YouTube format extraction. /opt/deno/bin is prepended
+  # to PATH in start.sh so the new binary wins over the nix one.
+  "curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/opt/deno sh -s -- --yes",
+  "/opt/deno/bin/deno --version",
   # Setup yt-dlp config so both CLI and Python API use Deno for JS challenge solving.
   "mkdir -p /root/.config/yt-dlp",
   "cp yt-dlp.conf /root/.config/yt-dlp/config",

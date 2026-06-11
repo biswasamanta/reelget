@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Latest Deno (installed in nixpacks build) must shadow the outdated nix deno —
+# yt-dlp's EJS challenge solver rejects deno 2.0.6 as unsupported.
+export PATH="/opt/deno/bin:$PATH"
+echo "[startup] deno: $(deno --version 2>/dev/null | head -1)"
+
 # ── bgutil PO token server ─────────────────────────────────────────────────
 # Provides YouTube BotGuard attestation (PO tokens) to yt-dlp via the
 # bgutil-ytdlp-pot-provider plugin. Listens on localhost:4416.
