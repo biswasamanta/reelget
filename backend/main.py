@@ -3768,10 +3768,11 @@ async def _ytdebug(url: str = Query("https://www.youtube.com/watch?v=dQw4w9WgXcQ
         try: os.unlink(cookies_file)
         except Exception: pass
     et = err.decode(errors="replace")
-    # keep the interesting tail (errors usually at the end) + header lines
+    interesting = [l for l in et.splitlines()
+                   if re.search(r"WARNING|ERROR|[Dd]eno|EJS|ejs|runtime|[Rr]emote comp|challenge|solver|player", l)]
     return {"first_bytes": len(first), "client": client, "proxy": bool(proxy),
             "cookies": bool(YOUTUBE_COOKIES),
-            "stderr_head": et[:600], "stderr_tail": et[-1800:]}
+            "interesting": interesting[:40]}
 
 
 @app.get("/api/proxy")
