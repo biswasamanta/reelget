@@ -2393,22 +2393,24 @@ async def _send_telegram_alert(message: str) -> None:
 
 
 # ── Daily platform self-test ───────────────────────────────────────────────────
-# Known-good public videos per platform. Resolution + (where applicable) a
-# small byte-range download are verified daily so breakages are caught early.
-# mode: "proxy"  → download is served via /api/proxy, so byte-check the CDN URL.
-#       "stream" → download uses a dedicated streaming endpoint (yt-dlp subprocess),
-#                  so the direct CDN URL is NOT the real download path. Resolution
-#                  success is the meaningful signal (byte-testing would false-fail
-#                  on IP-bound CDN URLs and spawn an expensive subprocess).
+# Known-good public videos per platform. EVERY platform gets a byte-level check
+# through its REAL download path — resolve-only checks have twice missed silent
+# download breakage (YouTube's Deno/EJS solver, Threads' RapidAPI fallback):
+#   "proxy"  → download is served via /api/proxy, so byte-check the CDN URL.
+#              If the format URL is an /api/… route (Twitch/Dailymotion HLS),
+#              byte-check that route directly instead.
+#   "stream" → download uses a dedicated streaming endpoint; byte-check it via
+#              the "dl" template ({u} = quoted source URL). Reads ~64 KB then
+#              disconnects, which kills the server-side subprocess.
 SELFTEST_TARGETS = {
-    "YouTube":   {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",                "mode": "stream"},
-    "TikTok":    {"url": "https://www.tiktok.com/@tiktok/video/7106594312292453675",  "mode": "stream"},
+    "YouTube":   {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",                "mode": "stream",
+                  "dl": "/api/download-youtube?url={u}&quality=sd"},
+    "TikTok":    {"url": "https://www.tiktok.com/@tiktok/video/7106594312292453675",  "mode": "stream",
+                  "dl": "/api/download-tiktok?url={u}&quality=sd"},
     "Instagram": {"url": "https://www.instagram.com/reel/DY1vXr6iqxr/",               "mode": "proxy"},
     "Twitter/X": {"url": "https://x.com/SpaceX/status/1732824684683784516",           "mode": "proxy"},
     "Facebook":  {"url": "https://www.facebook.com/reel/1860942398211698",            "mode": "proxy"},
     "Threads":   {"url": "https://www.threads.com/@mid_nightcricketarena/post/DZCKZWtDf4V", "mode": "proxy"},
-    # Twitch/Dailymotion downloads go via /api/download-hls (a "/api/…" format URL),
-    # so the byte-check is skipped automatically — resolution is the signal.
     # NOTE: Twitch VODs eventually expire; update this URL if Twitch starts failing
     # with not_found.
     "Twitch":    {"url": "https://www.twitch.tv/videos/2782736257",                   "mode": "proxy"},
@@ -2417,9 +2419,27 @@ SELFTEST_TARGETS = {
 }
 
 
-async def _selftest_one(base: str, platform: str, url: str, mode: str) -> dict:
-    """Resolve a platform URL and, for proxy-mode platforms, verify bytes flow.
-    Returns {platform, ok, detail}."""
+async def _selftest_bytecheck(client: httpx.AsyncClient, dl_url: str,
+                              min_bytes: int = 1024, cap: int = 65536) -> tuple[int, int]:
+    """Stream a download URL, read up to `cap` bytes, then disconnect.
+    Returns (status_code, bytes_received). Disconnecting cancels the server's
+    streaming generator, which kills any yt-dlp/ffmpeg subprocess it spawned."""
+    got = 0
+    async with client.stream("GET", dl_url, timeout=120) as r:
+        if r.status_code not in (200, 206):
+            return r.status_code, 0
+        async for chunk in r.aiter_bytes(8192):
+            got += len(chunk)
+            if got >= cap:
+                break
+    return 200, got
+
+
+async def _selftest_one(base: str, platform: str, url: str, mode: str,
+                        dl_template: str | None = None) -> dict:
+    """Resolve a platform URL, then verify real bytes flow through the same
+    download path a user would hit. Returns {platform, ok, detail}."""
+    import urllib.parse as _up
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             r = await client.post(f"{base}/api/download", json={"url": url, "quality": "hd"})
@@ -2432,21 +2452,27 @@ async def _selftest_one(base: str, platform: str, url: str, mode: str) -> dict:
             formats = data.get("formats") or []
             if not formats:
                 return {"platform": platform, "ok": False, "detail": "no formats returned"}
-            # Stream-mode platforms (YouTube/TikTok) download via a dedicated endpoint,
-            # not the direct CDN URL — resolution success is the meaningful check.
-            if mode == "stream":
-                return {"platform": platform, "ok": True, "detail": "resolved (stream endpoint)"}
-            fmt_url = formats[0].get("url") or ""
-            if not fmt_url.startswith("http"):
-                return {"platform": platform, "ok": True, "detail": "resolved"}
-            # Proxy-mode: verify real bytes download via the proxy (Range 0-65535).
-            import urllib.parse as _up
-            proxy_url = f"{base}/api/proxy?url={_up.quote(fmt_url, safe='')}&filename=selftest&ext=mp4"
-            pr = await client.get(proxy_url, headers={"Range": "bytes=0-65535"})
-            got = len(pr.content)
-            if pr.status_code not in (200, 206) or got < 1024:
+
+            # Pick the byte-check URL matching the real download path.
+            if mode == "stream" and dl_template:
+                # Dedicated streaming endpoint (yt-dlp subprocess → stdout pipe).
+                dl_url = f"{base}{dl_template.format(u=_up.quote(url, safe=''))}"
+            else:
+                fmt_url = formats[0].get("url") or ""
+                if fmt_url.startswith("/api/"):
+                    # Server-routed download (e.g. /api/download-hls for Twitch/DM).
+                    dl_url = f"{base}{fmt_url}"
+                elif fmt_url.startswith("http"):
+                    # Direct CDN URL → downloaded via /api/proxy in the frontend.
+                    dl_url = (f"{base}/api/proxy?url={_up.quote(fmt_url, safe='')}"
+                              f"&filename=selftest&ext=mp4")
+                else:
+                    return {"platform": platform, "ok": True, "detail": "resolved (no byte-check URL)"}
+
+            status, got = await _selftest_bytecheck(client, dl_url)
+            if status not in (200, 206) or got < 1024:
                 return {"platform": platform, "ok": False,
-                        "detail": f"download {pr.status_code}, {got} bytes"}
+                        "detail": f"download {status}, {got} bytes (resolve was OK)"}
             return {"platform": platform, "ok": True, "detail": f"{got} bytes ok"}
     except Exception as ex:
         return {"platform": platform, "ok": False, "detail": f"{type(ex).__name__}: {str(ex)[:80]}"}
@@ -2486,7 +2512,7 @@ async def _run_platform_selftest() -> list[dict]:
     results.append(proxy_res)
 
     for platform, cfg in SELFTEST_TARGETS.items():
-        res = await _selftest_one(base, platform, cfg["url"], cfg["mode"])
+        res = await _selftest_one(base, platform, cfg["url"], cfg["mode"], cfg.get("dl"))
         status = "OK" if res["ok"] else "FAIL"
         print(f"[selftest] {platform}: {status} — {res['detail']}", flush=True)
         results.append(res)
