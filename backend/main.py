@@ -1916,21 +1916,24 @@ async def _download_impl(request: Request, req: DownloadRequest):
             _extract_err = _e1
         elif is_facebook:
             # ── Facebook fallback chain ───────────────────────────────────────
-            # 1. RapidAPI managed downloader (FB never embeds the URL in HTML)
-            if FB_RAPIDAPI_KEY:
-                print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying RapidAPI", flush=True)
-                _fb_api = await _rapidapi_extract(req.url)
-                if _fb_api:
-                    return _cache_and_return(
-                        req.url, _fb_api["title"],
-                        _fb_api.get("thumbnail"), _fb_api["video_url"])
-            # 2. HTML scrape (free fallback — works only for older/embedded videos)
-            print(f"[facebook] trying HTML scrape", flush=True)
+            # 1. FREE HTML scrape (curl_cffi Chrome TLS + proxy + cookies) — tried
+            #    FIRST: no API quota consumed. Walks the page's Relay JSON for the
+            #    progressive video URL.
+            print(f"[facebook] yt-dlp failed ({type(_e1).__name__}), trying HTML scrape", flush=True)
             _fb_result = await _facebook_html_extract(req.url)
             if _fb_result:
                 return _cache_and_return(
                     req.url, _fb_result["title"],
                     _fb_result.get("thumbnail"), _fb_result["video_url"])
+            # 2. RapidAPI managed downloader — paid fallback when the scrape is
+            #    walled (and the monthly quota isn't exhausted).
+            if FB_RAPIDAPI_KEY:
+                print(f"[facebook] HTML scrape failed, trying RapidAPI", flush=True)
+                _fb_api = await _rapidapi_extract(req.url)
+                if _fb_api:
+                    return _cache_and_return(
+                        req.url, _fb_api["title"],
+                        _fb_api.get("thumbnail"), _fb_api["video_url"])
             _extract_err = _e1
         elif is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
