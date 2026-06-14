@@ -3752,6 +3752,38 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     )
 
 
+@app.get("/api/_igdebug")
+async def _igdebug(url: str = Query("https://www.instagram.com/reel/DY1vXr6iqxr/")):
+    """TEMP diagnostic: show HikerAPI raw responses + balance. Remove after."""
+    out: dict = {"hiker_key_set": bool(HIKER_API_KEY)}
+    if not HIKER_API_KEY:
+        return out
+    sm = re.search(r"/(reel|reels|p|tv)/([A-Za-z0-9_-]+)", url)
+    shortcode = sm.group(2) if sm else None
+    out["shortcode"] = shortcode
+    headers = {"x-access-key": HIKER_API_KEY, "accept": "application/json"}
+    async with httpx.AsyncClient(timeout=30.0) as hc:
+        # Balance / account status
+        for bep in ("https://api.hikerapi.com/sys/balance",
+                    "https://api.hikerapi.com/v1/sys/balance"):
+            try:
+                br = await hc.get(bep, headers=headers)
+                out[f"balance:{bep.rsplit('/',2)[-2]}"] = {"status": br.status_code, "body": br.text[:200]}
+            except Exception as ex:
+                out[f"balance:{bep}"] = f"err {type(ex).__name__}: {ex}"
+        # The actual media endpoints
+        if shortcode:
+            for ep in (f"https://api.hikerapi.com/v2/media/info/by/code?code={shortcode}",
+                       f"https://api.hikerapi.com/v1/media/by/code?code={shortcode}"):
+                try:
+                    r = await hc.get(ep, headers=headers)
+                    out[ep.split("?")[0].rsplit("/",3)[-3]+"_"+("v2" if "v2" in ep else "v1")] = {
+                        "status": r.status_code, "body_snip": r.text[:240]}
+                except Exception as ex:
+                    out[ep] = f"err {type(ex).__name__}: {ex}"
+    return out
+
+
 @app.get("/api/proxy")
 async def proxy_download(url: str = Query(...), filename: str = Query("video"), ext: str = Query("mp4")):
     headers = {
