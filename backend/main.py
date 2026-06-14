@@ -1199,6 +1199,26 @@ def _parse_netscape_cookies(cookie_str: str) -> dict:
     return cookies
 
 
+async def _alert_hiker_depleted() -> None:
+    """Telegram alert when HikerAPI returns 402 (balance exhausted). Gated to at
+    most once per 6h via DB config so an outage doesn't spam."""
+    try:
+        last = float(_db_get_config("hiker_depleted_alerted_at") or 0.0)
+        if time.time() - last < 6 * 3600:
+            return
+        _db_set_config("hiker_depleted_alerted_at", str(time.time()))
+        await _send_telegram_alert(
+            "💸 <b>HikerAPI balance depleted — Instagram is DOWN</b>\n\n"
+            "HikerAPI is returning <code>402 InsufficientFunds</code>, so Instagram "
+            "downloads are failing.\n\n"
+            "👉 Top up: https://hikerapi.com/billing\n\n"
+            "<i>One alert per 6h until resolved.</i>"
+        )
+        print("[ig-hiker] balance depleted (402) — alert sent", flush=True)
+    except Exception as ex:
+        print(f"[ig-hiker] depleted-alert error: {ex}", flush=True)
+
+
 async def _instagram_hiker_extract(url: str) -> dict | None:
     """
     Resolve an Instagram reel via HikerAPI (managed Instagram API).
@@ -1226,6 +1246,11 @@ async def _instagram_hiker_extract(url: str) -> dict | None:
             async with httpx.AsyncClient(timeout=30.0) as _hc:
                 _r = await _hc.get(api_url, headers=headers)
             print(f"[ig-hiker] {api_url.split('?')[0]} → HTTP {_r.status_code}", flush=True)
+            if _r.status_code == 402:
+                # Prepaid balance exhausted — Instagram is effectively down until
+                # topped up. Fire a distinct, actionable alert (cooldown-gated).
+                await _alert_hiker_depleted()
+                return None
             if _r.status_code != 200:
                 continue
             data = _r.json()
@@ -3750,38 +3775,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             "Cache-Control": "no-store",
         },
     )
-
-
-@app.get("/api/_igdebug")
-async def _igdebug(url: str = Query("https://www.instagram.com/reel/DY1vXr6iqxr/")):
-    """TEMP diagnostic: show HikerAPI raw responses + balance. Remove after."""
-    out: dict = {"hiker_key_set": bool(HIKER_API_KEY)}
-    if not HIKER_API_KEY:
-        return out
-    sm = re.search(r"/(reel|reels|p|tv)/([A-Za-z0-9_-]+)", url)
-    shortcode = sm.group(2) if sm else None
-    out["shortcode"] = shortcode
-    headers = {"x-access-key": HIKER_API_KEY, "accept": "application/json"}
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        # Balance / account status
-        for bep in ("https://api.hikerapi.com/sys/balance",
-                    "https://api.hikerapi.com/v1/sys/balance"):
-            try:
-                br = await hc.get(bep, headers=headers)
-                out[f"balance:{bep.rsplit('/',2)[-2]}"] = {"status": br.status_code, "body": br.text[:200]}
-            except Exception as ex:
-                out[f"balance:{bep}"] = f"err {type(ex).__name__}: {ex}"
-        # The actual media endpoints
-        if shortcode:
-            for ep in (f"https://api.hikerapi.com/v2/media/info/by/code?code={shortcode}",
-                       f"https://api.hikerapi.com/v1/media/by/code?code={shortcode}"):
-                try:
-                    r = await hc.get(ep, headers=headers)
-                    out[ep.split("?")[0].rsplit("/",3)[-3]+"_"+("v2" if "v2" in ep else "v1")] = {
-                        "status": r.status_code, "body_snip": r.text[:240]}
-                except Exception as ex:
-                    out[ep] = f"err {type(ex).__name__}: {ex}"
-    return out
 
 
 @app.get("/api/proxy")
