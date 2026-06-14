@@ -3777,6 +3777,57 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     )
 
 
+@app.get("/api/_igalt")
+async def _igalt(url: str = Query("https://www.instagram.com/reel/DZR2Rwgzeyx/")):
+    """TEMP: probe payment-simple Instagram alternatives. Remove after."""
+    out: dict = {}
+    # 1. RapidAPI (fastsaverapi) — the service already used for Facebook.
+    try:
+        import urllib.parse as _up
+        api_url = f"https://{FB_RAPIDAPI_HOST}{FB_RAPIDAPI_PATH}?url={_up.quote(url, safe='')}"
+        async with httpx.AsyncClient(timeout=30) as c:
+            r = await c.get(api_url, headers={"x-rapidapi-key": FB_RAPIDAPI_KEY,
+                                              "x-rapidapi-host": FB_RAPIDAPI_HOST,
+                                              "Accept": "application/json"})
+        out["rapidapi"] = {"status": r.status_code, "keys": None, "snip": r.text[:300]}
+        try:
+            j = r.json()
+            out["rapidapi"]["keys"] = list(j.keys())[:15]
+        except Exception:
+            pass
+        out["rapidapi_extract"] = await _rapidapi_extract(url)
+    except Exception as ex:
+        out["rapidapi"] = f"err {type(ex).__name__}: {ex}"
+    # 2. Free curl_cffi page scrape for video_versions (Threads technique).
+    def _scrape():
+        try:
+            from curl_cffi import requests as cf
+        except ImportError:
+            return {"err": "no curl_cffi"}
+        try:
+            sess = cf.Session(impersonate="chrome124")
+            if PROXY_URL:
+                sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+            if INSTAGRAM_COOKIES:
+                for k, v in _parse_netscape_cookies(INSTAGRAM_COOKIES).items():
+                    sess.cookies.set(k, v, domain=".instagram.com")
+            rr = sess.get(url, headers={"Accept-Language": "en-US,en;q=0.9"}, timeout=30)
+            txt = rr.text
+            has_vv = "video_versions" in txt
+            login = "loginForm" in txt or "Log in to Instagram" in txt or '"viewer":null' in txt
+            vurl = None
+            m = re.search(r'"video_versions":\[\{[^}]*?"url":"([^"]+)"', txt)
+            if m:
+                vurl = m.group(1).encode().decode("unicode_escape")
+            return {"status": rr.status_code, "bytes": len(txt), "has_video_versions": has_vv,
+                    "looks_logged_out": login, "video_url_found": bool(vurl),
+                    "video_url": (vurl or "")[:90]}
+        except Exception as ex:
+            return {"err": f"{type(ex).__name__}: {ex}"}
+    out["page_scrape"] = await asyncio.to_thread(_scrape)
+    return out
+
+
 @app.get("/api/proxy")
 async def proxy_download(url: str = Query(...), filename: str = Query("video"), ext: str = Query("mp4")):
     headers = {
