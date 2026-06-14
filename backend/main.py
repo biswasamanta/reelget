@@ -1199,6 +1199,85 @@ def _parse_netscape_cookies(cookie_str: str) -> dict:
     return cookies
 
 
+async def _instagram_pagescrape_extract(url: str) -> dict | None:
+    """Extract an Instagram reel/post by scraping the page's embedded JSON.
+
+    Instagram embeds the media payload (video_versions with direct cdninstagram
+    mp4 URLs) in <script type="application/json"> blobs — the SAME structure
+    Threads uses — but only serves it to a client with a real browser TLS
+    fingerprint and a valid session. We fetch with curl_cffi Chrome impersonation
+    through the residential proxy with INSTAGRAM_COOKIES.
+
+    FREE — no API key, no prepaid balance. This is the primary Instagram method;
+    HikerAPI / RapidAPI are paid fallbacks only.
+
+    Returns {title, thumbnail, video_url} or None.
+    """
+    cookies = _parse_netscape_cookies(INSTAGRAM_COOKIES) if INSTAGRAM_COOKIES else {}
+
+    def _sync() -> dict | None:
+        try:
+            from curl_cffi import requests as cf_requests
+        except ImportError:
+            print("[ig-scrape] curl_cffi not available", flush=True)
+            return None
+        try:
+            sess = cf_requests.Session(impersonate="chrome124")
+            if PROXY_URL:
+                sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+            for k, v in cookies.items():
+                sess.cookies.set(k, v, domain=".instagram.com")
+            r = sess.get(url, headers={"Accept-Language": "en-US,en;q=0.9"}, timeout=30)
+            print(f"[ig-scrape] page → HTTP {r.status_code} ({len(r.text)} bytes)", flush=True)
+            if r.status_code != 200:
+                return None
+            html = r.text
+            if "video_versions" not in html:
+                print("[ig-scrape] no video_versions in page (login wall?)", flush=True)
+                return None
+            best = title = thumb = None
+            for m in re.finditer(r'<script type="application/json"[^>]*>(.*?)</script>',
+                                 html, re.DOTALL):
+                blob = m.group(1)
+                if "video_versions" not in blob:
+                    continue
+                try:
+                    data = json.loads(blob)
+                except Exception:
+                    continue
+                for d in _fb_walk_json(data):
+                    vv = d.get("video_versions")
+                    if isinstance(vv, list) and vv and not best:
+                        urls = [v.get("url") for v in vv
+                                if isinstance(v, dict) and v.get("url")]
+                        if urls:
+                            best = urls[0]  # highest quality is listed first
+                            iv = (d.get("image_versions2") or {}).get("candidates") or []
+                            if iv:
+                                thumb = iv[0].get("url")
+                            cap = d.get("caption")
+                            if isinstance(cap, dict):
+                                title = cap.get("text")
+                if best:
+                    break
+            # Fallback: regex if the JSON walk missed it (blob shape varies).
+            if not best:
+                rm = re.search(r'"video_versions":\[\{[^}]*?"url":"([^"]+)"', html)
+                if rm:
+                    best = rm.group(1).encode().decode("unicode_escape")
+            if not best:
+                print("[ig-scrape] video_versions present but no url parsed", flush=True)
+                return None
+            title = (title or "Instagram Reel").strip()
+            print(f"[ig-scrape] success → {title[:50]!r}", flush=True)
+            return {"title": title[:120], "thumbnail": thumb, "video_url": best}
+        except Exception as ex:
+            print(f"[ig-scrape] error: {ex}", flush=True)
+            return None
+
+    return await asyncio.to_thread(_sync)
+
+
 async def _alert_hiker_depleted() -> None:
     """Telegram alert when HikerAPI returns 402 (balance exhausted). Gated to at
     most once per 6h via DB config so an outage doesn't spam."""
@@ -1855,15 +1934,24 @@ async def _download_impl(request: Request, req: DownloadRequest):
             _extract_err = _e1
         elif is_instagram:
             # ── Instagram fallback chain ──────────────────────────────────────
-            # 0. HikerAPI (managed) — reliable, used first when configured
+            # 0. FREE page scrape (curl_cffi Chrome TLS + proxy + cookies) — tried
+            #    FIRST: no API key, no prepaid balance. Instagram embeds the video
+            #    in page JSON (video_versions), same as Threads.
+            print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying page scrape", flush=True)
+            _scrape_result = await _instagram_pagescrape_extract(req.url)
+            if _scrape_result:
+                return _cache_and_return(
+                    req.url, _scrape_result["title"],
+                    _scrape_result.get("thumbnail"), _scrape_result["video_url"])
+            # 1. HikerAPI (managed, paid) — reliable fallback when balance is funded
             if HIKER_API_KEY:
-                print(f"[instagram] yt-dlp failed ({type(_e1).__name__}), trying HikerAPI", flush=True)
+                print(f"[instagram] page scrape failed, trying HikerAPI", flush=True)
                 _hiker_result = await _instagram_hiker_extract(req.url)
                 if _hiker_result:
                     return _cache_and_return(
                         req.url, _hiker_result["title"],
                         _hiker_result.get("thumbnail"), _hiker_result["video_url"])
-            # 1. curl_cffi GraphQL — free fallback
+            # 3. curl_cffi GraphQL — free fallback
             print(f"[instagram] trying GraphQL", flush=True)
             _gql_result = await _instagram_graphql_extract(req.url, INSTAGRAM_COOKIES or "")
             if _gql_result:
@@ -3775,57 +3863,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             "Cache-Control": "no-store",
         },
     )
-
-
-@app.get("/api/_igalt")
-async def _igalt(url: str = Query("https://www.instagram.com/reel/DZR2Rwgzeyx/")):
-    """TEMP: probe payment-simple Instagram alternatives. Remove after."""
-    out: dict = {}
-    # 1. RapidAPI (fastsaverapi) — the service already used for Facebook.
-    try:
-        import urllib.parse as _up
-        api_url = f"https://{FB_RAPIDAPI_HOST}{FB_RAPIDAPI_PATH}?url={_up.quote(url, safe='')}"
-        async with httpx.AsyncClient(timeout=30) as c:
-            r = await c.get(api_url, headers={"x-rapidapi-key": FB_RAPIDAPI_KEY,
-                                              "x-rapidapi-host": FB_RAPIDAPI_HOST,
-                                              "Accept": "application/json"})
-        out["rapidapi"] = {"status": r.status_code, "keys": None, "snip": r.text[:300]}
-        try:
-            j = r.json()
-            out["rapidapi"]["keys"] = list(j.keys())[:15]
-        except Exception:
-            pass
-        out["rapidapi_extract"] = await _rapidapi_extract(url)
-    except Exception as ex:
-        out["rapidapi"] = f"err {type(ex).__name__}: {ex}"
-    # 2. Free curl_cffi page scrape for video_versions (Threads technique).
-    def _scrape():
-        try:
-            from curl_cffi import requests as cf
-        except ImportError:
-            return {"err": "no curl_cffi"}
-        try:
-            sess = cf.Session(impersonate="chrome124")
-            if PROXY_URL:
-                sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
-            if INSTAGRAM_COOKIES:
-                for k, v in _parse_netscape_cookies(INSTAGRAM_COOKIES).items():
-                    sess.cookies.set(k, v, domain=".instagram.com")
-            rr = sess.get(url, headers={"Accept-Language": "en-US,en;q=0.9"}, timeout=30)
-            txt = rr.text
-            has_vv = "video_versions" in txt
-            login = "loginForm" in txt or "Log in to Instagram" in txt or '"viewer":null' in txt
-            vurl = None
-            m = re.search(r'"video_versions":\[\{[^}]*?"url":"([^"]+)"', txt)
-            if m:
-                vurl = m.group(1).encode().decode("unicode_escape")
-            return {"status": rr.status_code, "bytes": len(txt), "has_video_versions": has_vv,
-                    "looks_logged_out": login, "video_url_found": bool(vurl),
-                    "video_url": (vurl or "")[:90]}
-        except Exception as ex:
-            return {"err": f"{type(ex).__name__}: {ex}"}
-    out["page_scrape"] = await asyncio.to_thread(_scrape)
-    return out
 
 
 @app.get("/api/proxy")
