@@ -74,6 +74,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  // True when the failure looks like platform-side breakage (extraction failed)
+  // rather than a user mistake (private video, typo'd link). Drives the
+  // "we're on it, check back later" reassurance note.
+  const [platformIssue, setPlatformIssue] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -373,6 +377,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
     }
     setStatus('loading');
     setResult(null);
+    setPlatformIssue(false);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/download`, {
         method: 'POST',
@@ -417,6 +422,10 @@ export default function DownloaderForm({ locale }: { locale: string }) {
             friendly = trimmed;
           }
         }
+        // Show the "platforms change things, we fix them" note for failures that
+        // look like extraction breakage — NOT for clear user-side reasons.
+        const userFault = /^(private|age_restricted|geo_blocked|not_found|invalid_url)/;
+        setPlatformIssue(!userFault.test(errorCode));
         setStatus('error');
         setErrorMsg(friendly || t('result.error'));
         return;
@@ -446,6 +455,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         })
         .catch(() => setTranscriptStatus('unavailable'));
     } catch {
+      setPlatformIssue(true);  // network/backend issue — not the user's fault
       setStatus('error');
       setErrorMsg(t('result.error'));
     }
@@ -743,9 +753,26 @@ export default function DownloaderForm({ locale }: { locale: string }) {
       {status === 'error' && (
         <div className="mt-4 bg-red-100 text-red-700 rounded-xl p-4 text-sm text-center">
           <p>{errorMsg}</p>
+          {platformIssue && (
+            <div className="mt-3 pt-3 border-t border-red-200 text-left text-red-600/90 space-y-1.5">
+              <p className="font-semibold flex items-center gap-1.5">
+                <span>🛠️</span> This is usually temporary — and not your fault.
+              </p>
+              <p>
+                Platforms like YouTube, Instagram, Facebook &amp; others frequently
+                change how their videos work to block downloaders. When that happens,
+                downloads can break for everyone for a short while.
+              </p>
+              <p>
+                We actively monitor for these breakages and ship a fix as soon as we
+                spot one — usually within a day. Please try again later, and thanks
+                for your patience! 🙏
+              </p>
+            </div>
+          )}
           <button
             onClick={handleDownload}
-            className="mt-2 text-xs font-semibold underline hover:no-underline"
+            className="mt-3 text-xs font-semibold underline hover:no-underline"
           >
             Try again
           </button>
