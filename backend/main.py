@@ -3745,7 +3745,7 @@ async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
 
 
 @app.get("/api/download-hls")
-async def download_hls(url: str = Query(...), label: str = Query("hd"), debug: int = Query(0)):
+async def download_hls(url: str = Query(...), label: str = Query("hd")):
     """Stream an HLS/DASH download (e.g. Twitch VODs, Dailymotion) back to the
     client as it downloads — yt-dlp+ffmpeg pipe a fragmented MP4 straight to
     stdout, so there is NO download-to-disk step and NO fixed time limit.
@@ -3794,55 +3794,23 @@ async def download_hls(url: str = Query(...), label: str = Query("hd"), debug: i
             "--retries", "10",
             "--fragment-retries", "20",
             "--concurrent-fragments", "8",         # parallel HLS segment fetch (faster VODs)
-            "--user-agent",
-            ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-             "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
         ]
         # Dailymotion's CDN (cdndirector/dmcdn) blocks non-browser TLS handshakes
-        # (plain yt-dlp/httpx → 403; Chrome TLS → 200). yt-dlp's --impersonate uses
-        # curl_cffi to present a real Chrome fingerprint for the manifest + segments.
+        # (plain yt-dlp/httpx → 403; Chrome TLS → 200). --impersonate makes yt-dlp
+        # use curl_cffi for a real Chrome fingerprint on the manifest + segments.
+        # CRITICAL: do NOT also pass --user-agent here — an explicit UA overrides
+        # the impersonation target's matching UA, breaking the fingerprint (Chrome
+        # TLS + mismatched UA) and the CDN 403s. Let --impersonate own the UA.
         if is_dm:
             c += ["--impersonate", "chrome"]
+        else:
+            c += ["--user-agent",
+                  ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")]
         if use_proxy and PROXY_URL:
             c += ["--proxy", PROXY_URL]
         c.append(url)
         return c
-
-    if debug:
-        out: dict = {"is_dm": is_dm, "resolved_url": url[:130]}
-        # 1. curl_cffi direct (known to return 200) — confirms token is live.
-        def _cf():
-            try:
-                from curl_cffi import requests as cf
-                r = cf.Session(impersonate="chrome124").get(
-                    url, headers={"Referer": "https://www.dailymotion.com/"}, timeout=20)
-                return {"status": r.status_code, "snip": r.text[:60]}
-            except Exception as ex:
-                return {"err": f"{type(ex).__name__}: {ex}"}
-        out["curlcffi_direct"] = await asyncio.to_thread(_cf)
-        # 2. yt-dlp with different --impersonate targets.
-        async def _yt(imp):
-            cmd = [sys.executable, "-m", "yt_dlp", "--format",
-                   "best[height<=480]/best", "--output", "-", "--merge-output-format",
-                   "mp4", "--no-part", "--no-progress", "--socket-timeout", "20"]
-            if imp:
-                cmd += ["--impersonate", imp]
-            cmd.append(url)
-            p = await asyncio.create_subprocess_exec(
-                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-            try:
-                fb = await asyncio.wait_for(p.stdout.read(65536), timeout=40)
-            except asyncio.TimeoutError:
-                fb = b""
-            e = b""
-            try: e = await asyncio.wait_for(p.stderr.read(), timeout=6)
-            except Exception: pass
-            try: p.kill()
-            except Exception: pass
-            return {"first_bytes": len(fb), "stderr_tail": e.decode(errors="replace")[-220:]}
-        for tgt in ("chrome", "chrome-124", "chrome-120:windows-10"):
-            out[f"ytdlp[{tgt}]"] = await _yt(tgt)
-        return out
 
     # Bandwidth optimization: try a DIRECT download first. Twitch/Vimeo/Dailymotion
     # CDNs serve datacenter IPs fine, and these are the largest payloads (multi-GB
