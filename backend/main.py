@@ -857,23 +857,26 @@ async def _dailymotion_extract(url: str) -> dict | None:
         # (TLS-fingerprint + rate-limit sensitive — same family as the CDN that
         # needs Chrome TLS). Fetch with curl_cffi Chrome impersonation, retrying
         # a few times, and fall back to the residential proxy on the last try.
+        # IMPORTANT: the m3u8/segment URLs returned here carry a signed token bound
+        # to the EXIT IP of this metadata request. yt-dlp downloads the manifest
+        # from Railway's DIRECT IP, so this fetch must also be DIRECT — routing it
+        # through the proxy would bind the token to the proxy IP and 403 the
+        # download. We only retry (the endpoint intermittently 401s a cold client).
         def _fetch_meta() -> dict | None:
             try:
                 from curl_cffi import requests as cf_requests
             except ImportError:
                 return None
-            for attempt in range(3):
+            for attempt in range(4):
                 try:
                     sess = cf_requests.Session(impersonate="chrome124")
-                    if attempt == 2 and PROXY_URL:  # last resort: different IP
-                        sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
                     rr = sess.get(api, headers=headers, timeout=20)
                     print(f"[dailymotion] metadata attempt {attempt+1} → HTTP {rr.status_code}", flush=True)
                     if rr.status_code == 200:
                         return rr.json()
                 except Exception as _ex:
                     print(f"[dailymotion] metadata attempt {attempt+1} err: {_ex}", flush=True)
-                time.sleep(0.8)
+                time.sleep(1.0)
             return None
 
         data = await asyncio.to_thread(_fetch_meta)
