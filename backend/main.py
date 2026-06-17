@@ -3809,22 +3809,40 @@ async def download_hls(url: str = Query(...), label: str = Query("hd"), debug: i
         return c
 
     if debug:
-        # Diagnostic: run yt-dlp once (direct) and return stderr instead of streaming.
-        proc = await asyncio.create_subprocess_exec(
-            *_build_cmd(False), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        try:
-            first = await asyncio.wait_for(proc.stdout.read(65536), timeout=45)
-        except asyncio.TimeoutError:
-            first = b""
-        err = b""
-        try:
-            err = await asyncio.wait_for(proc.stderr.read(), timeout=8)
-        except Exception:
-            pass
-        try: proc.kill()
-        except Exception: pass
-        return {"is_dm": is_dm, "resolved_url": url[:120], "first_bytes": len(first),
-                "stderr": err.decode(errors="replace")[-1500:]}
+        out: dict = {"is_dm": is_dm, "resolved_url": url[:130]}
+        # 1. curl_cffi direct (known to return 200) — confirms token is live.
+        def _cf():
+            try:
+                from curl_cffi import requests as cf
+                r = cf.Session(impersonate="chrome124").get(
+                    url, headers={"Referer": "https://www.dailymotion.com/"}, timeout=20)
+                return {"status": r.status_code, "snip": r.text[:60]}
+            except Exception as ex:
+                return {"err": f"{type(ex).__name__}: {ex}"}
+        out["curlcffi_direct"] = await asyncio.to_thread(_cf)
+        # 2. yt-dlp with different --impersonate targets.
+        async def _yt(imp):
+            cmd = [sys.executable, "-m", "yt_dlp", "--format",
+                   "best[height<=480]/best", "--output", "-", "--merge-output-format",
+                   "mp4", "--no-part", "--no-progress", "--socket-timeout", "20"]
+            if imp:
+                cmd += ["--impersonate", imp]
+            cmd.append(url)
+            p = await asyncio.create_subprocess_exec(
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            try:
+                fb = await asyncio.wait_for(p.stdout.read(65536), timeout=40)
+            except asyncio.TimeoutError:
+                fb = b""
+            e = b""
+            try: e = await asyncio.wait_for(p.stderr.read(), timeout=6)
+            except Exception: pass
+            try: p.kill()
+            except Exception: pass
+            return {"first_bytes": len(fb), "stderr_tail": e.decode(errors="replace")[-220:]}
+        for tgt in ("chrome", "chrome-124", "chrome-120:windows-10"):
+            out[f"ytdlp[{tgt}]"] = await _yt(tgt)
+        return out
 
     # Bandwidth optimization: try a DIRECT download first. Twitch/Vimeo/Dailymotion
     # CDNs serve datacenter IPs fine, and these are the largest payloads (multi-GB
