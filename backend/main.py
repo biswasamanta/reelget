@@ -853,12 +853,32 @@ async def _dailymotion_extract(url: str) -> dict | None:
         "Accept-Language": "en-US,en;q=0.9",
     }
     try:
-        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
-            r = await client.get(api, headers=headers)
-        print(f"[dailymotion] metadata → HTTP {r.status_code}", flush=True)
-        if r.status_code != 200:
+        # Dailymotion's metadata endpoint intermittently 401s plain clients
+        # (TLS-fingerprint + rate-limit sensitive — same family as the CDN that
+        # needs Chrome TLS). Fetch with curl_cffi Chrome impersonation, retrying
+        # a few times, and fall back to the residential proxy on the last try.
+        def _fetch_meta() -> dict | None:
+            try:
+                from curl_cffi import requests as cf_requests
+            except ImportError:
+                return None
+            for attempt in range(3):
+                try:
+                    sess = cf_requests.Session(impersonate="chrome124")
+                    if attempt == 2 and PROXY_URL:  # last resort: different IP
+                        sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+                    rr = sess.get(api, headers=headers, timeout=20)
+                    print(f"[dailymotion] metadata attempt {attempt+1} → HTTP {rr.status_code}", flush=True)
+                    if rr.status_code == 200:
+                        return rr.json()
+                except Exception as _ex:
+                    print(f"[dailymotion] metadata attempt {attempt+1} err: {_ex}", flush=True)
+                time.sleep(0.8)
             return None
-        data = r.json()
+
+        data = await asyncio.to_thread(_fetch_meta)
+        if not data:
+            return None
         if data.get("error"):
             print(f"[dailymotion] error: {str(data.get('error'))[:120]}", flush=True)
             return None
