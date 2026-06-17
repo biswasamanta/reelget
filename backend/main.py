@@ -3742,7 +3742,7 @@ async def download_tiktok(url: str = Query(...), quality: str = Query("hd")):
 
 
 @app.get("/api/download-hls")
-async def download_hls(url: str = Query(...), label: str = Query("hd")):
+async def download_hls(url: str = Query(...), label: str = Query("hd"), debug: int = Query(0)):
     """Stream an HLS/DASH download (e.g. Twitch VODs, Dailymotion) back to the
     client as it downloads — yt-dlp+ffmpeg pipe a fragmented MP4 straight to
     stdout, so there is NO download-to-disk step and NO fixed time limit.
@@ -3804,6 +3804,24 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             c += ["--proxy", PROXY_URL]
         c.append(url)
         return c
+
+    if debug:
+        # Diagnostic: run yt-dlp once (direct) and return stderr instead of streaming.
+        proc = await asyncio.create_subprocess_exec(
+            *_build_cmd(False), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        try:
+            first = await asyncio.wait_for(proc.stdout.read(65536), timeout=45)
+        except asyncio.TimeoutError:
+            first = b""
+        err = b""
+        try:
+            err = await asyncio.wait_for(proc.stderr.read(), timeout=8)
+        except Exception:
+            pass
+        try: proc.kill()
+        except Exception: pass
+        return {"is_dm": is_dm, "resolved_url": url[:120], "first_bytes": len(first),
+                "stderr": err.decode(errors="replace")[-1500:]}
 
     # Bandwidth optimization: try a DIRECT download first. Twitch/Vimeo/Dailymotion
     # CDNs serve datacenter IPs fine, and these are the largest payloads (multi-GB
