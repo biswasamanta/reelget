@@ -936,60 +936,77 @@ async def _threads_extract(url: str) -> dict | None:
     """Extract a Threads video by scraping the post page's embedded JSON.
 
     Threads serves the full post payload (incl. video_versions with direct
-    cdninstagram mp4 URLs) inside <script type="application/json"> blobs — even
-    logged-out — but ONLY to clients with a real browser TLS fingerprint, so we
-    fetch with curl_cffi Chrome impersonation. Free, no API key, no cookies.
+    cdninstagram mp4 URLs) inside <script type="application/json"> blobs — but
+    only to clients with a real browser TLS fingerprint, so we fetch with
+    curl_cffi Chrome impersonation. Free, no API key.
+
+    Threads intermittently redirects a cold request to an error page
+    (?error=invalid_post) with no video JSON, so we RETRY and, after the first
+    try, route through the residential proxy with Instagram cookies (Threads
+    auth is shared with instagram.com) for a stabler logged-in session.
 
     Returns {title, thumbnail, video_url} or None.
     """
+    cookies = _parse_netscape_cookies(INSTAGRAM_COOKIES) if INSTAGRAM_COOKIES else {}
+
     def _sync() -> dict | None:
         try:
             from curl_cffi import requests as cf_requests
         except ImportError:
             print("[threads] curl_cffi not available", flush=True)
             return None
-        try:
-            r = cf_requests.get(
-                url, impersonate="chrome124", timeout=30,
-                headers={"Accept-Language": "en-US,en;q=0.9"},
-            )
-            print(f"[threads] page → HTTP {r.status_code} ({len(r.text)} bytes)", flush=True)
-            if r.status_code != 200:
-                return None
-            best = title = thumb = None
-            for m in re.finditer(r'<script type="application/json"[^>]*>(.*?)</script>',
-                                 r.text, re.DOTALL):
-                blob = m.group(1)
-                if "video_versions" not in blob:
+        for attempt in range(3):
+            try:
+                sess = cf_requests.Session(impersonate="chrome124")
+                # After the first plain try, add proxy + cookies for a stabler
+                # session (helps when Threads serves the error/login page).
+                if attempt >= 1:
+                    if PROXY_URL:
+                        sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+                    for k, v in cookies.items():
+                        sess.cookies.set(k, v, domain=".threads.com")
+                        sess.cookies.set(k, v, domain=".instagram.com")
+                r = sess.get(url, headers={"Accept-Language": "en-US,en;q=0.9"}, timeout=30)
+                print(f"[threads] attempt {attempt+1} → HTTP {r.status_code} "
+                      f"({len(r.text)} bytes)", flush=True)
+                if r.status_code != 200 or "video_versions" not in r.text:
+                    time.sleep(0.8)
                     continue
-                try:
-                    data = json.loads(blob)
-                except Exception:
-                    continue
-                for d in _fb_walk_json(data):
-                    vv = d.get("video_versions")
-                    if isinstance(vv, list) and vv and not best:
-                        urls = [v.get("url") for v in vv
-                                if isinstance(v, dict) and v.get("url")]
-                        if urls:
-                            best = urls[0]  # type 101 (highest quality) is listed first
-                            iv = (d.get("image_versions2") or {}).get("candidates") or []
-                            if iv:
-                                thumb = iv[0].get("url")
-                            cap = d.get("caption")
-                            if isinstance(cap, dict):
-                                title = cap.get("text")
+                best = title = thumb = None
+                for m in re.finditer(r'<script type="application/json"[^>]*>(.*?)</script>',
+                                     r.text, re.DOTALL):
+                    blob = m.group(1)
+                    if "video_versions" not in blob:
+                        continue
+                    try:
+                        data = json.loads(blob)
+                    except Exception:
+                        continue
+                    for d in _fb_walk_json(data):
+                        vv = d.get("video_versions")
+                        if isinstance(vv, list) and vv and not best:
+                            urls = [v.get("url") for v in vv
+                                    if isinstance(v, dict) and v.get("url")]
+                            if urls:
+                                best = urls[0]  # type 101 (highest) listed first
+                                iv = (d.get("image_versions2") or {}).get("candidates") or []
+                                if iv:
+                                    thumb = iv[0].get("url")
+                                cap = d.get("caption")
+                                if isinstance(cap, dict):
+                                    title = cap.get("text")
+                    if best:
+                        break
                 if best:
-                    break
-            if not best:
-                print("[threads] no video_versions in page JSON", flush=True)
-                return None
-            title = (title or "Threads Video").strip()
-            print(f"[threads] success → {title[:50]!r}", flush=True)
-            return {"title": title[:120], "thumbnail": thumb, "video_url": best}
-        except Exception as ex:
-            print(f"[threads] error: {ex}", flush=True)
-            return None
+                    title = (title or "Threads Video").strip()
+                    print(f"[threads] success → {title[:50]!r}", flush=True)
+                    return {"title": title[:120], "thumbnail": thumb, "video_url": best}
+                print("[threads] video_versions present but no url parsed", flush=True)
+                time.sleep(0.8)
+            except Exception as ex:
+                print(f"[threads] attempt {attempt+1} error: {ex}", flush=True)
+                time.sleep(0.8)
+        return None
 
     return await asyncio.to_thread(_sync)
 
