@@ -3346,8 +3346,13 @@ async def download_youtube(
                 all_procs.append(proc)
 
                 try:
+                    # The proxy attempt does its whole extraction (player JS +
+                    # challenge solve + segment fetch) through the residential
+                    # proxy, which is much slower than direct — give it longer to
+                    # produce the first byte before declaring it failed.
+                    _first_timeout = 70 if use_proxy else 25
                     first_chunk = await asyncio.wait_for(
-                        proc.stdout.read(65536), timeout=25
+                        proc.stdout.read(65536), timeout=_first_timeout
                     )
                 except asyncio.TimeoutError:
                     first_chunk = b""
