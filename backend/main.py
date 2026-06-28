@@ -3912,6 +3912,48 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     )
 
 
+@app.get("/api/_ytdbg")
+async def _ytdbg(url: str = Query(...)):
+    """TEMP: run the YouTube DASH attempt direct vs via proxy, return stderr."""
+    import sys as _s
+    cookies_file = None
+    if YOUTUBE_COOKIES:
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        tmp.write(YOUTUBE_COOKIES); tmp.close(); cookies_file = tmp.name
+    fmt = ("bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]"
+           "/bestvideo[height<=480][ext=mp4][vcodec!*=av01]+bestaudio/best[height<=480]")
+    async def _run(use_proxy):
+        cmd = [_s.executable, "-m", "yt_dlp", "--format", fmt, "--output", "-",
+               "--merge-output-format", "mp4", "--no-part", "--no-progress",
+               "--socket-timeout", "20", "--extractor-args",
+               "youtube:player_client=tv_downgraded,web_embedded",
+               "--remote-components", "ejs:github"]
+        if use_proxy and PROXY_URL:
+            cmd += ["--proxy", PROXY_URL]
+        if cookies_file:
+            cmd += ["--cookies", cookies_file]
+        cmd.append(url)
+        p = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        try:
+            fb = await asyncio.wait_for(p.stdout.read(65536), timeout=45)
+        except asyncio.TimeoutError:
+            fb = b""
+        e = b""
+        try: e = await asyncio.wait_for(p.stderr.read(), timeout=8)
+        except Exception: pass
+        try: p.kill()
+        except Exception: pass
+        et = e.decode(errors="replace")
+        warn = [l for l in et.splitlines() if re.search(r"WARNING|ERROR|sign in|bot|format|unavailable|region|premium|members", l, re.I)]
+        return {"first_bytes": len(fb), "warnings": warn[:8]}
+    out = {"direct": await _run(False), "proxy": await _run(True)}
+    if cookies_file:
+        try: os.unlink(cookies_file)
+        except Exception: pass
+    return out
+
+
 @app.get("/api/proxy")
 async def proxy_download(url: str = Query(...), filename: str = Query("video"), ext: str = Query("mp4")):
     headers = {
