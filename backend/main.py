@@ -3286,6 +3286,17 @@ async def download_youtube(
                 ("best[height<=720]", "web"),
             ]
 
+    # Normalize to (fmt, client, use_proxy) and append a residential-proxy
+    # fallback. YouTube downloads go DIRECT by default — datacenter IPs work for
+    # most videos and direct saves the metered proxy bandwidth — but some videos
+    # withhold playable formats from datacenter IPs (resolve works, every direct
+    # download yields 0 bytes). For those, retry the DASH selector through the
+    # residential proxy as a last resort.
+    _attempts = [(f, c, False) for (f, c) in _attempts]
+    if PROXY_URL:
+        _dash_proxy = {"hd": _DASH_HD, "sd": _DASH_SD, "audio": fmt_sel}.get(quality, _DASH_HD)
+        _attempts.append((_dash_proxy, "tv_downgraded,web_embedded", True))
+
     # Build trim section string if start/end supplied
     _trim_start = start.strip()
     _trim_end   = end.strip()
@@ -3295,7 +3306,7 @@ async def download_youtube(
         _e = _trim_end   or "inf"
         _trim_section = f"*{_s}-{_e}"
 
-    def _build_cmd(fmt: str, client: str) -> list[str]:
+    def _build_cmd(fmt: str, client: str, use_proxy: bool = False) -> list[str]:
         c = [
             sys.executable, "-m", "yt_dlp",
             "--format", fmt,
@@ -3312,7 +3323,8 @@ async def download_youtube(
         if _trim_section:
             c += ["--download-sections", _trim_section,
                   "--force-keyframes-at-cuts"]
-        if sticky_proxy: c += ["--proxy", sticky_proxy]
+        _px = PROXY_URL if use_proxy else sticky_proxy
+        if _px: c += ["--proxy", _px]
         if cookies_file: c += ["--cookies", cookies_file]
         c.append(url)
         return c
@@ -3322,12 +3334,12 @@ async def download_youtube(
         all_procs: list[asyncio.subprocess.Process] = []
 
         try:
-            for attempt_num, (fmt, client) in enumerate(_attempts):
+            for attempt_num, (fmt, client, use_proxy) in enumerate(_attempts):
                 print(f"[download-youtube] attempt {attempt_num+1}/{len(_attempts)} "
-                      f"fmt={fmt} client={client}", flush=True)
+                      f"fmt={fmt} client={client} proxy={use_proxy}", flush=True)
 
                 proc = await asyncio.create_subprocess_exec(
-                    *_build_cmd(fmt, client),
+                    *_build_cmd(fmt, client, use_proxy),
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -3910,48 +3922,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             "Cache-Control": "no-store",
         },
     )
-
-
-@app.get("/api/_ytdbg")
-async def _ytdbg(url: str = Query(...)):
-    """TEMP: run the YouTube DASH attempt direct vs via proxy, return stderr."""
-    import sys as _s
-    cookies_file = None
-    if YOUTUBE_COOKIES:
-        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
-        tmp.write(YOUTUBE_COOKIES); tmp.close(); cookies_file = tmp.name
-    fmt = ("bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]"
-           "/bestvideo[height<=480][ext=mp4][vcodec!*=av01]+bestaudio/best[height<=480]")
-    async def _run(use_proxy):
-        cmd = [_s.executable, "-m", "yt_dlp", "--format", fmt, "--output", "-",
-               "--merge-output-format", "mp4", "--no-part", "--no-progress",
-               "--socket-timeout", "20", "--extractor-args",
-               "youtube:player_client=tv_downgraded,web_embedded",
-               "--remote-components", "ejs:github"]
-        if use_proxy and PROXY_URL:
-            cmd += ["--proxy", PROXY_URL]
-        if cookies_file:
-            cmd += ["--cookies", cookies_file]
-        cmd.append(url)
-        p = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        try:
-            fb = await asyncio.wait_for(p.stdout.read(65536), timeout=45)
-        except asyncio.TimeoutError:
-            fb = b""
-        e = b""
-        try: e = await asyncio.wait_for(p.stderr.read(), timeout=8)
-        except Exception: pass
-        try: p.kill()
-        except Exception: pass
-        et = e.decode(errors="replace")
-        warn = [l for l in et.splitlines() if re.search(r"WARNING|ERROR|sign in|bot|format|unavailable|region|premium|members", l, re.I)]
-        return {"first_bytes": len(fb), "warnings": warn[:8]}
-    out = {"direct": await _run(False), "proxy": await _run(True)}
-    if cookies_file:
-        try: os.unlink(cookies_file)
-        except Exception: pass
-    return out
 
 
 @app.get("/api/proxy")
