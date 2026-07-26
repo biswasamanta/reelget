@@ -827,7 +827,7 @@ async def _twitter_fxapi_extract(url: str) -> dict | None:
     return None
 
 
-async def _dailymotion_extract(url: str) -> dict | None:
+async def _dailymotion_extract(url: str, use_proxy: bool = False) -> dict | None:
     """Resolve a Dailymotion video via the public player metadata endpoint,
     bypassing yt-dlp's OAuth-token path (currently broken upstream — every
     request 401s because Dailymotion rotated the bundled client token, see
@@ -854,24 +854,27 @@ async def _dailymotion_extract(url: str) -> dict | None:
     }
     try:
         # Dailymotion's metadata endpoint intermittently 401s plain clients
-        # (TLS-fingerprint + rate-limit sensitive — same family as the CDN that
-        # needs Chrome TLS). Fetch with curl_cffi Chrome impersonation, retrying
-        # a few times, and fall back to the residential proxy on the last try.
-        # IMPORTANT: the m3u8/segment URLs returned here carry a signed token bound
-        # to the EXIT IP of this metadata request. yt-dlp downloads the manifest
-        # from Railway's DIRECT IP, so this fetch must also be DIRECT — routing it
-        # through the proxy would bind the token to the proxy IP and 403 the
-        # download. We only retry (the endpoint intermittently 401s a cold client).
+        # (TLS-fingerprint sensitive — same family as the CDN), so fetch with
+        # curl_cffi Chrome impersonation and retry.
+        #
+        # CRITICAL — exit-IP binding: the m3u8/segment URLs returned here carry a
+        # signed token bound to the EXIT IP of THIS request. The download must
+        # therefore leave from the same IP, so `use_proxy` here must match the
+        # route used to download. Callers pair them (see /api/download-hls);
+        # mixing routes 403s the manifest.
         def _fetch_meta() -> dict | None:
             try:
                 from curl_cffi import requests as cf_requests
             except ImportError:
                 return None
-            for attempt in range(4):
+            for attempt in range(3):
                 try:
                     sess = cf_requests.Session(impersonate="chrome124")
+                    if use_proxy and PROXY_URL:
+                        sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
                     rr = sess.get(api, headers=headers, timeout=20)
-                    print(f"[dailymotion] metadata attempt {attempt+1} → HTTP {rr.status_code}", flush=True)
+                    print(f"[dailymotion] metadata attempt {attempt+1} "
+                          f"({'proxy' if use_proxy else 'direct'}) → HTTP {rr.status_code}", flush=True)
                     if rr.status_code == 200:
                         return rr.json()
                 except Exception as _ex:
@@ -930,6 +933,84 @@ async def _dailymotion_extract(url: str) -> dict | None:
     except Exception as ex:
         print(f"[dailymotion] error: {ex}", flush=True)
         return None
+
+
+async def _vimeo_extract(url: str) -> dict | None:
+    """Resolve a Vimeo video via the public player config endpoint.
+
+    Every yt-dlp Vimeo client is currently broken upstream: the default `macos`
+    client 401s ("Unable to download macos API JSON"), `web` demands a login,
+    and `android`/`ios` "cannot fetch new OAuth tokens". The player config API
+    needs none of that:
+
+      GET https://player.vimeo.com/video/{id}/config
+        → request.files.progressive[]  (direct MP4s, keyed by quality/width)
+        → request.files.hls.cdns{}     (adaptive manifests)
+
+    Prefer the highest-resolution progressive MP4 (a plain URL the frontend can
+    pull through /api/proxy); fall back to the HLS manifest via
+    /api/download-hls. Free, no key, no cookies.
+
+    Returns {title, thumbnail, mp4_url?|hls_url?} or None.
+    """
+    # /video/123, /channels/x/123, /123/abcdef (unlisted hash), player.vimeo.com/video/123
+    m = re.search(r'vimeo\.com/(?:video/|channels/[\w-]+/|groups/[\w-]+/videos/)?(\d+)', url)
+    if not m:
+        return None
+    vid = m.group(1)
+    api = f"https://player.vimeo.com/video/{vid}/config"
+    headers = {
+        "Referer": "https://vimeo.com/",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    def _sync() -> dict | None:
+        try:
+            from curl_cffi import requests as cf_requests
+        except ImportError:
+            print("[vimeo] curl_cffi not available", flush=True)
+            return None
+        try:
+            r = cf_requests.get(api, impersonate="chrome124", timeout=25, headers=headers)
+            print(f"[vimeo] config → HTTP {r.status_code}", flush=True)
+            if r.status_code != 200:
+                return None
+            data = r.json()
+            video = data.get("video") or {}
+            title = video.get("title") or "Vimeo Video"
+            thumb = None
+            _th = video.get("thumbs")
+            if isinstance(_th, dict) and _th:
+                # keys are widths ("base", "640", "1280"); prefer the largest numeric
+                nums = [k for k in _th if str(k).isdigit()]
+                thumb = _th[max(nums, key=int)] if nums else next(iter(_th.values()), None)
+
+            files = ((data.get("request") or {}).get("files") or {})
+            prog = files.get("progressive") or []
+            best = None
+            if isinstance(prog, list) and prog:
+                cands = [p for p in prog if isinstance(p, dict) and p.get("url")]
+                if cands:
+                    best = max(cands, key=lambda p: (p.get("width") or 0))
+            if best:
+                print(f"[vimeo] success (mp4 {best.get('quality')}) → {str(title)[:50]!r}", flush=True)
+                return {"title": str(title)[:120], "thumbnail": thumb, "mp4_url": best["url"]}
+
+            # Fall back to an HLS manifest from any CDN.
+            cdns = ((files.get("hls") or {}).get("cdns") or {})
+            for _name, cfg in cdns.items():
+                if isinstance(cfg, dict) and cfg.get("url"):
+                    print(f"[vimeo] success (hls via {_name}) → {str(title)[:50]!r}", flush=True)
+                    return {"title": str(title)[:120], "thumbnail": thumb, "hls_url": cfg["url"]}
+
+            print("[vimeo] no playable file in config", flush=True)
+            return None
+        except Exception as ex:
+            print(f"[vimeo] error: {ex}", flush=True)
+            return None
+
+    return await asyncio.to_thread(_sync)
 
 
 async def _threads_extract(url: str) -> dict | None:
@@ -1915,6 +1996,7 @@ async def _download_impl(request: Request, req: DownloadRequest):
         is_facebook = bool(re.search(r"facebook\.com|fb\.watch|fb\.com", req.url))
         is_dailymotion = bool(re.search(r"dailymotion\.com|dai\.ly", req.url))
         is_threads = bool(re.search(r"threads\.net|threads\.com", req.url))
+        is_vimeo = bool(re.search(r"vimeo\.com", req.url))
         if is_threads:
             # ── Threads: page-scrape via curl_cffi (free, no API key) ─────────
             # yt-dlp has no threads.com extractor; the universal RapidAPI
@@ -1939,6 +2021,27 @@ async def _download_impl(request: Request, req: DownloadRequest):
                 return DownloadResponse(
                     title=_dm["title"],
                     thumbnail=_dm.get("thumbnail"),
+                    formats=[
+                        FormatInfo(label="HD Video (MP4)", url=f"{base}&label=hd", ext="mp4"),
+                        FormatInfo(label="SD Video (MP4)", url=f"{base}&label=sd", ext="mp4"),
+                    ],
+                )
+            _extract_err = _e1
+        elif is_vimeo:
+            # ── Vimeo: player config API (all yt-dlp Vimeo clients are broken) ─
+            print(f"[vimeo] yt-dlp failed ({type(_e1).__name__}), trying player config API", flush=True)
+            _vm = await _vimeo_extract(req.url)
+            if _vm:
+                if _vm.get("mp4_url"):
+                    # Direct MP4 → cacheable, downloaded via /api/proxy.
+                    return _cache_and_return(
+                        req.url, _vm["title"], _vm.get("thumbnail"), _vm["mp4_url"])
+                from urllib.parse import quote as _q
+                # HLS → stream via download-hls, re-resolved at download time.
+                base = f"/api/download-hls?url={_q(req.url, safe='')}"
+                return DownloadResponse(
+                    title=_vm["title"],
+                    thumbnail=_vm.get("thumbnail"),
                     formats=[
                         FormatInfo(label="HD Video (MP4)", url=f"{base}&label=hd", ext="mp4"),
                         FormatInfo(label="SD Video (MP4)", url=f"{base}&label=sd", ext="mp4"),
@@ -3792,19 +3895,34 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
     import sys
     safe = re.sub(r'[^\w\-]', '_', url.split('/')[-1].split('?')[0], flags=re.ASCII)[:40] or 'video'
 
-    # Dailymotion: yt-dlp's extractor 401s (rotated OAuth token, upstream issue
-    # #4727). Resolve the page to a direct media URL via the player metadata API
-    # here — at DOWNLOAD time, so the signed token is fresh — then hand yt-dlp the
-    # raw m3u8/mp4, which its GENERIC handler downloads with no Dailymotion OAuth.
-    is_dm = False
-    if re.search(r"dailymotion\.com|dai\.ly", url):
-        _dm = await _dailymotion_extract(url)
-        if _dm and (_dm.get("hls_url") or _dm.get("mp4_url")):
-            url = _dm.get("hls_url") or _dm.get("mp4_url")
-            is_dm = True
-            print(f"[download-hls] dailymotion → resolved to media URL", flush=True)
-        else:
-            print(f"[download-hls] dailymotion metadata resolve failed, passing page URL to yt-dlp", flush=True)
+    # Dailymotion / Vimeo: yt-dlp's own extractors are broken upstream (DM's
+    # OAuth token 401s — issue #4727; every Vimeo client 401s or needs a login).
+    # We resolve the page to a raw media URL ourselves and hand yt-dlp's GENERIC
+    # handler that URL instead.
+    #
+    # These signed media URLs are EXIT-IP-BOUND, so resolution happens inside the
+    # retry loop below — once per route — so the token is always minted from the
+    # same IP that will download it. Resolving once up front and then switching
+    # routes guarantees a 403 on the second attempt.
+    page_url = url
+    is_dm = bool(re.search(r"dailymotion\.com|dai\.ly", page_url))
+    is_vm = bool(re.search(r"vimeo\.com", page_url))
+
+    async def _resolve_media(use_proxy: bool) -> str | None:
+        """Return a raw media URL for this route, or None to use the page URL."""
+        if is_dm:
+            _dm = await _dailymotion_extract(page_url, use_proxy=use_proxy)
+            if _dm:
+                return _dm.get("hls_url") or _dm.get("mp4_url")
+            print("[download-hls] dailymotion metadata resolve failed", flush=True)
+            return None
+        if is_vm:
+            _vm = await _vimeo_extract(page_url)
+            if _vm:
+                return _vm.get("hls_url") or _vm.get("mp4_url")
+            print("[download-hls] vimeo config resolve failed", flush=True)
+            return None
+        return page_url
 
     # Prefer a single pre-muxed HLS stream when one exists (Twitch quality
     # variants are already A/V-muxed → no ffmpeg merge needed, pipes cleanly).
@@ -3817,7 +3935,7 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
         fmt = ("best[height<=480][vcodec^=avc1]/best[height<=480][ext=mp4]"
                "/worst[height>=360]/worst")
 
-    def _build_cmd(use_proxy: bool) -> list[str]:
+    def _build_cmd(use_proxy: bool, media_url: str) -> list[str]:
         c = [
             sys.executable, "-m", "yt_dlp",
             "--format", fmt,
@@ -3827,7 +3945,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             "--socket-timeout", "30",
             "--retries", "10",
             "--fragment-retries", "20",
-            "--concurrent-fragments", "8",         # parallel HLS segment fetch (faster VODs)
         ]
         # Dailymotion's CDN (cdndirector/dmcdn) blocks non-browser TLS handshakes
         # (plain yt-dlp/httpx → 403; Chrome TLS → 200). --impersonate makes yt-dlp
@@ -3835,15 +3952,20 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
         # CRITICAL: do NOT also pass --user-agent here — an explicit UA overrides
         # the impersonation target's matching UA, breaking the fingerprint (Chrome
         # TLS + mismatched UA) and the CDN 403s. Let --impersonate own the UA.
-        if is_dm:
-            c += ["--impersonate", "chrome"]
+        if is_dm or is_vm:
+            c += ["--impersonate", "chrome", "--referer", "https://www.dailymotion.com/"
+                  if is_dm else "https://vimeo.com/"]
+            # Serialize fragments for these CDNs — parallel segment fetches from a
+            # signed, IP-bound manifest get throttled/rejected.
+            c += ["--concurrent-fragments", "1"]
         else:
             c += ["--user-agent",
                   ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")]
+            c += ["--concurrent-fragments", "8"]   # parallel segments (faster VODs)
         if use_proxy and PROXY_URL:
             c += ["--proxy", PROXY_URL]
-        c.append(url)
+        c.append(media_url)
         return c
 
     # Bandwidth optimization: try a DIRECT download first. Twitch/Vimeo/Dailymotion
@@ -3860,8 +3982,17 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
         _MAX_BYTES = 3 * 1024 * 1024 * 1024  # 3 GB cap (long VODs need headroom)
         for attempt_num, use_proxy in enumerate(attempts):
             route = "proxy" if use_proxy else "direct"
+            # Mint the signed media URL on THIS route so the token's bound exit IP
+            # matches the IP that downloads it.
+            media_url = await _resolve_media(use_proxy)
+            if not media_url:
+                if attempt_num < len(attempts) - 1:
+                    print(f"[download-hls] {route} resolve failed, trying next route", flush=True)
+                    continue
+                print(f"[download-hls] could not resolve media URL for {page_url}", flush=True)
+                return
             proc = await asyncio.create_subprocess_exec(
-                *_build_cmd(use_proxy),
+                *_build_cmd(use_proxy, media_url),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -3888,7 +4019,7 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
                     if attempt_num < len(attempts) - 1:
                         print(f"[download-hls] {route} failed, retrying via proxy", flush=True)
                         continue
-                    print(f"[download-hls] all routes failed for {url}", flush=True)
+                    print(f"[download-hls] all routes failed for {page_url}", flush=True)
                     return
 
                 print(f"[download-hls] streaming via {route}", flush=True)
@@ -3900,7 +4031,7 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
                         break
                     bytes_sent += len(chunk)
                     if bytes_sent > _MAX_BYTES:
-                        print(f"[download-hls] 3 GB cap reached — aborting {url}", flush=True)
+                        print(f"[download-hls] 3 GB cap reached — aborting {page_url}", flush=True)
                         break
                     yield chunk
 
@@ -3913,7 +4044,7 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
                     pass
                 return  # streamed successfully — done
             finally:
-                print(f"[download-hls] sent {bytes_sent} bytes for {url} ({route})", flush=True)
+                print(f"[download-hls] sent {bytes_sent} bytes for {page_url} ({route})", flush=True)
                 try: proc.kill()
                 except Exception: pass
                 try: await proc.wait()
@@ -3927,48 +4058,6 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
             "Cache-Control": "no-store",
         },
     )
-
-
-@app.get("/api/_ytx")
-async def _ytx(url: str = Query(""), ping: int = Query(0), use_proxy: int = Query(1)):
-    """TEMP. ?ping=1 → instant deploy marker. ?url=... → run one DASH attempt
-    (proxy by default) and return first_bytes + stderr."""
-    if ping or not url:
-        return {"version": "ytx-3", "proxy_configured": bool(PROXY_URL)}
-    import sys as _s
-    cookies_file = None
-    if YOUTUBE_COOKIES:
-        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
-        tmp.write(YOUTUBE_COOKIES); tmp.close(); cookies_file = tmp.name
-    fmt = ("bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]"
-           "/bestvideo[height<=480][ext=mp4][vcodec!*=av01]+bestaudio/best[height<=480]")
-    cmd = [_s.executable, "-m", "yt_dlp", "--format", fmt, "--output", "-",
-           "--merge-output-format", "mp4", "--no-part", "--no-progress",
-           "--socket-timeout", "20", "--extractor-args",
-           "youtube:player_client=tv_downgraded,web_embedded", "--remote-components", "ejs:github"]
-    if use_proxy and PROXY_URL:
-        cmd += ["--proxy", PROXY_URL]
-    if cookies_file:
-        cmd += ["--cookies", cookies_file]
-    cmd.append(url)
-    p = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    try:
-        fb = await asyncio.wait_for(p.stdout.read(65536), timeout=75)
-    except asyncio.TimeoutError:
-        fb = b""
-    e = b""
-    try: e = await asyncio.wait_for(p.stderr.read(), timeout=8)
-    except Exception: pass
-    try: p.kill()
-    except Exception: pass
-    if cookies_file:
-        try: os.unlink(cookies_file)
-        except Exception: pass
-    et = e.decode(errors="replace")
-    warn = [l for l in et.splitlines() if re.search(r"WARNING|ERROR|sign in|bot|format|unavailable|region|premium|member|proxy|403|tunnel", l, re.I)]
-    return {"used_proxy": bool(use_proxy and PROXY_URL), "first_bytes": len(fb),
-            "warnings": warn[:10]}
 
 
 @app.get("/api/proxy")
