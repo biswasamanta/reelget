@@ -2672,7 +2672,10 @@ SELFTEST_TARGETS = {
     "Threads":   {"url": "https://www.threads.com/@mid_nightcricketarena/post/DZCKZWtDf4V", "mode": "proxy"},
     # NOTE: Twitch VODs eventually expire; update this URL if Twitch starts failing
     # with not_found.
-    "Twitch":    {"url": "https://www.twitch.tv/videos/2782736257",                   "mode": "proxy"},
+    # NOTE: Twitch VODs expire (typically 7–60 days), so this target goes stale
+    # periodically. A stale target is reported as "TEST URL STALE" (see
+    # _selftest_one) rather than a platform outage — just swap in a fresh VOD.
+    "Twitch":    {"url": "https://www.twitch.tv/videos/2833784245",                   "mode": "proxy"},
     "Dailymotion": {"url": "https://dai.ly/xadp0v6",                                  "mode": "proxy"},
     "Vimeo":     {"url": "https://vimeo.com/76979871",                                "mode": "proxy"},
 }
@@ -2706,6 +2709,17 @@ async def _selftest_one(base: str, platform: str, url: str, mode: str,
                 # Rate-limited/quota — inconclusive, not a platform failure. Don't alarm.
                 return {"platform": platform, "ok": True, "detail": "skipped (rate-limited)"}
             if r.status_code != 200:
+                # Distinguish a STALE TEST TARGET (the sample video was deleted,
+                # went private, or — for Twitch — the VOD expired) from real
+                # platform breakage. Both fail, but the fix is completely
+                # different: swap the URL vs. debug the extractor.
+                _body = r.text[:400]
+                if re.search(r"does not exist|no longer available|Private content|"
+                             r"not found|NOT_FOUND|has been removed|unavailable",
+                             _body, re.I):
+                    return {"platform": platform, "ok": False,
+                            "detail": "TEST URL STALE — sample video gone; "
+                                      "update SELFTEST_TARGETS (not a platform outage)"}
                 return {"platform": platform, "ok": False, "detail": f"resolve HTTP {r.status_code}"}
             data = r.json()
             formats = data.get("formats") or []
