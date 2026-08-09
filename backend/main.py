@@ -59,6 +59,10 @@ YOUTUBE_COOKIES = os.environ.get("YOUTUBE_COOKIES", COOKIES)
 INSTAGRAM_COOKIES = os.environ.get("INSTAGRAM_COOKIES", COOKIES)
 # Facebook needs a logged-in session to server-render video data; falls back to COOKIES.
 FACEBOOK_COOKIES = os.environ.get("FACEBOOK_COOKIES", COOKIES)
+# Reddit now REQUIRES an authenticated session — yt-dlp fails anonymous requests
+# with "Account authentication is required". Without valid Reddit cookies here,
+# reddit.com/redd.it links cannot be extracted at all.
+REDDIT_COOKIES = os.environ.get("REDDIT_COOKIES", COOKIES)
 # Outbound proxy for yt-dlp requests (helps bypass datacenter IP blocks).
 # Format: http://user:pass@host:port  — leave unset to use direct connection.
 PROXY_URL = os.environ.get("PROXY_URL", "")
@@ -1960,6 +1964,11 @@ async def _download_impl(request: Request, req: DownloadRequest):
     elif is_instagram:
         cookie_content = None   # skip cookies on first attempt (see note above)
         label = "INSTAGRAM_COOKIES (skipped on first try)"
+    elif re.search(r"reddit\.com|redd\.it", req.url):
+        # Reddit rejects anonymous extraction outright ("Account authentication
+        # is required"), so a dedicated jar is worth calling out in the logs.
+        cookie_content = REDDIT_COOKIES or None
+        label = "REDDIT_COOKIES"
     else:
         # Facebook, TikTok, Twitter, Pinterest, Snapchat all use universal jar
         cookie_content = COOKIES or None
@@ -2227,6 +2236,10 @@ async def _download_impl(request: Request, req: DownloadRequest):
             _code = "unknown"
             if isinstance(_extract_err, AssertionError) and re.search(r"instagram\.com", req.url):
                 _code = "sign_in_required:instagram"
+            elif re.search(r"reddit\.com|redd\.it", req.url):
+                # Reddit refuses anonymous extraction entirely; a bare
+                # AssertionError tells the user nothing actionable.
+                _code = "sign_in_required:reddit"
             raise HTTPException(status_code=422, detail={"message": err_msg or type(_extract_err).__name__, "code": _code})
 
     if cookies_file:

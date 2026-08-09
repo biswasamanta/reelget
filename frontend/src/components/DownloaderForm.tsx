@@ -395,6 +395,7 @@ export default function DownloaderForm({ locale }: { locale: string }) {
         const ERROR_MESSAGES: Record<string, string> = {
           sign_in_required:           'This video requires sign-in. Try a different video or check if it\'s public.',
           'sign_in_required:instagram':'This Instagram video couldn\'t be accessed. Make sure the account is public and try again.',
+          'sign_in_required:reddit':  'Reddit now requires a signed-in session to fetch videos, so this link can\'t be downloaded right now.',
           'sign_in_required:facebook': 'This Facebook video couldn\'t be accessed. Make sure it\'s a public post.',
           'sign_in_required:twitter':  'This Twitter/X video couldn\'t be accessed. Make sure it\'s a public tweet.',
           unavailable:      'This video is unavailable or restricted in this region.',
