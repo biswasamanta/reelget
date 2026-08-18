@@ -2863,10 +2863,22 @@ async def _run_platform_selftest() -> list[dict]:
     return results
 
 
+# Platforms deliberately left broken (accepted, not regressions). They still run
+# in the self-test so we notice if they start working again, but they never
+# trigger an alarm — otherwise every run would cry wolf and real breakage would
+# get lost in the noise.
+KNOWN_ISSUES: dict[str, str] = {
+    "Vimeo":       "Vimeo enabled DRM — not downloadable (accepted)",
+    "Reddit":      "needs REDDIT_COOKIES — anonymous access blocked (accepted)",
+    "Pinterest":   "flaky on image pins (accepted)",
+}
+
+
 async def _selftest_loop() -> None:
-    """Background task: run the platform self-test once every 24h, alert on failures."""
+    """Background task: run the platform self-test every 2 days, alert on NEW
+    failures only (see KNOWN_ISSUES)."""
     CHECK_SEC = 3600  # check hourly
-    INTERVAL_SEC = 24 * 3600
+    INTERVAL_SEC = 48 * 3600   # every 2 days
     # Wait a bit after startup so the server is fully ready
     await asyncio.sleep(120)
     while True:
@@ -2874,19 +2886,40 @@ async def _selftest_loop() -> None:
             last_str = _db_get_config("selftest_ran_at")
             last_ts = float(last_str) if last_str else 0.0
             if time.time() - last_ts >= INTERVAL_SEC:
-                print("[selftest] running daily platform self-test", flush=True)
+                print("[selftest] running 2-day platform self-test", flush=True)
                 results = await _run_platform_selftest()
                 _db_set_config("selftest_ran_at", str(time.time()))
-                failures = [r for r in results if not r["ok"]]
+
+                # Split accepted known-issues from genuine regressions.
+                failures = [r for r in results
+                            if not r["ok"] and r["platform"] not in KNOWN_ISSUES]
+                known_bad = [r for r in results
+                             if not r["ok"] and r["platform"] in KNOWN_ISSUES]
+                recovered = [r for r in results
+                             if r["ok"] and r["platform"] in KNOWN_ISSUES]
+
+                if recovered:
+                    # A known-broken platform started working — worth knowing, so
+                    # it can be taken off the accepted list.
+                    await _send_telegram_alert(
+                        "🎉 <b>ReelGet — known issue RECOVERED</b>\n\n"
+                        + "\n".join(f"✅ <b>{r['platform']}</b> is working again"
+                                    for r in recovered)
+                        + "\n\n<i>Consider removing it from KNOWN_ISSUES.</i>"
+                    )
+
                 if failures:
                     lines = "\n".join(f"❌ <b>{r['platform']}</b>: {r['detail']}" for r in failures)
+                    if known_bad:
+                        lines += "\n\n<i>Known (ignored): " + ", ".join(
+                            r["platform"] for r in known_bad) + "</i>"
                     oks = ", ".join(r["platform"] for r in results if r["ok"]) or "none"
                     # If the proxy is down, lead with it — the platform failures
                     # that route through it are almost certainly downstream symptoms.
                     proxy_down = any(r["platform"] == "Proxy" and not r["ok"] for r in failures)
                     header = (
                         "🔌 <b>ReelGet — RESIDENTIAL PROXY DOWN</b>\n\n"
-                        "The proxy isn't reachable. Twitter/X &amp; Vimeo downloads "
+                        "The proxy isn't reachable. Twitter/X, Instagram &amp; Facebook "
                         "(which require it) will fail until it's restored.\n"
                         "👉 Check Webshare: data/bandwidth cap, plan status, and that "
                         "the authorized IP still matches.\n\n"
@@ -2897,11 +2930,12 @@ async def _selftest_loop() -> None:
                         f"{header}"
                         f"{lines}\n\n"
                         f"✅ Working: {oks}\n\n"
-                        f"<i>Automated daily self-test.</i>"
+                        f"<i>Automated self-test (every 2 days).</i>"
                     )
                     await _send_telegram_alert(msg)
                 else:
-                    print(f"[selftest] all {len(results)} platforms OK", flush=True)
+                    print(f"[selftest] no new failures ({len(results)} checks, "
+                          f"{len(known_bad)} known issues)", flush=True)
         except Exception as ex:
             print(f"[selftest] loop error: {ex}", flush=True)
         await asyncio.sleep(CHECK_SEC)
