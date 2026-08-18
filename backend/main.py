@@ -4017,7 +4017,15 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
         fmt = ("best[height<=1080][vcodec^=avc1]/best[height<=1080][ext=mp4]"
                "/bestvideo[height<=1080][vcodec^=avc1]+bestaudio/best[height<=1080]/best")
     else:
+        # NOTE: `best`/`worst` only match streams that already contain BOTH video
+        # and audio. Some HLS sources (e.g. Vimeo) publish only video-only and
+        # audio-only renditions, so without an explicit bestvideo+bestaudio merge
+        # step the SD selector matches nothing and yt-dlp aborts with "Requested
+        # format is not available" — a silent 0-byte download. The HD selector
+        # always had this fallback; SD was missing it.
         fmt = ("best[height<=480][vcodec^=avc1]/best[height<=480][ext=mp4]"
+               "/bestvideo[height<=480][vcodec^=avc1]+bestaudio"
+               "/bestvideo[height<=480]+bestaudio"
                "/worst[height>=360]/worst")
 
     def _build_cmd(use_proxy: bool, media_url: str) -> list[str]:
@@ -4094,6 +4102,14 @@ async def download_hls(url: str = Query(...), label: str = Query("hd")):
                         err = await asyncio.wait_for(proc.stderr.read(), timeout=5)
                         err_text = err.decode(errors="replace").strip()
                         if err_text:
+                            if "DRM" in err_text:
+                                # DRM-protected streams are not downloadable by
+                                # any route — don't waste the remaining attempts.
+                                print(f"[download-hls] {route}: source is DRM-PROTECTED "
+                                      f"— aborting ({page_url})", flush=True)
+                                try: proc.kill()
+                                except Exception: pass
+                                return
                             print(f"[download-hls] {route} no data — stderr: {err_text[:400]}", flush=True)
                     except Exception:
                         pass
