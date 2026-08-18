@@ -1217,21 +1217,51 @@ async def _facebook_html_extract(url: str) -> dict | None:
         except ImportError:
             print("[fb] curl_cffi not available", flush=True)
             return None
-        try:
-            session = cf_requests.Session(impersonate="chrome124")
+        # Meta flags individual exit IPs, so a fixed single route is a single
+        # point of failure (see the same fix in _instagram_pagescrape_extract).
+        # Try proxy → direct, with and without cookies, and accept the first page
+        # that actually carries video data.
+        _routes: list[tuple[bool, bool]] = []           # (use_proxy, send_cookies)
+        if PROXY_URL:
+            _routes.append((True, bool(cookies)))
+        _routes.append((False, bool(cookies)))
+        if cookies:
             if PROXY_URL:
-                session.proxies = {"http": PROXY_URL, "https": PROXY_URL}
-            for k, v in cookies.items():
-                session.cookies.set(k, v, domain=".facebook.com")
-            resp = session.get(
-                url,
-                headers={"Accept-Language": "en-US,en;q=0.9"},
-                timeout=30,
-            )
-            print(f"[fb] page → HTTP {resp.status_code} ({len(resp.text)} bytes)", flush=True)
-            if resp.status_code != 200:
-                return None
-            html = resp.text
+                _routes.append((True, False))
+            _routes.append((False, False))
+
+        html = None
+        for _i, (_use_proxy, _send_cookies) in enumerate(_routes):
+            _tag = f"{'proxy' if _use_proxy else 'direct'}{'+cookies' if _send_cookies else ''}"
+            try:
+                session = cf_requests.Session(impersonate="chrome124")
+                if _use_proxy and PROXY_URL:
+                    session.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+                if _send_cookies:
+                    for k, v in cookies.items():
+                        session.cookies.set(k, v, domain=".facebook.com")
+                resp = session.get(
+                    url,
+                    headers={"Accept-Language": "en-US,en;q=0.9"},
+                    timeout=30,
+                )
+                _has_media = ("videoDeliveryResponseFragment" in resp.text
+                              or "progressive_url" in resp.text
+                              or "playable_url" in resp.text)
+                print(f"[fb] {_tag} attempt {_i+1}/{len(_routes)} → HTTP {resp.status_code} "
+                      f"({len(resp.text)} bytes) media={'yes' if _has_media else 'no'}", flush=True)
+                if resp.status_code == 200 and _has_media:
+                    html = resp.text
+                    break
+            except Exception as _ex:
+                print(f"[fb] {_tag} attempt {_i+1} error: {_ex}", flush=True)
+            time.sleep(0.6)
+
+        if html is None:
+            print("[fb] all routes failed (login wall / flagged IP)", flush=True)
+            return None
+
+        try:
 
             # Diagnostics: detect login wall + whether video data is present at all.
             _has_frag = "videoDeliveryResponseFragment" in html
@@ -1346,20 +1376,48 @@ async def _instagram_pagescrape_extract(url: str) -> dict | None:
         except ImportError:
             print("[ig-scrape] curl_cffi not available", flush=True)
             return None
-        try:
-            sess = cf_requests.Session(impersonate="chrome124")
+        # Instagram rate-limits/flags individual exit IPs, so a single fixed route
+        # is a single point of failure — when the residential proxy IP gets
+        # flagged, every Instagram request dies with a login wall. Try several
+        # (route, cookies) combinations and take the first that returns a page
+        # actually containing video_versions.
+        _routes: list[tuple[bool, bool]] = []          # (use_proxy, send_cookies)
+        if PROXY_URL:
+            _routes.append((True, False))              # residential, logged-out
+        _routes.append((False, False))                 # Railway direct, logged-out
+        if cookies:
             if PROXY_URL:
-                sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
-            for k, v in cookies.items():
-                sess.cookies.set(k, v, domain=".instagram.com")
-            r = sess.get(url, headers={"Accept-Language": "en-US,en;q=0.9"}, timeout=30)
-            print(f"[ig-scrape] page → HTTP {r.status_code} ({len(r.text)} bytes)", flush=True)
-            if r.status_code != 200:
-                return None
-            html = r.text
-            if "video_versions" not in html:
-                print("[ig-scrape] no video_versions in page (login wall?)", flush=True)
-                return None
+                _routes.append((True, True))           # residential + session
+            _routes.append((False, True))              # direct + session
+
+        html = None
+        for _i, (_use_proxy, _send_cookies) in enumerate(_routes):
+            _tag = f"{'proxy' if _use_proxy else 'direct'}{'+cookies' if _send_cookies else ''}"
+            try:
+                sess = cf_requests.Session(impersonate="chrome124")
+                if _use_proxy and PROXY_URL:
+                    sess.proxies = {"http": PROXY_URL, "https": PROXY_URL}
+                if _send_cookies:
+                    for k, v in cookies.items():
+                        sess.cookies.set(k, v, domain=".instagram.com")
+                r = sess.get(url, headers={"Accept-Language": "en-US,en;q=0.9"}, timeout=30)
+                _ok = r.status_code == 200 and "video_versions" in r.text
+                print(f"[ig-scrape] {_tag} attempt {_i+1}/{len(_routes)} → "
+                      f"HTTP {r.status_code} ({len(r.text)} bytes) "
+                      f"video_versions={'yes' if (r.status_code==200 and 'video_versions' in r.text) else 'no'}",
+                      flush=True)
+                if _ok:
+                    html = r.text
+                    break
+            except Exception as _ex:
+                print(f"[ig-scrape] {_tag} attempt {_i+1} error: {_ex}", flush=True)
+            time.sleep(0.6)
+
+        if html is None:
+            print("[ig-scrape] all routes failed (login wall / flagged IP)", flush=True)
+            return None
+
+        try:
             best = title = thumb = None
             for m in re.finditer(r'<script type="application/json"[^>]*>(.*?)</script>',
                                  html, re.DOTALL):
